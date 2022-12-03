@@ -1,0 +1,374 @@
+html {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Roboto, sans-serif;
+  font-size: 100%;
+  background-color: #01292e;
+  background-image: linear-gradient(to bottom, #124044 0%, #001720 100%);
+  color: rgb(152, 255, 212);
+}
+
+main {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+}
+
+.Viewport {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.CanvasInteractions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 10px 20px;
+}
+
+.Toolbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+select {
+  min-width: 8em;
+  text-overflow: ellipsis;
+}
+
+.CanvasBackgroundColor {
+  display: flex;
+  align-items: center;
+}
+
+.ColorSwatch {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.RangeSwatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(128, 128, 128, 0.7);
+  border-radius: 6px;
+  margin: 0 5px;
+  overflow: hidden;
+}
+
+.RangeSwatch[data-color="black"] {
+  background: black;
+}
+
+.RangeSwatch[data-color="white"] {
+  background: white;
+}
+
+.RangeLabels {
+  display: flex;
+  align-items: center;
+}
+
+.rc-slider {
+  width: 100%;
+}
+
+.ColorSwatch + label {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(128, 128, 128, 0.7);
+  margin-right: 10px;
+  overflow: hidden;
+}
+
+.ColorSwatch + Label .HiddenLabel {
+  visibility: hidden;
+}
+
+.ColorSwatch[value="black"] + label {
+  background: black;
+}
+
+.ColorSwatch[value="magenta"] + label {
+  background: magenta;
+}
+
+.ColorSwatch[value="white"] + label {
+  background: white;
+}
+
+.ColorSwatch:checked + label {
+  border: 2px solid rgb(0, 140, 255);
+}
+
+.CanvasInteractions:focus {
+  outline: none;
+}
+
+.CanvasViewport {
+  position: relative;
+  display: grid;
+  place-content: center;
+  min-width: 640px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.CanvasInteractions:focus .CanvasViewport,
+.CanvasInteractions:focus-within .CanvasViewport {
+  outline: 2px solid rgba(114, 250, 209, 0.5);
+}
+
+.CanvasBackdrop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+}
+
+.CanvasTools {
+  display: flex;
+  align-self: stretch;
+  justify-content: space-between;
+}
+
+.Export {
+  display: flex;
+}
+
+.Export input[type="text"] {
+  font-size: 11px;
+}
+
+.Export button {
+  display: inline-block;
+  border: 1px solid rgb(49, 87, 226);
+  border-radius: 3px;
+  padding: 2px 10px;
+  background: rgb(20, 105, 241);
+  color: white;
+  font-size: 13px;
+  text-decoration: none;
+  margin-left: 3px;
+}
+
+.SliderContainer {
+  min-width: 200px;
+  min-height: 30px;
+  padding: 2px 10px;
+}
+
+.Buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.Buttons button {
+  display: grid;
+  place-content: center;
+  border: 1px solid rgb(23, 159, 138);
+  border-radius: 2px;
+  width: 28px;
+  height: 24px;
+  background: rgb(74, 193, 171);
+  color: rgb(5, 69, 76);
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.Buttons button:hover:not(:disabled),
+.Buttons button[data-active] {
+  background: rgb(99, 255, 226);
+}
+
+.Buttons button:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0);
+}
+
+.Buttons button:disabled {
+  opacity: 0.5;
+}
+
+.Buttons button[data-locked],
+.Buttons button[data-locked]:hover,
+.Buttons button[data-locked]:active {
+  border-color: rgb(253, 91, 91);
+  background: rgb(200, 79, 64);
+  color: white;
+}
+
+.CanvasToggle {
+  display: flex;
+  align-items: center;
+}
+
+.CanvasToggle button {
+  display: grid;
+  place-content: center;
+  border: 1px solid rgb(23, 159, 138);
+  border-left-width: 0;
+  border-radius: 0;
+  padding: 1px 10px 2px 10px;
+  background: rgb(89, 156, 161);
+  color: rgb(26, 68, 73);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  margin: 0;
+}
+
+.CanvasToggle button:first-child {
+  border-left-width: 1px;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.CanvasToggle button:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.CanvasToggle button[data-selected] {
+  background: rgb(99, 255, 226);
+  border-color: rgb(23, 159, 138);
+}
+
+.ModelTools {
+  display: flex;
+  flex-wrap: wrap;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 10px 0 0 10px;
+  z-index: 2;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.Field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.Field > label {
+  text-transform: uppercase;
+  font-size: 11px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  opacity: 0.8;
+}
+
+.BrushToolsPopup {
+  background: rgba(5, 22, 21, 0.9);
+  border-radius: 4px;
+  border: 1px solid rgb(0, 255, 200);
+  padding: 10px 12px;
+  user-select: none;
+}
+
+.PopupArrow {
+  display: none;
+}
+
+.Fields {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+@media only screen and (max-width: 899px) {
+  main {
+    flex-direction: column;
+  }
+
+  .Field {
+    padding: 0 10px;
+  }
+
+  .ModelTools {
+    position: static;
+    flex-direction: column;
+  }
+
+  .Viewport {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  select {
+    max-width: calc(100vw - 20px);
+  }
+
+  .Toolbar {
+    flex-direction: column;
+  }
+
+  model-viewer {
+    min-width: 100vw;
+    min-height: 100vh;
+  }
+
+  .CanvasInteractions {
+    align-items: center;
+    padding-bottom: 50px;
+  }
+
+  .CanvasViewport {
+    display: none;
+  }
+
+  .CanvasTools {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.CanvasContainer {
+  position: relative;
+}
+
+.CanvasContainer[data-active="false"] {
+  display: none;
+}
+
+.CanvasSelector {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 32px;
+  transform: translate3d(0, -50%, 0);
+  z-index: 2;
+}

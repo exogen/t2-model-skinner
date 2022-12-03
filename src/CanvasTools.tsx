@@ -1,0 +1,395 @@
+import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
+import getConfig from "next/config";
+import useCanvas from "./useCanvas";
+import useTools from "./useTools";
+import { usePopper } from "react-popper";
+import Slider from "rc-slider";
+import { RiFileCopyFill } from "react-icons/ri";
+import { FaTrashAlt, FaLock, FaUnlock } from "react-icons/fa";
+import { GoArrowUp, GoArrowDown } from "react-icons/go";
+import { GiArrowCursor } from "react-icons/gi";
+import { IoMdBrush } from "react-icons/io";
+import { ImPlus } from "react-icons/im";
+import useSettings from "./useSettings";
+import useWarrior from "./useWarrior";
+import useImageWorker from "./useImageWorker";
+
+const { publicRuntimeConfig } = getConfig();
+const { materials } = publicRuntimeConfig;
+
+export default function CanvasTools() {
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { actualModel, selectedModelType } = useWarrior();
+  const {
+    activeCanvas,
+    backgroundColor,
+    setBackgroundColor,
+    selectedObjects,
+    lockedObjects,
+    lockSelection,
+    unlockSelection,
+    bringForward,
+    sendBackward,
+    duplicate,
+    deleteSelection,
+    brushColor,
+    setBrushColor,
+    brushSize,
+    setBrushSize,
+    activeCanvasType,
+    selectedMaterialIndex,
+    textureSize,
+    addImages,
+  } = useTools();
+  const materialDefs = materials[actualModel];
+  const materialDef = materialDefs[selectedMaterialIndex];
+  const colorCanvasId = materialDef ? `${materialDef.name}:color` : null;
+  const metallicCanvasId = materialDef ? `${materialDef.name}:metallic` : null;
+  const { isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
+  const { canvas: colorCanvas } = useCanvas(colorCanvasId);
+  const { canvas: metallicCanvas } = useCanvas(metallicCanvasId);
+  const { canvasPadding } = useSettings();
+  const { combineColorAndAlphaImageUrls } = useImageWorker();
+
+  // Brush popup
+  const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(
+    null
+  );
+  const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+  const [isBrushToolsOpen, setBrushToolsOpen] = useState(false);
+  const { styles, attributes } = usePopper(referenceElement, popperElement, {
+    modifiers: [
+      { name: "arrow", options: { element: arrowElement } },
+      {
+        name: "offset",
+        options: {
+          offset: [0, 10],
+        },
+      },
+    ],
+  });
+
+  const isSelectionLocked = selectedObjects.length
+    ? selectedObjects.every((object) => lockedObjects.has(object))
+    : false;
+
+  const handleBackgroundColorChange: InputHTMLAttributes<HTMLInputElement>["onChange"] =
+    (event) => {
+      setBackgroundColor(event.target.value);
+    };
+
+  useEffect(() => {
+    if (popperElement) {
+      popperElement.focus();
+    }
+  }, [popperElement]);
+
+  return (
+    <div className="CanvasTools">
+      <div className="CanvasBackgroundColor">
+        <input
+          className="ColorSwatch"
+          type="radio"
+          name="backgroundColor"
+          id="canvasBackgroundColorBlack"
+          value="black"
+          checked={backgroundColor === "black"}
+          onChange={handleBackgroundColorChange}
+        />
+        <label htmlFor="canvasBackgroundColorBlack">
+          <span className="HiddenLabel">Black</span>
+        </label>
+        <input
+          className="ColorSwatch"
+          type="radio"
+          name="backgroundColor"
+          id="canvasBackgroundColorMagenta"
+          value="magenta"
+          checked={backgroundColor === "magenta"}
+          onChange={handleBackgroundColorChange}
+        />
+        <label htmlFor="canvasBackgroundColorMagenta">
+          <span className="HiddenLabel">Magenta</span>
+        </label>
+        <input
+          className="ColorSwatch"
+          type="radio"
+          name="backgroundColor"
+          id="canvasBackgroundColorWhite"
+          value="white"
+          checked={backgroundColor === "white"}
+          onChange={handleBackgroundColorChange}
+        />
+        <label htmlFor="canvasBackgroundColorWhite">
+          <span className="HiddenLabel">White</span>
+        </label>
+      </div>
+      <div className="Buttons">
+        {activeCanvasType === "color" ? (
+          <>
+            <input
+              ref={fileInputRef}
+              onChange={async (event) => {
+                const imageUrl = await new Promise<string>(
+                  (resolve, reject) => {
+                    const inputFile = event.target.files?.[0];
+                    if (inputFile) {
+                      const reader = new FileReader();
+                      reader.addEventListener("load", (event) => {
+                        resolve(event.target?.result as string);
+                      });
+                      reader.readAsDataURL(inputFile);
+                    } else {
+                      reject(new Error("No input file provided."));
+                    }
+                  }
+                );
+                addImages([imageUrl]);
+              }}
+              type="file"
+              accept=".png, image/png"
+              hidden
+            />
+            <button
+              type="button"
+              aria-label="Add Image"
+              title="Add Image"
+              onClick={() => {
+                if (fileInputRef.current) {
+                  fileInputRef.current.click();
+                }
+              }}
+            >
+              <ImPlus style={{ fontSize: 14 }} />
+            </button>
+            <button
+              type="button"
+              aria-label={isSelectionLocked ? "Unlock" : "Lock"}
+              title={isSelectionLocked ? "Unlock (L)" : "Lock (L)"}
+              onClick={isSelectionLocked ? unlockSelection : lockSelection}
+              data-locked={isSelectionLocked ? "" : undefined}
+            >
+              {isSelectionLocked ? (
+                <FaUnlock style={{ fontSize: 14 }} />
+              ) : (
+                <FaLock style={{ fontSize: 14 }} />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label="Bring Forward"
+              title="Bring Forward (F)"
+              onClick={bringForward}
+            >
+              <GoArrowUp style={{ fontSize: 22 }} />
+            </button>
+            <button
+              type="button"
+              aria-label="Send Backward"
+              title="Send Backward (B)"
+              onClick={sendBackward}
+            >
+              <GoArrowDown style={{ fontSize: 22 }} />
+            </button>
+            <button
+              type="button"
+              aria-label="Duplicate"
+              title="Duplicate (D)"
+              onClick={duplicate}
+            >
+              <RiFileCopyFill />
+            </button>
+            <button
+              type="button"
+              aria-label="Delete"
+              title="Delete (Backspace)"
+              onClick={deleteSelection}
+              disabled={isSelectionLocked}
+            >
+              <FaTrashAlt />
+            </button>
+          </>
+        ) : null}
+
+        {activeCanvasType === "metallic" ? (
+          <>
+            <button
+              type="button"
+              data-active={isDrawingMode ? undefined : ""}
+              aria-label="Select"
+              title="Select (S)"
+              onClick={() => {
+                setDrawingMode(false);
+              }}
+            >
+              <GiArrowCursor />
+            </button>
+            <button
+              type="button"
+              ref={setReferenceElement}
+              data-active={isDrawingMode ? "" : undefined}
+              aria-label="Paint"
+              title="Paint (P)"
+              onClick={() => {
+                setDrawingMode(true);
+                setBrushToolsOpen((isOpen) => !isOpen);
+              }}
+            >
+              <IoMdBrush />
+            </button>
+
+            {isBrushToolsOpen ? (
+              <div
+                className="BrushToolsPopup"
+                ref={setPopperElement}
+                style={styles.popper}
+                tabIndex={-1}
+                onBlur={(event) => {
+                  const newFocusElement = event.relatedTarget;
+                  const isFocusLeaving =
+                    !newFocusElement ||
+                    !event.currentTarget.contains(newFocusElement);
+                  if (isFocusLeaving) {
+                    setBrushToolsOpen(false);
+                  }
+                }}
+                {...attributes.popper}
+              >
+                <div className="Fields">
+                  <div className="Field">
+                    <label>Metallic Amount</label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={0}
+                        max={255}
+                        trackStyle={{
+                          display: "none",
+                        }}
+                        value={brushColor}
+                        onChange={(value) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setBrushColor(value);
+                        }}
+                        handleStyle={{
+                          width: 20,
+                          height: 20,
+                          marginTop: -6,
+                          borderColor: "rgb(20, 105, 241)",
+                          background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
+                          opacity: 1,
+                        }}
+                        railStyle={{
+                          height: 8,
+                          border: "1px solid #555",
+                          background:
+                            "linear-gradient(to right, black 0%, white 100%)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="Field">
+                    <label>Brush Size</label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={1}
+                        max={50}
+                        trackStyle={{
+                          height: 8,
+                          background: "#03fccf",
+                        }}
+                        value={brushSize}
+                        onChange={(value) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setBrushSize(value);
+                        }}
+                        handleStyle={{
+                          width: 20,
+                          height: 20,
+                          marginTop: -6,
+                          borderColor: "#03fccf",
+                          background: "rgb(5, 69, 76)",
+                          // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
+                          opacity: 1,
+                        }}
+                        railStyle={{
+                          height: 8,
+                          border: "1px solid #555",
+                          background: "rgba(255, 255, 255, 0.3)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="PopupArrow"
+                  ref={setArrowElement}
+                  style={styles.arrow}
+                />
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+      <div className="Export">
+        <input
+          ref={nameInputRef}
+          type="text"
+          name="CustomSkinName"
+          placeholder="Skin Name"
+          size={12}
+          hidden={selectedModelType !== "player"}
+        />
+        <button
+          type="button"
+          onClick={async (event) => {
+            const colorImageUrl = colorCanvas.toDataURL({
+              top: canvasPadding,
+              left: canvasPadding,
+              width: textureSize[0],
+              height: textureSize[1],
+            });
+            let downloadUrl;
+            if (metallicCanvas) {
+              const metallicImageUrl = metallicCanvas.toDataURL({
+                top: canvasPadding,
+                left: canvasPadding,
+                width: textureSize[0],
+                height: textureSize[1],
+              });
+              downloadUrl = await combineColorAndAlphaImageUrls({
+                colorImageUrl,
+                metallicImageUrl,
+              });
+            } else {
+              downloadUrl = colorImageUrl;
+            }
+
+            let name = "";
+            if (nameInputRef.current) {
+              name = nameInputRef.current.value.trim() || "MyCustomSkin";
+            }
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download =
+              selectedModelType === "player"
+                ? `${name}.${actualModel}.png`
+                : materialDef
+                ? `${materialDef.file ?? materialDef.name}.png`
+                : `weapon_${actualModel}.png`;
+            link.click();
+          }}
+        >
+          Export
+        </button>
+      </div>
+    </div>
+  );
+}
