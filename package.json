@@ -15,8 +15,10 @@
     "@popperjs/core": "^2.11.6",
     "@tanstack/react-query": "^4.19.0",
     "comlink": "^4.3.1",
+    "file-saver": "^2.0.5",
     "get-stream": "^6.0.1",
     "globby": "^13.1.2",
+    "jszip": "^3.10.1",
     "lodash.orderby": "^4.6.0",
     "next": "^13.0.5",
     "pngjs": "^6.0.0",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@next/eslint-plugin-next": "^13.0.5",
     "@types/fabric": "^4.5.13",
+    "@types/file-saver": "^2.0.5",
     "@types/pngjs": "^6.0.1",
     "@types/react": "18.0.25",
     "@typescript-eslint/eslint-plugin": "^5.45.0",

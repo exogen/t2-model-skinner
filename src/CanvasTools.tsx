@@ -1,5 +1,4 @@
 import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
-import getConfig from "next/config";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
 import { usePopper } from "react-popper";
@@ -10,17 +9,11 @@ import { GoArrowUp, GoArrowDown } from "react-icons/go";
 import { GiArrowCursor } from "react-icons/gi";
 import { IoMdBrush } from "react-icons/io";
 import { ImPlus } from "react-icons/im";
-import useSettings from "./useSettings";
-import useWarrior from "./useWarrior";
-import useImageWorker from "./useImageWorker";
-
-const { publicRuntimeConfig } = getConfig();
-const { materials } = publicRuntimeConfig;
 
 export default function CanvasTools() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { actualModel, selectedModelType } = useWarrior();
+  const fileTypeRef = useRef<HTMLSelectElement | null>(null);
   const {
     activeCanvas,
     backgroundColor,
@@ -38,19 +31,10 @@ export default function CanvasTools() {
     brushSize,
     setBrushSize,
     activeCanvasType,
-    selectedMaterialIndex,
-    textureSize,
     addImages,
+    exportSkin,
   } = useTools();
-  const materialDefs = materials[actualModel];
-  const materialDef = materialDefs[selectedMaterialIndex];
-  const colorCanvasId = materialDef ? `${materialDef.name}:color` : null;
-  const metallicCanvasId = materialDef ? `${materialDef.name}:metallic` : null;
   const { isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
-  const { canvas: colorCanvas } = useCanvas(colorCanvasId);
-  const { canvas: metallicCanvas } = useCanvas(metallicCanvasId);
-  const { canvasPadding } = useSettings();
-  const { combineColorAndAlphaImageUrls } = useImageWorker();
 
   // Brush popup
   const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(
@@ -345,50 +329,23 @@ export default function CanvasTools() {
           name="CustomSkinName"
           placeholder="Skin Name"
           size={12}
-          hidden={selectedModelType !== "player"}
         />
         <button
           type="button"
-          onClick={async (event) => {
-            const colorImageUrl = colorCanvas.toDataURL({
-              top: canvasPadding,
-              left: canvasPadding,
-              width: textureSize[0],
-              height: textureSize[1],
-            });
-            let downloadUrl;
-            if (metallicCanvas) {
-              const metallicImageUrl = metallicCanvas.toDataURL({
-                top: canvasPadding,
-                left: canvasPadding,
-                width: textureSize[0],
-                height: textureSize[1],
-              });
-              downloadUrl = await combineColorAndAlphaImageUrls({
-                colorImageUrl,
-                metallicImageUrl,
-              });
-            } else {
-              downloadUrl = colorImageUrl;
-            }
-
-            let name = "";
-            if (nameInputRef.current) {
-              name = nameInputRef.current.value.trim() || "MyCustomSkin";
-            }
-            const link = document.createElement("a");
-            link.href = downloadUrl;
-            link.download =
-              selectedModelType === "player"
-                ? `${name}.${actualModel}.png`
-                : materialDef
-                ? `${materialDef.file ?? materialDef.name}.png`
-                : `weapon_${actualModel}.png`;
-            link.click();
+          onClick={() => {
+            const name = nameInputRef.current ? nameInputRef.current.value : "";
+            const format = fileTypeRef.current
+              ? fileTypeRef.current.value
+              : ".png";
+            exportSkin({ name, format });
           }}
         >
           Export
         </button>
+        <select ref={fileTypeRef}>
+          <option value="png">.png</option>
+          <option value="vl2">.vl2</option>
+        </select>
       </div>
     </div>
   );

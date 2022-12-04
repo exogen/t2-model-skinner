@@ -55,7 +55,8 @@ select {
 }
 
 .CanvasBackgroundColor {
-  display: flex;
+  /* display: flex; */
+  display: none;
   align-items: center;
 }
 
@@ -171,6 +172,13 @@ select {
   color: white;
   font-size: 13px;
   text-decoration: none;
+  margin-left: 3px;
+}
+
+.Export select {
+  width: 6em;
+  min-width: 6em;
+  flex: 0 0 auto;
   margin-left: 3px;
 }
 

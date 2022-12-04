@@ -17,6 +17,13 @@ interface ToolsContextValue {
   bringForward: () => void;
   lockSelection: () => void;
   unlockSelection: () => void;
+  exportSkin: ({
+    name,
+    format,
+  }: {
+    name: string;
+    format: string;
+  }) => Promise<void>;
   lockedObjects: Set<fabric.Object>;
   backgroundColor: string;
   setBackgroundColor: (backgroundColor: string) => void;

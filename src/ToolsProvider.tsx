@@ -5,6 +5,10 @@ import { ToolsContext } from "./useTools";
 import useCanvas from "./useCanvas";
 import useWarrior from "./useWarrior";
 import { createFabricImage } from "./fabricUtils";
+import useImageWorker from "./useImageWorker";
+import { MaterialDefinition } from "./Material";
+import useSettings from "./useSettings";
+import { imageUrlToArrayBuffer } from "./imageUtils";
 
 const { publicRuntimeConfig } = getConfig();
 
@@ -33,12 +37,10 @@ function isActiveSelection(
 }
 
 export default function ToolsProvider({ children }: { children: ReactNode }) {
-  const { actualModel } = useWarrior();
+  const { actualModel, selectedModelType } = useWarrior();
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
-  const materialDef = useMemo(
-    () => materials[actualModel][selectedMaterialIndex] ?? null,
-    [actualModel, selectedMaterialIndex]
-  );
+  const materialDefs = materials[actualModel];
+  const materialDef = materialDefs[selectedMaterialIndex] ?? null;
 
   const textureSize = useMemo(
     () => materialDef.size ?? [512, 512],
@@ -69,9 +71,12 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     ? `${materialDef.name}:${activeCanvasType}`
     : null;
   const metallicCanvasId = materialDef ? `${materialDef.name}:metallic` : null;
+  const { canvases } = useCanvas();
   const { canvas, notifyChange } = useCanvas(activeCanvas);
   const { canvas: metallicCanvas } = useCanvas(metallicCanvasId);
   const [isDrawingMode, setDrawingMode] = useState(false);
+  const { combineColorAndAlphaImageUrls } = useImageWorker();
+  const { canvasPadding } = useSettings();
 
   const lockSelection = useCallback(() => {
     if (selectedObjects.length) {
@@ -193,6 +198,94 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     // forceUpdateRef.current();
   }, [canvas]);
 
+  const exportSkin = useCallback(
+    async ({ format, name = "" }: { format: string; name: string }) => {
+      const { savePngFile, saveZipFile, createZipFile } = await import(
+        "./exportUtils"
+      );
+
+      name = name.trim() || "MyCustomSkin";
+
+      const materialExports = await Promise.all(
+        materialDefs.map(async (materialDef: MaterialDefinition) => {
+          const colorCanvas = canvases[`${materialDef.name}:color`]?.canvas;
+          const metallicCanvas =
+            canvases[`${materialDef.name}:metallic`]?.canvas;
+
+          const textureSize = materialDef.size ?? [512, 512];
+          let outputImageUrl;
+
+          const colorImageUrl = colorCanvas.toDataURL({
+            top: canvasPadding,
+            left: canvasPadding,
+            width: textureSize[0],
+            height: textureSize[1],
+          });
+
+          if (metallicCanvas) {
+            const metallicImageUrl = metallicCanvas.toDataURL({
+              top: canvasPadding,
+              left: canvasPadding,
+              width: textureSize[0],
+              height: textureSize[1],
+            });
+            outputImageUrl = await combineColorAndAlphaImageUrls({
+              colorImageUrl,
+              metallicImageUrl,
+            });
+          } else {
+            outputImageUrl = colorImageUrl;
+          }
+
+          const filename =
+            selectedModelType === "player"
+              ? `${name}.${actualModel}.png`
+              : materialDef
+              ? `${materialDef.file ?? materialDef.name}.png`
+              : `weapon_${actualModel}.png`;
+
+          return { imageUrl: outputImageUrl, filename };
+        })
+      );
+
+      switch (format) {
+        case "png": {
+          const { imageUrl, filename } = materialExports[selectedMaterialIndex];
+          savePngFile(imageUrl, filename);
+          break;
+        }
+        case "vl2": {
+          const files = await Promise.all(
+            materialExports.map(async (materialExport) => ({
+              data: await imageUrlToArrayBuffer(materialExport.imageUrl),
+              name: materialExport.filename,
+            }))
+          );
+          const zip = createZipFile(files);
+          const camelCaseName = actualModel.replace(
+            /(?:^([a-z])|_([a-z]))/g,
+            (match, a, b) => (a || b).toUpperCase()
+          );
+          const zipFileName =
+            selectedModelType === "player"
+              ? `zPlayerSkin-${name}.vl2`
+              : `zWeapon${camelCaseName}-${name}.vl2`;
+          await saveZipFile(zip, zipFileName);
+        }
+      }
+      return;
+    },
+    [
+      actualModel,
+      canvasPadding,
+      canvases,
+      combineColorAndAlphaImageUrls,
+      materialDefs,
+      selectedMaterialIndex,
+      selectedModelType,
+    ]
+  );
+
   const context = useMemo(
     () => ({
       activeCanvas,
@@ -214,6 +307,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       addImages,
       duplicate,
       deleteSelection,
+      exportSkin,
       isDrawingMode,
       setDrawingMode,
       selectedMaterialIndex,
@@ -236,6 +330,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       addImages,
       duplicate,
       deleteSelection,
+      exportSkin,
       isDrawingMode,
       selectedMaterialIndex,
       textureSize,

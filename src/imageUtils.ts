@@ -140,8 +140,9 @@ export function setMetallicFromGrayscale(rgba: Uint8Array) {
     // Red meanings nothing, set to 0.
     rgba[i] = 0;
     // Green maps to roughness. We want more metallic to be less rough.
-    rgba[i + 1] = 255 - grayscale;
+    rgba[i + 1] = 255 - Math.min(Math.floor(grayscale * 2), 255);
     // Blue and alpha values should already be correct.
+    rgba[i + 2] = Math.min(Math.floor(grayscale * 2), 255);
   }
 }
 
