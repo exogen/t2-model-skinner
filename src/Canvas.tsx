@@ -76,11 +76,6 @@ export default function Canvas({
     }
   }, [canvas, undoHistory]);
 
-  useEffect(() => {
-    console.log("undo:", undoHistory);
-    console.log("redo:", redoHistory);
-  }, [undoHistory, redoHistory]);
-
   const redo = useCallback(() => {
     if (!canvas) {
       return;
@@ -132,14 +127,23 @@ export default function Canvas({
       clearTimeout(changeTimer);
       changeTimer = setTimeout(() => {
         const snapshot = snapshotCanvas();
-        setUndoHistory((history) => [...history.slice(-2), snapshot]);
+        setUndoHistory((history) => [...history.slice(-5), snapshot]);
         setRedoHistory([]);
       }, 150);
     };
 
     const snapshotCanvas = () => {
       isSnapshotting = true;
-      const snapshot = canvas.toJSON();
+      const snapshot = canvas.toJSON([
+        "lockMovementX",
+        "lockMovementY",
+        "lockRotation",
+        "lockScalingX",
+        "lockScalingY",
+        "selectable",
+        "hoverCursor",
+        "moveCursor",
+      ]);
       isSnapshotting = false;
       return snapshot;
     };

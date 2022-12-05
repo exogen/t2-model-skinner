@@ -39,6 +39,9 @@ export default function CanvasTools() {
     exportSkin,
   } = useTools();
   const { isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
+  const [isMac, setIsMac] = useState(false);
+  const commandKeyPrefix = isMac ? "⌘" : "Ctrl ";
+  const shiftKeySymbol = "⇧";
 
   // Brush popup
   const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(
@@ -67,6 +70,14 @@ export default function CanvasTools() {
     (event) => {
       setBackgroundColor(event.target.value);
     };
+
+  useEffect(() => {
+    if (navigator.platform && navigator.platform.startsWith("Mac")) {
+      setIsMac(true);
+    } else if (navigator.userAgent.match(/\(Macintosh;/)) {
+      setIsMac(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (popperElement) {
@@ -201,7 +212,7 @@ export default function CanvasTools() {
             <button
               type="button"
               aria-label="Undo"
-              title="Undo (Ctrl Z)"
+              title={`Undo (${commandKeyPrefix}Z)`}
               onClick={undo}
               disabled={!canUndo}
             >
@@ -210,7 +221,11 @@ export default function CanvasTools() {
             <button
               type="button"
               aria-label="Redo"
-              title="Redo (Ctrl Y)"
+              title={`Redo (${
+                isMac
+                  ? `${shiftKeySymbol}${commandKeyPrefix}Z)`
+                  : `${commandKeyPrefix} Y`
+              }`}
               onClick={redo}
               disabled={!canRedo}
             >
