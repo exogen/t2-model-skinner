@@ -15,6 +15,8 @@ export default function CanvasInteractions({
     duplicate,
     deleteSelection,
     addImages,
+    undo,
+    redo,
   } = useTools();
   const { canvas, notifyChange, setDrawingMode } = useCanvas(activeCanvas);
 
@@ -78,11 +80,11 @@ export default function CanvasInteractions({
                 return;
               } else if (event.shiftKey) {
                 event.preventDefault();
-                // redo();
+                redo();
                 return;
               } else {
                 event.preventDefault();
-                // undo();
+                undo();
                 return;
               }
             case "y":
@@ -90,7 +92,7 @@ export default function CanvasInteractions({
                 return;
               } else {
                 event.preventDefault();
-                // redo();
+                redo();
                 return;
               }
           }

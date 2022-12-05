@@ -6,6 +6,10 @@ export interface CanvasInfo {
   notifyChange: () => void;
   isDrawingMode: boolean;
   setDrawingMode: (isDrawingMode: boolean) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 interface CanvasContextValue {

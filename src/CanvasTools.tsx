@@ -8,7 +8,7 @@ import { FaTrashAlt, FaLock, FaUnlock } from "react-icons/fa";
 import { GoArrowUp, GoArrowDown } from "react-icons/go";
 import { GiArrowCursor } from "react-icons/gi";
 import { IoMdBrush } from "react-icons/io";
-import { ImPlus } from "react-icons/im";
+import { ImPlus, ImUndo2, ImRedo2 } from "react-icons/im";
 
 export default function CanvasTools() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -26,6 +26,10 @@ export default function CanvasTools() {
     sendBackward,
     duplicate,
     deleteSelection,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     brushColor,
     setBrushColor,
     brushSize,
@@ -193,6 +197,24 @@ export default function CanvasTools() {
               disabled={isSelectionLocked}
             >
               <FaTrashAlt />
+            </button>
+            <button
+              type="button"
+              aria-label="Undo"
+              title="Undo (Ctrl Z)"
+              onClick={undo}
+              disabled={!canUndo}
+            >
+              <ImUndo2 />
+            </button>
+            <button
+              type="button"
+              aria-label="Redo"
+              title="Redo (Ctrl Y)"
+              onClick={redo}
+              disabled={!canRedo}
+            >
+              <ImRedo2 />
             </button>
           </>
         ) : null}

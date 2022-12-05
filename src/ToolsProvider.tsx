@@ -72,7 +72,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     : null;
   const metallicCanvasId = materialDef ? `${materialDef.name}:metallic` : null;
   const { canvases } = useCanvas();
-  const { canvas, notifyChange } = useCanvas(activeCanvas);
+  const { canvas, notifyChange, undo, redo, canUndo, canRedo } =
+    useCanvas(activeCanvas);
   const { canvas: metallicCanvas } = useCanvas(metallicCanvasId);
   const [isDrawingMode, setDrawingMode] = useState(false);
   const { combineColorAndAlphaImageUrls } = useImageWorker();
@@ -307,6 +308,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       addImages,
       duplicate,
       deleteSelection,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
       exportSkin,
       isDrawingMode,
       setDrawingMode,
@@ -330,6 +335,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       addImages,
       duplicate,
       deleteSelection,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
       exportSkin,
       isDrawingMode,
       selectedMaterialIndex,

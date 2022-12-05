@@ -5,6 +5,8 @@ import useTools from "./useTools";
 import { fabric } from "fabric";
 import { createFabricImage } from "./fabricUtils";
 
+type JSONSnapshot = ReturnType<typeof Canvas.prototype["toJSON"]>;
+
 function updateObjectControlOptions() {
   fabric.Object.prototype.set({
     transparentCorners: false,
@@ -41,6 +43,12 @@ export default function Canvas({
   const { registerCanvas, unregisterCanvas } = useCanvas();
   const [isDrawingMode, setDrawingMode] = useState(defaultDrawingMode);
   const handleChangeRef = useRef<CanvasProps["onChange"]>();
+  const trackChanges = useRef(true);
+  const [undoHistory, setUndoHistory] = useState<JSONSnapshot[]>(() => []);
+  const [redoHistory, setRedoHistory] = useState<JSONSnapshot[]>(() => []);
+
+  const canUndo = undoHistory.length > 1;
+  const canRedo = redoHistory.length > 0;
 
   const handleChange: CanvasProps["onChange"] = useCallback((canvas) => {
     const handleChange = handleChangeRef.current;
@@ -48,6 +56,49 @@ export default function Canvas({
       handleChange(canvas);
     }
   }, []);
+
+  const undo = useCallback(async () => {
+    if (!canvas) {
+      return;
+    }
+    if (undoHistory.length > 1) {
+      const [restoreState, currentState] = undoHistory.slice(-2);
+      trackChanges.current = false;
+      canvas.renderOnAddRemove = false;
+      canvas.clear();
+      canvas.loadFromJSON(restoreState, () => {
+        canvas.renderAll();
+        trackChanges.current = true;
+        canvas.renderOnAddRemove = true;
+      });
+      setUndoHistory((undoHistory) => undoHistory.slice(0, -1));
+      setRedoHistory((redoHistory) => [currentState, ...redoHistory]);
+    }
+  }, [canvas, undoHistory]);
+
+  useEffect(() => {
+    console.log("undo:", undoHistory);
+    console.log("redo:", redoHistory);
+  }, [undoHistory, redoHistory]);
+
+  const redo = useCallback(() => {
+    if (!canvas) {
+      return;
+    }
+    if (redoHistory.length > 0) {
+      const nextState = redoHistory[0];
+      trackChanges.current = false;
+      canvas.renderOnAddRemove = false;
+      canvas.clear();
+      canvas.loadFromJSON(nextState, () => {
+        canvas.renderAll();
+        trackChanges.current = true;
+        canvas.renderOnAddRemove = true;
+      });
+      setUndoHistory((undoHistory) => [...undoHistory, nextState]);
+      setRedoHistory((redoHistory) => redoHistory.slice(1));
+    }
+  }, [canvas, redoHistory]);
 
   useEffect(() => {
     handleChangeRef.current = onChange;
@@ -59,23 +110,49 @@ export default function Canvas({
     const options = {
       preserveObjectStacking: true,
       targetFindTolerance: 2,
-      // imageSmoothingEnabled: false,
     };
     updateObjectControlOptions();
 
     const canvas = new fabric.Canvas(canvasElementRef.current, options);
 
+    let isSnapshotting = false;
+    let changeTimer: ReturnType<typeof setTimeout>;
+
     const handleChangeWithCanvasArg = () => {
       handleChange(canvas);
+    };
+
+    const handleRender = () => {
+      if (isSnapshotting) {
+        return;
+      }
+      if (!trackChanges.current) {
+        return;
+      }
+      clearTimeout(changeTimer);
+      changeTimer = setTimeout(() => {
+        const snapshot = snapshotCanvas();
+        setUndoHistory((history) => [...history.slice(-2), snapshot]);
+        setRedoHistory([]);
+      }, 150);
+    };
+
+    const snapshotCanvas = () => {
+      isSnapshotting = true;
+      const snapshot = canvas.toJSON();
+      isSnapshotting = false;
+      return snapshot;
     };
 
     canvas.on("object:modified", handleChangeWithCanvasArg);
     canvas.on("object:added", handleChangeWithCanvasArg);
     canvas.on("object:removed", handleChangeWithCanvasArg);
+    canvas.on("after:render", handleRender);
 
     setCanvas(canvas);
 
     return () => {
+      clearTimeout(changeTimer);
       setCanvas(null);
       canvas.dispose();
     };
@@ -101,6 +178,10 @@ export default function Canvas({
           canvas.renderAll();
           handleChange(canvas);
         },
+        undo,
+        redo,
+        canUndo,
+        canRedo,
         isDrawingMode,
         setDrawingMode,
       });
@@ -116,10 +197,15 @@ export default function Canvas({
     handleChange,
     isDrawingMode,
     setDrawingMode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   ]);
 
   useEffect(() => {
     if (canvas && textureSize) {
+      trackChanges.current = false;
       canvas.clear();
       if (baseImageUrl) {
         let stale = false;
@@ -151,6 +237,8 @@ export default function Canvas({
             canvas.centerObject(image);
             canvas.add(image);
           }
+          trackChanges.current = true;
+          canvas.requestRenderAll();
         };
 
         addImage();

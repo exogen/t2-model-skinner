@@ -11,6 +11,10 @@ interface ToolsContextValue {
   brushColor: number;
   setBrushColor: (brushColor: number) => void;
   deleteSelection: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
   addImages: (imageUrls: string[]) => void;
   duplicate: () => void;
   sendBackward: () => void;
