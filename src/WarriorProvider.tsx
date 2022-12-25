@@ -34,6 +34,7 @@ export function getSkinImageUrls({
       }
       break;
     case "weapon":
+    case "vehicle":
       return materialDefs.reduce(
         (
           skinImageUrls: Record<string, string>,

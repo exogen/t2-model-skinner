@@ -84,6 +84,9 @@ export default function WarriorSelector() {
             <option value="repair">Repair Pack</option>
             <option value="targeting">Targeting Laser</option>
           </optgroup>
+          <optgroup label="Vehicles" data-model-type="vehicle">
+            <option value="vehicle_air_scout">Shrike</option>
+          </optgroup>
         </select>
       </div>
       <div className="Field">
@@ -125,7 +128,8 @@ export default function WarriorSelector() {
                 </optgroup>
               </>
             ) : null}
-            {selectedModelType === "weapon" ? (
+            {selectedModelType === "weapon" ||
+            selectedModelType === "vehicle" ? (
               <>
                 {modelDefaults[actualModel] ? (
                   <optgroup label="Default Skins" data-skin-type="default">

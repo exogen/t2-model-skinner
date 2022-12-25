@@ -28,6 +28,8 @@ const weaponModels = [
   "targeting",
 ];
 
+const vehicleModels = ["vehicle_air_scout"];
+
 export async function getSkinConfig() {
   const [defaultSkins, customSkins, customWeaponSkins] = await Promise.all([
     Promise.all(
@@ -101,6 +103,8 @@ export async function getSkinConfig() {
       shocklance: "weapon_shocklance",
       sniper: "weapon_sniper",
       targeting: "weapon_targeting",
+      // Vehicles
+      vehicle_air_scout: "vehicle_air_scout",
     },
     animationLabels: {
       Forward: "Run Forward",
@@ -259,6 +263,34 @@ export async function getSkinConfig() {
       mortar: [{ label: "Weapon", name: "weapon_mortar" }],
       repair: [{ label: "Weapon", name: "weapon_repair" }],
       targeting: [{ label: "Weapon", name: "weapon_targeting" }],
+      // Vehicles
+      vehicle_air_scout: [
+        {
+          label: "Vehicle",
+          name: "vehicle_air_scout0",
+          file: "vehicle_air_scout",
+        },
+        {
+          name: "Unassigned",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          name: "vehicle_air_scout",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          label: "Flare",
+          name: "shrikeflare2",
+          emissiveFactor: [0, 0, 0],
+          alphaMode: "BLEND",
+          emissiveTexture: true,
+          metallicFactor: 0,
+          roughnessFactor: 1,
+          size: [256, 256],
+        },
+      ],
     },
     animations: {
       global: [

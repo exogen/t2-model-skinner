@@ -208,45 +208,59 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       name = name.trim() || "MyCustomSkin";
 
       const materialExports = await Promise.all(
-        materialDefs.map(async (materialDef: MaterialDefinition) => {
-          const colorCanvas = canvases[`${materialDef.name}:color`]?.canvas;
-          const metallicCanvas =
-            canvases[`${materialDef.name}:metallic`]?.canvas;
+        materialDefs
+          .filter(
+            (materialDef: MaterialDefinition) =>
+              materialDef && !materialDef.hidden
+          )
+          .map(async (materialDef: MaterialDefinition) => {
+            const colorCanvas = canvases[`${materialDef.name}:color`]?.canvas;
+            const metallicCanvas =
+              canvases[`${materialDef.name}:metallic`]?.canvas;
 
-          const textureSize = materialDef.size ?? [512, 512];
-          let outputImageUrl;
+            const textureSize = materialDef.size ?? [512, 512];
+            let outputImageUrl;
 
-          const colorImageUrl = colorCanvas.toDataURL({
-            top: canvasPadding,
-            left: canvasPadding,
-            width: textureSize[0],
-            height: textureSize[1],
-          });
-
-          if (metallicCanvas) {
-            const metallicImageUrl = metallicCanvas.toDataURL({
+            const colorImageUrl = colorCanvas.toDataURL({
               top: canvasPadding,
               left: canvasPadding,
               width: textureSize[0],
               height: textureSize[1],
             });
-            outputImageUrl = await combineColorAndAlphaImageUrls({
-              colorImageUrl,
-              metallicImageUrl,
-            });
-          } else {
-            outputImageUrl = colorImageUrl;
-          }
 
-          const filename =
-            selectedModelType === "player"
-              ? `${name}.${actualModel}.png`
-              : materialDef
-              ? `${materialDef.file ?? materialDef.name}.png`
-              : `weapon_${actualModel}.png`;
+            if (metallicCanvas) {
+              const metallicImageUrl = metallicCanvas.toDataURL({
+                top: canvasPadding,
+                left: canvasPadding,
+                width: textureSize[0],
+                height: textureSize[1],
+              });
+              outputImageUrl = await combineColorAndAlphaImageUrls({
+                colorImageUrl,
+                metallicImageUrl,
+              });
+            } else {
+              outputImageUrl = colorImageUrl;
+            }
 
-          return { imageUrl: outputImageUrl, filename };
-        })
+            let filename;
+            switch (selectedModelType) {
+              case "player":
+                filename = `${name}.${actualModel}.png`;
+                break;
+              case "weapon":
+              case "vehicle":
+                if (materialDef) {
+                  filename = `${materialDef.file ?? materialDef.name}.png`;
+                } else if (selectedModelType === "weapon") {
+                  filename = `weapon_${actualModel}.png`;
+                } else {
+                  filename = `${actualModel}.png`;
+                }
+            }
+
+            return { imageUrl: outputImageUrl, filename };
+          })
       );
 
       switch (format) {
