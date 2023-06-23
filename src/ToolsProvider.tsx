@@ -36,6 +36,12 @@ function isActiveSelection(
   return object.type === "activeSelection";
 }
 
+type ObjectFilters = {
+  HueRotation?: number;
+  Saturation?: number;
+  Brightness?: number;
+};
+
 export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { actualModel, selectedModelType } = useWarrior();
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
@@ -63,6 +69,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   );
   const [brushColor, setBrushColor] = useState(200);
   const [brushSize, setBrushSize] = useState(10);
+  const [filterMap, setFilterMap] = useState(
+    () => new Map<fabric.Object, ObjectFilters>()
+  );
   const [selectedObjects, setSelectedObjects] = useState<fabric.Object[]>(
     () => []
   );
@@ -78,6 +87,111 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const [isDrawingMode, setDrawingMode] = useState(false);
   const { combineColorAndAlphaImageUrls } = useImageWorker();
   const { canvasPadding } = useSettings();
+  const [filterChanges, setFilterChanges] = useState<
+    Array<[fabric.Object, ObjectFilters]>
+  >(() => []);
+
+  const getFilter = (name: keyof ObjectFilters) => {
+    if (selectedObjects.length) {
+      const getValue = (i: number) =>
+        (filterMap.get(selectedObjects[i]) ?? {})[name] ?? 0;
+      const firstValue = getValue(0);
+      if (
+        selectedObjects
+          .slice(1)
+          .every((selectedObject, i) => getValue(i + 1) === firstValue)
+      ) {
+        return firstValue;
+      }
+      return null;
+    } else {
+      return 0;
+    }
+  };
+
+  const hueRotate = getFilter("HueRotation");
+  const saturation = getFilter("Saturation");
+  const brightness = getFilter("Brightness");
+
+  const setFilter = useCallback(
+    (name: keyof ObjectFilters, value: number) => {
+      if (!selectedObjects.length) {
+        setFilterChanges([]);
+        return;
+      }
+      const filterChanges: Array<[fabric.Object, ObjectFilters]> = [];
+      const newFilterMap = new Map(filterMap);
+      for (const selectedObject of selectedObjects) {
+        const existingFilters = filterMap.get(selectedObject) ?? {};
+        const newFilters = { ...existingFilters, [name]: value };
+        newFilterMap.set(selectedObject, newFilters);
+        filterChanges.push([selectedObject, newFilters]);
+      }
+      setFilterMap(newFilterMap);
+      setFilterChanges(filterChanges);
+    },
+    [filterMap, selectedObjects]
+  );
+
+  const setHueRotate = useCallback(
+    (value: number) => setFilter("HueRotation", value),
+    [setFilter]
+  );
+
+  const setSaturation = useCallback(
+    (value: number) => setFilter("Saturation", value),
+    [setFilter]
+  );
+
+  const setBrightness = useCallback(
+    (value: number) => setFilter("Brightness", value),
+    [setFilter]
+  );
+
+  useEffect(() => {
+    if (!filterChanges.length) {
+      return;
+    }
+    for (const [selectedObject, newFilters] of filterChanges) {
+      if (selectedObject instanceof fabric.Image) {
+        selectedObject.filters = [];
+        for (const key in newFilters) {
+          const filterValue = newFilters[key as keyof ObjectFilters] ?? 0;
+          if (filterValue !== 0) {
+            switch (key) {
+              case "HueRotation":
+                selectedObject.filters.push(
+                  // @ts-expect-error @types/fabric does not include HueRotation.
+                  new fabric.Image.filters.HueRotation({
+                    rotation: filterValue,
+                  })
+                );
+                break;
+              case "Saturation":
+                selectedObject.filters.push(
+                  new fabric.Image.filters.Saturation({
+                    saturation: filterValue,
+                  })
+                );
+                break;
+              case "Brightness":
+                selectedObject.filters.push(
+                  new fabric.Image.filters.Brightness({
+                    brightness: filterValue,
+                  })
+                );
+                break;
+            }
+          }
+        }
+        selectedObject.applyFilters();
+      }
+    }
+    setFilterChanges([]);
+    if (notifyChange) {
+      notifyChange();
+    }
+  }, [filterChanges, notifyChange]);
 
   const lockSelection = useCallback(() => {
     if (selectedObjects.length) {
@@ -314,6 +428,12 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setBrushColor,
       brushSize,
       setBrushSize,
+      hueRotate,
+      setHueRotate,
+      saturation,
+      setSaturation,
+      brightness,
+      setBrightness,
       selectedObjects,
       lockSelection,
       unlockSelection,
@@ -341,6 +461,12 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       lockedObjects,
       brushColor,
       brushSize,
+      hueRotate,
+      saturation,
+      brightness,
+      setHueRotate,
+      setSaturation,
+      setBrightness,
       selectedObjects,
       lockSelection,
       unlockSelection,
@@ -369,6 +495,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canvas.on("selection:cleared", handleSelectionUpdated);
       canvas.on("selection:updated", handleSelectionUpdated);
       canvas.on("selection:created", handleSelectionUpdated);
+
+      handleSelectionUpdated();
 
       return () => {
         canvas.off("selection:cleared", handleSelectionUpdated);

@@ -311,6 +311,11 @@ select {
   gap: 10px;
 }
 
+.Field label strong {
+  margin-left: 4px;
+  color: #d0ffee;
+}
+
 @media only screen and (max-width: 899px) {
   main {
     flex-direction: column;

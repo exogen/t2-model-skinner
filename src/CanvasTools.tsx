@@ -8,7 +8,7 @@ import { FaTrashAlt, FaLock, FaUnlock } from "react-icons/fa";
 import { GoArrowUp, GoArrowDown } from "react-icons/go";
 import { GiArrowCursor } from "react-icons/gi";
 import { IoMdBrush } from "react-icons/io";
-import { ImPlus, ImUndo2, ImRedo2 } from "react-icons/im";
+import { ImPlus, ImUndo2, ImRedo2, ImContrast } from "react-icons/im";
 
 export default function CanvasTools() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -34,6 +34,12 @@ export default function CanvasTools() {
     setBrushColor,
     brushSize,
     setBrushSize,
+    hueRotate,
+    setHueRotate,
+    saturation,
+    setSaturation,
+    brightness,
+    setBrightness,
     activeCanvasType,
     addImages,
     exportSkin,
@@ -50,6 +56,7 @@ export default function CanvasTools() {
   const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
   const [isBrushToolsOpen, setBrushToolsOpen] = useState(false);
+  const [isFilterToolsOpen, setFilterToolsOpen] = useState(false);
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     modifiers: [
       { name: "arrow", options: { element: arrowElement } },
@@ -61,6 +68,10 @@ export default function CanvasTools() {
       },
     ],
   });
+
+  if (isFilterToolsOpen && !selectedObjects.length) {
+    setFilterToolsOpen(false);
+  }
 
   const isSelectionLocked = selectedObjects.length
     ? selectedObjects.every((object) => lockedObjects.has(object))
@@ -163,6 +174,178 @@ export default function CanvasTools() {
             >
               <ImPlus style={{ fontSize: 14 }} />
             </button>
+
+            <button
+              type="button"
+              ref={setReferenceElement}
+              data-active={isFilterToolsOpen ? "" : undefined}
+              disabled={!selectedObjects.length}
+              aria-label="Filters"
+              title="Filters"
+              onClick={() => {
+                setFilterToolsOpen((isOpen) => !isOpen);
+              }}
+            >
+              <ImContrast />
+            </button>
+
+            {isFilterToolsOpen ? (
+              <div
+                className="BrushToolsPopup"
+                ref={setPopperElement}
+                style={styles.popper}
+                tabIndex={-1}
+                onBlur={(event) => {
+                  const newFocusElement = event.relatedTarget;
+                  const isFocusLeaving =
+                    !newFocusElement ||
+                    !event.currentTarget.contains(newFocusElement);
+                  if (isFocusLeaving) {
+                    setFilterToolsOpen(false);
+                  }
+                }}
+                {...attributes.popper}
+              >
+                <div className="Fields">
+                  <div className="Field">
+                    <label>
+                      Hue:{" "}
+                      <strong>
+                        {hueRotate == null ? (
+                          "MULTIPLE VALUES"
+                        ) : (
+                          <>{Math.round(hueRotate * 180)}&deg;</>
+                        )}
+                      </strong>
+                    </label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={-180}
+                        max={180}
+                        startPoint={0}
+                        value={Math.round((hueRotate ?? 0) * 180)}
+                        onChange={(value) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setHueRotate(value / 180);
+                        }}
+                        trackStyle={{
+                          height: 8,
+                          background: "#03fccf",
+                        }}
+                        handleStyle={{
+                          width: 20,
+                          height: 20,
+                          marginTop: -6,
+                          borderColor: "#03fccf",
+                          background: "rgb(5, 69, 76)",
+                          // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
+                          opacity: 1,
+                        }}
+                        railStyle={{
+                          height: 8,
+                          border: "1px solid #555",
+                          background: "rgba(255, 255, 255, 0.3)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="Field">
+                    <label>
+                      Saturation:{" "}
+                      <strong>
+                        {saturation == null
+                          ? "MULTIPLE VALUES"
+                          : `${Math.round(saturation * 100 + 100)}%`}
+                      </strong>
+                    </label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={-100}
+                        max={100}
+                        startPoint={0}
+                        value={Math.round((saturation ?? 0) * 100)}
+                        onChange={(value) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setSaturation(value / 100);
+                        }}
+                        trackStyle={{
+                          height: 8,
+                          background: "#03fccf",
+                        }}
+                        handleStyle={{
+                          width: 20,
+                          height: 20,
+                          marginTop: -6,
+                          borderColor: "#03fccf",
+                          background: "rgb(5, 69, 76)",
+                          // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
+                          opacity: 1,
+                        }}
+                        railStyle={{
+                          height: 8,
+                          border: "1px solid #555",
+                          background: "rgba(255, 255, 255, 0.3)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="Field">
+                    <label>
+                      Brightness:{" "}
+                      <strong>
+                        {brightness == null
+                          ? "MULTIPLE VALUES"
+                          : `${Math.round(brightness * 100 + 100)}%`}
+                      </strong>
+                    </label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={-100}
+                        max={100}
+                        startPoint={0}
+                        value={Math.round((brightness ?? 0) * 100)}
+                        onChange={(value) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setBrightness(value / 100);
+                        }}
+                        trackStyle={{
+                          height: 8,
+                          background: "#03fccf",
+                        }}
+                        handleStyle={{
+                          width: 20,
+                          height: 20,
+                          marginTop: -6,
+                          borderColor: "#03fccf",
+                          background: "rgb(5, 69, 76)",
+                          // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
+                          opacity: 1,
+                        }}
+                        railStyle={{
+                          height: 8,
+                          border: "1px solid #555",
+                          background: "rgba(255, 255, 255, 0.3)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="PopupArrow"
+                  ref={setArrowElement}
+                  style={styles.arrow}
+                />
+              </div>
+            ) : null}
             <button
               type="button"
               aria-label={isSelectionLocked ? "Unlock" : "Lock"}

@@ -10,6 +10,12 @@ interface ToolsContextValue {
   setBrushSize: (brushSize: number) => void;
   brushColor: number;
   setBrushColor: (brushColor: number) => void;
+  hueRotate: number | null;
+  setHueRotate: (hueRotate: number) => void;
+  saturation: number | null;
+  setSaturation: (saturation: number) => void;
+  brightness: number | null;
+  setBrightness: (brightness: number) => void;
   deleteSelection: () => void;
   undo: () => void;
   redo: () => void;
