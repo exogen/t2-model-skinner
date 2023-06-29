@@ -90,16 +90,33 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const [filterChanges, setFilterChanges] = useState<
     Array<[fabric.Object, ObjectFilters]>
   >(() => []);
+  const [layerMode, setLayerMode] = useState("BaseLayer");
+
+  if (selectedObjects.length) {
+    if (layerMode !== "SelectedLayer") {
+      setLayerMode("SelectedLayer");
+    }
+  } else {
+    if (layerMode === "SelectedLayer") {
+      setLayerMode("BaseLayer");
+    }
+  }
 
   const getFilter = (name: keyof ObjectFilters) => {
-    if (selectedObjects.length) {
+    let applyObjects = selectedObjects;
+    if (layerMode === "AllLayers") {
+      applyObjects = canvas?._objects ?? [];
+    } else if (layerMode === "BaseLayer") {
+      applyObjects = canvas?._objects.slice(0, 1) ?? [];
+    }
+    if (applyObjects.length) {
       const getValue = (i: number) =>
-        (filterMap.get(selectedObjects[i]) ?? {})[name] ?? 0;
+        (filterMap.get(applyObjects[i]) ?? {})[name] ?? 0;
       const firstValue = getValue(0);
       if (
-        selectedObjects
+        applyObjects
           .slice(1)
-          .every((selectedObject, i) => getValue(i + 1) === firstValue)
+          .every((applyObject, i) => getValue(i + 1) === firstValue)
       ) {
         return firstValue;
       }
@@ -115,22 +132,24 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   const setFilter = useCallback(
     (name: keyof ObjectFilters, value: number) => {
-      if (!selectedObjects.length) {
-        setFilterChanges([]);
-        return;
-      }
       const filterChanges: Array<[fabric.Object, ObjectFilters]> = [];
       const newFilterMap = new Map(filterMap);
-      for (const selectedObject of selectedObjects) {
-        const existingFilters = filterMap.get(selectedObject) ?? {};
+      let applyObjects = selectedObjects;
+      if (layerMode === "AllLayers") {
+        applyObjects = canvas?._objects ?? [];
+      } else if (layerMode === "BaseLayer") {
+        applyObjects = canvas?._objects.slice(0, 1) ?? [];
+      }
+      for (const applyObject of applyObjects) {
+        const existingFilters = filterMap.get(applyObject) ?? {};
         const newFilters = { ...existingFilters, [name]: value };
-        newFilterMap.set(selectedObject, newFilters);
-        filterChanges.push([selectedObject, newFilters]);
+        newFilterMap.set(applyObject, newFilters);
+        filterChanges.push([applyObject, newFilters]);
       }
       setFilterMap(newFilterMap);
       setFilterChanges(filterChanges);
     },
-    [filterMap, selectedObjects]
+    [canvas, layerMode, filterMap, selectedObjects]
   );
 
   const setHueRotate = useCallback(
@@ -434,6 +453,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setSaturation,
       brightness,
       setBrightness,
+      layerMode,
+      setLayerMode,
       selectedObjects,
       lockSelection,
       unlockSelection,
@@ -464,6 +485,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       hueRotate,
       saturation,
       brightness,
+      layerMode,
       setHueRotate,
       setSaturation,
       setBrightness,

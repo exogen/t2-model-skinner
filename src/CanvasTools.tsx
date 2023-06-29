@@ -40,11 +40,13 @@ export default function CanvasTools() {
     setSaturation,
     brightness,
     setBrightness,
+    layerMode,
+    setLayerMode,
     activeCanvasType,
     addImages,
     exportSkin,
   } = useTools();
-  const { isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
+  const { canvas, isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
   const [isMac, setIsMac] = useState(false);
   const commandKeyPrefix = isMac ? "⌘" : "Ctrl ";
   const shiftKeySymbol = "⇧";
@@ -68,10 +70,6 @@ export default function CanvasTools() {
       },
     ],
   });
-
-  if (isFilterToolsOpen && !selectedObjects.length) {
-    setFilterToolsOpen(false);
-  }
 
   const isSelectionLocked = selectedObjects.length
     ? selectedObjects.every((object) => lockedObjects.has(object))
@@ -179,7 +177,6 @@ export default function CanvasTools() {
               type="button"
               ref={setReferenceElement}
               data-active={isFilterToolsOpen ? "" : undefined}
-              disabled={!selectedObjects.length}
               aria-label="Filters"
               title="Filters"
               onClick={() => {
@@ -207,6 +204,60 @@ export default function CanvasTools() {
                 {...attributes.popper}
               >
                 <div className="Fields">
+                  <div className="Field ApplyTo">
+                    <label>Layer:</label>
+                    <ul>
+                      {selectedObjects.length ? (
+                        <li>
+                          <input
+                            type="radio"
+                            name="FilterLayer"
+                            value="SelectedLayer"
+                            id="FilterLayer-SelectedLayer"
+                            checked={layerMode === "SelectedLayer"}
+                            onChange={() => {
+                              setLayerMode("SelectedLayer");
+                            }}
+                          />
+                          <label htmlFor="FilterLayer-SelectedLayer">
+                            selected ({selectedObjects.length.toLocaleString()})
+                          </label>
+                        </li>
+                      ) : (
+                        <>
+                          <li>
+                            <input
+                              type="radio"
+                              name="FilterLayer"
+                              value="BaseLayer"
+                              id="FilterLayer-BaseLayer"
+                              checked={layerMode === "BaseLayer"}
+                              onChange={() => {
+                                setLayerMode("BaseLayer");
+                              }}
+                            />{" "}
+                            <label htmlFor="FilterLayer-BaseLayer">base</label>
+                          </li>
+                          <li>
+                            <input
+                              type="radio"
+                              name="FilterLayer"
+                              value="AllLayers"
+                              id="FilterLayer-AllLayers"
+                              checked={layerMode === "AllLayers"}
+                              onChange={() => {
+                                setLayerMode("AllLayers");
+                              }}
+                            />
+                            <label htmlFor="FilterLayer-AllLayers">
+                              all (
+                              {canvas?._objects.length.toLocaleString() ?? 0})
+                            </label>
+                          </li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
                   <div className="Field">
                     <label>
                       Hue:{" "}
