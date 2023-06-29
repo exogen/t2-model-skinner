@@ -459,7 +459,7 @@ export default function CanvasTools() {
                 isMac
                   ? `${shiftKeySymbol}${commandKeyPrefix}Z)`
                   : `${commandKeyPrefix} Y`
-              }`}
+              })`}
               onClick={redo}
               disabled={!canRedo}
             >
