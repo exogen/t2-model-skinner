@@ -10,6 +10,7 @@ export default function EnvironmentProvider({
   const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(
     null
   );
+  const [showEnvironment, setShowEnvironment] = useState(false);
   const { basePath } = useSettings();
 
   const context = useMemo(() => {
@@ -19,9 +20,11 @@ export default function EnvironmentProvider({
     return {
       selectedEnvironment,
       setSelectedEnvironment,
+      showEnvironment,
+      setShowEnvironment,
       environmentImageUrl,
     };
-  }, [basePath, selectedEnvironment, setSelectedEnvironment]);
+  }, [basePath, selectedEnvironment, showEnvironment]);
 
   return (
     <EnvironmentContext.Provider value={context}>

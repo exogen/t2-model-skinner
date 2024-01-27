@@ -271,11 +271,16 @@ select {
   top: 0;
   left: 0;
   right: 0;
-  margin: 10px 0 0 10px;
+  padding: 10px 0 10px 10px;
   z-index: 2;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+}
+
+.ModelTools:has(input[type="checkbox"]:checked) {
+  background-color: #01292e;
+  background-image: linear-gradient(to bottom, #124044 0%, #001720 100vh);
 }
 
 .Field {
@@ -422,4 +427,11 @@ h6 {
   gap: 4px;
   margin: 0;
   padding: 0;
+}
+
+.CheckboxField {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }

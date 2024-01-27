@@ -3,6 +3,8 @@ import React, { useContext } from "react";
 interface EnvironmentContextValue {
   selectedEnvironment: string | null;
   setSelectedEnvironment: (selectedEnvironment: string | null) => void;
+  showEnvironment: boolean;
+  setShowEnvironment: (showEnvironment: boolean) => void;
   environmentImageUrl: string | null;
 }
 

@@ -18,12 +18,13 @@ export default function WarriorViewer() {
     selectedAnimation,
     animationPaused,
   } = useWarrior();
-  const { environmentImageUrl } = useEnvironment();
+  const { environmentImageUrl, showEnvironment } = useEnvironment();
 
   return (
     <ModelViewer
       modelUrl={selectedModelUrl}
       environmentImageUrl={environmentImageUrl}
+      showEnvironment={showEnvironment}
       animationName={selectedAnimation}
       animationPaused={animationPaused}
       cameraOrbit={

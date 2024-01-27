@@ -30,6 +30,7 @@ function useTimeScale(modelViewer: ModelViewerElement | null) {
 interface ModelViewerProps {
   modelUrl: string;
   environmentImageUrl: string | null;
+  showEnvironment?: boolean;
   colorImageUrl?: string;
   metallicImageUrl?: string;
   animationName: string | null;
@@ -43,6 +44,7 @@ interface ModelViewerProps {
 function ModelViewerKeyedByModel({
   modelUrl,
   environmentImageUrl,
+  showEnvironment = false,
   animationName,
   animationPaused = false,
   cameraOrbit,
@@ -119,15 +121,25 @@ function ModelViewerKeyedByModel({
         ref={setModelViewer}
         alt="Tribes 2 Model"
         src={modelUrl}
-        shadow-intensity={0}
         camera-controls
         camera-orbit={cameraOrbit}
+        max-camera-orbit={
+          environmentImageUrl && showEnvironment ? "auto 90deg auto" : undefined
+        }
         camera-target={cameraTarget}
         min-field-of-view="10deg"
+        max-field-of-view="45deg"
         animation-name={animationName ?? undefined}
         autoplay={animationName ? "true" : "false"}
         touch-action="pan-y"
         environment-image={environmentImageUrl ?? undefined}
+        skybox-image={
+          environmentImageUrl && showEnvironment
+            ? environmentImageUrl
+            : undefined
+        }
+        skybox-height="1.5m"
+        shadow-intensity={environmentImageUrl && showEnvironment ? 1 : 0}
         style={{ width: "100%", height: "100%" }}
       />
       {isLoaded ? (
