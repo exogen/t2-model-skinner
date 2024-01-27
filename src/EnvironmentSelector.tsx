@@ -1,12 +1,7 @@
 import useEnvironment from "./useEnvironment";
 
 export default function EnvironmentSelector() {
-  const {
-    selectedEnvironment,
-    setSelectedEnvironment,
-    showEnvironment,
-    setShowEnvironment,
-  } = useEnvironment();
+  const { selectedEnvironment, setSelectedEnvironment } = useEnvironment();
 
   return (
     <>
