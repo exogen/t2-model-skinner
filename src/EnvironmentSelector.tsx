@@ -1,7 +1,9 @@
+import { ImBrightnessContrast } from "react-icons/im";
 import useEnvironment from "./useEnvironment";
 
 export default function EnvironmentSelector() {
-  const { selectedEnvironment, setSelectedEnvironment } = useEnvironment();
+  const { selectedEnvironment, setSelectedEnvironment, exposure, setExposure } =
+    useEnvironment();
 
   return (
     <>
@@ -29,6 +31,23 @@ export default function EnvironmentSelector() {
         <option value="spruit_sunrise_1k_HDR.hdr">Spruit Sunrise</option>
         <option value="umhlanga_sunrise_1k.hdr">Umhlanga Sunrise</option>
       </select>
+      <div className="CheckboxField">
+        <label htmlFor="EnvExposure">
+          <ImBrightnessContrast size={16} />
+        </label>
+        <input
+          aria-label="Exposure"
+          id="EnvExposure"
+          type="range"
+          min={0.2}
+          max={2.2}
+          step={0.1}
+          value={exposure}
+          onChange={(event) => {
+            setExposure(parseFloat(event.target.value));
+          }}
+        />
+      </div>
     </>
   );
 }

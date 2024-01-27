@@ -5,6 +5,8 @@ interface EnvironmentContextValue {
   setSelectedEnvironment: (selectedEnvironment: string | null) => void;
   showEnvironment: boolean;
   setShowEnvironment: (showEnvironment: boolean) => void;
+  exposure: number;
+  setExposure: (exposure: number) => void;
   environmentImageUrl: string | null;
 }
 

@@ -11,6 +11,7 @@ export default function EnvironmentProvider({
     null
   );
   const [showEnvironment, setShowEnvironment] = useState(false);
+  const [exposure, setExposure] = useState(1);
   const { basePath } = useSettings();
 
   const context = useMemo(() => {
@@ -22,9 +23,11 @@ export default function EnvironmentProvider({
       setSelectedEnvironment,
       showEnvironment,
       setShowEnvironment,
+      exposure,
+      setExposure,
       environmentImageUrl,
     };
-  }, [basePath, selectedEnvironment, showEnvironment]);
+  }, [basePath, selectedEnvironment, showEnvironment, exposure]);
 
   return (
     <EnvironmentContext.Provider value={context}>

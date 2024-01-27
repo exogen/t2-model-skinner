@@ -18,7 +18,7 @@ export default function WarriorViewer() {
     selectedAnimation,
     animationPaused,
   } = useWarrior();
-  const { environmentImageUrl, showEnvironment } = useEnvironment();
+  const { environmentImageUrl, showEnvironment, exposure } = useEnvironment();
 
   return (
     <ModelViewer
@@ -32,6 +32,7 @@ export default function WarriorViewer() {
       }
       cameraTarget={cameraOverrides[selectedModel]?.target}
       fieldOfView={cameraOverrides[selectedModel]?.fov}
+      exposure={exposure}
     >
       <Materials />
     </ModelViewer>

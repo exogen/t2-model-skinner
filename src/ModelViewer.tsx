@@ -12,6 +12,7 @@ declare global {
       alt: string;
       src: string;
       ref: (modelViewer: ModelViewerElement | null) => void;
+      exposure: number;
       autoplay: "true" | "false";
       scale?: string;
       style: CSSProperties;
@@ -31,6 +32,7 @@ interface ModelViewerProps {
   modelUrl: string;
   environmentImageUrl: string | null;
   showEnvironment?: boolean;
+  exposure?: number;
   colorImageUrl?: string;
   metallicImageUrl?: string;
   animationName: string | null;
@@ -45,6 +47,7 @@ function ModelViewerKeyedByModel({
   modelUrl,
   environmentImageUrl,
   showEnvironment = false,
+  exposure = 1,
   animationName,
   animationPaused = false,
   cameraOrbit,
@@ -132,6 +135,7 @@ function ModelViewerKeyedByModel({
         animation-name={animationName ?? undefined}
         autoplay={animationName ? "true" : "false"}
         touch-action="pan-y"
+        exposure={exposure}
         environment-image={environmentImageUrl ?? undefined}
         skybox-image={
           environmentImageUrl && showEnvironment
