@@ -28,7 +28,7 @@ const weaponModels = [
   "targeting",
 ];
 
-const vehicleModels = ["vehicle_air_scout"];
+const vehicleModels = ["vehicle_air_scout", "vehicle_land_mpbbase"];
 
 export async function getSkinConfig() {
   const [defaultSkins, customSkins, customWeaponSkins] = await Promise.all([
@@ -105,6 +105,7 @@ export async function getSkinConfig() {
       targeting: "weapon_targeting",
       // Vehicles
       vehicle_air_scout: "vehicle_air_scout",
+      vehicle_land_mpbbase: "vehicle_land_mpbbase",
     },
     animationLabels: {
       Forward: "Run Forward",
@@ -289,6 +290,22 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [256, 256],
+        },
+      ],
+      vehicle_land_mpbbase: [
+        {
+          label: "Vehicle Front",
+          name: "vehicle_land_mpb1",
+        },
+        {
+          label: "Vehicle Back",
+          name: "vehicle_land_mpb2",
+        },
+        {
+          label: "Wheels",
+          name: "Vehicle_Land_Assault_wheel",
+          file: "Vehicle_Land_Assault_Wheel",
+          size: [512, 256],
         },
       ],
     },

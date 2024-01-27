@@ -613,7 +613,7 @@ export default function CanvasTools() {
         >
           Export
         </button>
-        <select ref={fileTypeRef}>
+        <select ref={fileTypeRef} defaultValue="vl2">
           <option value="png">.png</option>
           <option value="vl2">.vl2</option>
         </select>

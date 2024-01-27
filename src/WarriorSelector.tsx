@@ -86,6 +86,7 @@ export default function WarriorSelector() {
           </optgroup>
           <optgroup label="Vehicles" data-model-type="vehicle">
             <option value="vehicle_air_scout">Shrike</option>
+            <option value="vehicle_land_mpbbase">MPB</option>
           </optgroup>
         </select>
       </div>
