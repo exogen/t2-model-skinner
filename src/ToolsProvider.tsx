@@ -414,10 +414,18 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
             /(?:^([a-z])|_([a-z]))/g,
             (match, a, b) => (a || b).toUpperCase()
           );
-          const zipFileName =
-            selectedModelType === "player"
-              ? `zPlayerSkin-${name}.vl2`
-              : `zWeapon${camelCaseName}-${name}.vl2`;
+          let zipFileName = "";
+          switch (selectedModelType) {
+            case "player":
+              zipFileName = `zPlayerSkin-${name}.vl2`;
+              break;
+            case "weapon":
+              zipFileName = `zWeapon${camelCaseName}-${name}.vl2`;
+              break;
+            case "vehicle":
+              zipFileName = `z${camelCaseName}-${name}.vl2`;
+              break;
+          }
           await saveZipFile(zip, zipFileName);
         }
       }
