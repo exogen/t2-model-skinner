@@ -283,8 +283,8 @@ export async function getSkinConfig() {
         },
       ],
       elf: [
-        { index: 0, label: "Weapon", name: "weapon_elf" },
-        { index: 1, label: "Glow", name: "weapon_elf0", file: "weapon_elf" },
+        { label: "Weapon", name: "weapon_elf", file: "weapon_elf" },
+        { label: "Glow", name: "weapon_elf0", file: "weapon_elf" },
       ],
       missile: [{ label: "Weapon", name: "weapon_missile" }],
       mortar: [{ label: "Weapon", name: "weapon_mortar" }],
