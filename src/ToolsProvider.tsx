@@ -344,7 +344,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         materialDefs
           .filter(
             (materialDef: MaterialDefinition) =>
-              materialDef && !materialDef.hidden
+              materialDef &&
+              !materialDef.hidden &&
+              materialDef.selectable !== false
           )
           .map(async (materialDef: MaterialDefinition) => {
             const colorCanvas = canvases[`${materialDef.name}:color`]?.canvas;

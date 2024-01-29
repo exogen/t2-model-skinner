@@ -321,55 +321,6 @@ select {
   color: #d0ffee;
 }
 
-@media only screen and (max-width: 899px) {
-  main {
-    flex-direction: column;
-  }
-
-  .Field {
-    padding: 0 10px;
-  }
-
-  .ModelTools {
-    position: static;
-    flex-direction: column;
-  }
-
-  .Viewport {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  select {
-    max-width: calc(100vw - 20px);
-  }
-
-  .Toolbar {
-    flex-direction: column;
-  }
-
-  model-viewer {
-    min-width: 100vw;
-    min-height: 100vh;
-  }
-
-  .CanvasInteractions {
-    align-items: center;
-    padding-bottom: 50px;
-  }
-
-  .CanvasViewport {
-    display: none;
-  }
-
-  .CanvasTools {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-}
-
 .CanvasContainer {
   position: relative;
 }
@@ -429,9 +380,72 @@ h6 {
   padding: 0;
 }
 
-.CheckboxField {
+.SliderField {
   font-size: 13px;
-  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  margin-top: 17px;
+  margin-right: auto;
+}
+
+.SliderField input[type="range"] {
+  width: 120px;
+}
+
+@media only screen and (max-width: 899px) {
+  main {
+    flex-direction: column;
+  }
+
+  .Field {
+    padding: 0 10px;
+  }
+
+  .ModelTools {
+    position: static;
+    flex-direction: column;
+  }
+
+  .Viewport {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  select {
+    max-width: calc(100vw - 20px);
+  }
+
+  .Toolbar {
+    flex-direction: column;
+  }
+
+  model-viewer {
+    min-width: 100vw;
+    min-height: 100vh;
+  }
+
+  .CanvasInteractions {
+    align-items: center;
+    padding-bottom: 50px;
+  }
+
+  .CanvasViewport {
+    display: none;
+  }
+
+  .CanvasTools {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .SliderField {
+    margin-top: 0;
+  }
+
+  .SliderField input[type="range"] {
+    width: 152px;
+  }
 }

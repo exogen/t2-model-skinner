@@ -9,6 +9,7 @@ import WarriorSelector from "../WarriorSelector";
 import WarriorProvider from "../WarriorProvider";
 import WarriorViewer from "../WarriorViewer";
 import EnvironmentSelector from "../EnvironmentSelector";
+import EnvironmentExposure from "../EnvironmentExposure";
 import AnimationSelector from "../AnimationSelector";
 import EnvironmentProvider from "../EnvironmentProvider";
 import SkinProvider from "../SkinProvider";
@@ -55,6 +56,9 @@ export default function HomePage() {
                     <div className="ModelTools">
                       <div className="Field">
                         <EnvironmentSelector />
+                      </div>
+                      <div className="Field SliderField">
+                        <EnvironmentExposure />
                       </div>
                       <div className="Field">
                         <AnimationSelector />

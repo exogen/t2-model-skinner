@@ -28,7 +28,11 @@ const weaponModels = [
   "targeting",
 ];
 
-const vehicleModels = ["vehicle_air_scout", "vehicle_land_mpbbase"];
+const vehicleModels = [
+  "vehicle_air_scout",
+  "vehicle_grav_scout",
+  "vehicle_land_mpbbase",
+];
 
 export async function getSkinConfig() {
   const [defaultSkins, customSkins, customWeaponSkins] = await Promise.all([
@@ -106,6 +110,7 @@ export async function getSkinConfig() {
       // Vehicles
       vehicle_air_scout: "vehicle_air_scout",
       vehicle_land_mpbbase: "vehicle_land_mpbbase",
+      vehicle_grav_scout: "vehicle_grav_scout",
     },
     animationLabels: {
       Forward: "Run Forward",
@@ -290,6 +295,64 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [256, 256],
+        },
+      ],
+      vehicle_grav_scout: [
+        {
+          label: "Vehicle",
+          name: "Vehicle_grav_scout0",
+          file: "Vehicle_grav_scout",
+          size: [512, 256],
+        },
+        {
+          name: "Unassigned",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          label: "Pipes",
+          name: "Vehicle_grav_scout_pipes1",
+          file: "Vehicle_grav_scout_pipes",
+          metallicFactor: 0,
+          roughnessFactor: 1,
+        },
+        {
+          name: "Vehicle_grav_scout",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          label: "Side Thrusters",
+          name: "Vehicle_grav_scout_pipes",
+          file: "Vehicle_grav_scout_pipes",
+          emissiveFactor: [1, 1, 1],
+          alphaMode: "OPAQUE",
+          metallicFactor: 0,
+          roughnessFactor: 1,
+          emissiveTexture: true,
+          selectable: false,
+        },
+        {
+          label: "Windshield",
+          name: "Vehicle_grav_scout_windshield",
+          file: "Vehicle_grav_scout_windshield",
+          selectable: false,
+          alphaMode: "BLEND",
+          baseColorFactor: [1, 1, 1, 0.5],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+          size: [128, 128],
+        },
+        {
+          label: "Windshield Inner",
+          name: "Vehicle_grav_scout_windshieldInner",
+          file: "Vehicle_grav_scout_windshieldInner",
+          selectable: false,
+          alphaMode: "BLEND",
+          baseColorFactor: [1, 1, 1, 0.5],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+          size: [128, 128],
         },
       ],
       vehicle_land_mpbbase: [

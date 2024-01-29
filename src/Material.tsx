@@ -20,6 +20,7 @@ export type MaterialDefinition = {
   hasDefault?: boolean;
   size?: [number, number];
   hidden?: boolean;
+  selectable?: boolean;
   alphaMode?: "BLEND" | "MASK" | "OPAQUE";
   alphaCutoff?: number;
   baseColorFactor?: [number, number, number, number];

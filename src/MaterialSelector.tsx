@@ -20,7 +20,9 @@ export default function MaterialSelector() {
       }}
     >
       {materialDefs.map((materialDef, i) =>
-        materialDef && !materialDef.hidden ? (
+        materialDef &&
+        !materialDef.hidden &&
+        materialDef.selectable !== false ? (
           <option key={materialDef.name} value={i}>
             {materialDef.label ?? materialDef.name}
           </option>
