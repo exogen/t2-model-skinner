@@ -6,31 +6,31 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
 
   const setters = useMemo(
     () => ({
-      setSkinImages(materialName: string, skinImages: SkinImages) {
+      setSkinImages(materialFile: string, skinImages: SkinImages) {
         setMaterialSkins((materialSkins) => {
           return {
             ...materialSkins,
-            [materialName]: skinImages,
+            [materialFile]: skinImages,
           };
         });
       },
-      setColorImageUrl(materialName: string, colorImageUrl: string) {
+      setColorImageUrl(materialFile: string, colorImageUrl: string) {
         setMaterialSkins((materialSkins) => {
           return {
             ...materialSkins,
-            [materialName]: {
-              ...materialSkins[materialName],
+            [materialFile]: {
+              ...materialSkins[materialFile],
               colorImageUrl,
             },
           };
         });
       },
-      setMetallicImageUrl(materialName: string, metallicImageUrl: string) {
+      setMetallicImageUrl(materialFile: string, metallicImageUrl: string) {
         setMaterialSkins((materialSkins) => {
           return {
             ...materialSkins,
-            [materialName]: {
-              ...materialSkins[materialName],
+            [materialFile]: {
+              ...materialSkins[materialFile],
               metallicImageUrl,
             },
           };
@@ -43,14 +43,14 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
   const context = useMemo(() => {
     return {
       materialSkins,
-      getSkinImages(materialName: string) {
-        return materialSkins[materialName];
+      getSkinImages(materialFile: string) {
+        return materialSkins[materialFile];
       },
-      getColorImageUrl(materialName: string) {
-        return materialSkins[materialName].colorImageUrl;
+      getColorImageUrl(materialFile: string) {
+        return materialSkins[materialFile].colorImageUrl;
       },
-      getMetallicImageUrl(materialName: string) {
-        return materialSkins[materialName].metallicImageUrl;
+      getMetallicImageUrl(materialFile: string) {
+        return materialSkins[materialFile].metallicImageUrl;
       },
       ...setters,
     };

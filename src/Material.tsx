@@ -114,7 +114,7 @@ interface MaterialProps {
 export default function Material({ material, materialDef }: MaterialProps) {
   const { getSkinImages } = useSkin();
   const { colorImageUrl, metallicImageUrl } =
-    getSkinImages(material.name) ?? {};
+    getSkinImages(materialDef?.file ?? material.name) ?? {};
 
   useTexture({
     material,

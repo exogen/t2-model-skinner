@@ -9,12 +9,12 @@ export type MaterialSkins = Record<string, SkinImages>;
 
 interface SkinContextValue {
   materialSkins: MaterialSkins;
-  getSkinImages: (materialName: string) => SkinImages;
-  setSkinImages: (materialName: string, skinImages: SkinImages) => void;
-  getColorImageUrl: (materialName: string) => string | undefined;
-  setColorImageUrl: (materialName: string, colorImageUrl: string) => void;
-  getMetallicImageUrl: (materialName: string) => string | undefined;
-  setMetallicImageUrl: (materialName: string, colorImageUrl: string) => void;
+  getSkinImages: (materialFile: string) => SkinImages;
+  setSkinImages: (materialFile: string, skinImages: SkinImages) => void;
+  getColorImageUrl: (materialFile: string) => string | undefined;
+  setColorImageUrl: (materialFile: string, colorImageUrl: string) => void;
+  getMetallicImageUrl: (materialFile: string) => string | undefined;
+  setMetallicImageUrl: (materialFile: string, colorImageUrl: string) => void;
 }
 
 const SkinContext = React.createContext<SkinContextValue | null>(null);

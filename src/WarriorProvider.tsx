@@ -44,14 +44,16 @@ export function getSkinImageUrls({
             switch (selectedSkinType) {
               case "default":
                 if (materialDef.hasDefault !== false) {
-                  skinImageUrls[materialDef.name] = `${basePath}/textures/${
+                  skinImageUrls[
+                    materialDef.file ?? materialDef.name
+                  ] = `${basePath}/textures/${
                     materialDef.file ?? materialDef.name
                   }.png`;
                 }
                 break;
               case "custom":
                 skinImageUrls[
-                  materialDef.name
+                  materialDef.file ?? materialDef.name
                 ] = `${baseSkinPath}/${selectedSkin}/${
                   materialDef.file ?? materialDef.name
                 }.png`;

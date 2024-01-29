@@ -15,8 +15,9 @@ export default function MetallicCanvas({
   materialDef: MaterialDefinition;
 }) {
   const { skinImageUrls, defaultSkinImageUrls } = useWarrior();
-  const skinImageUrl = skinImageUrls[materialDef.name];
-  const defaultSkinImageUrl = defaultSkinImageUrls[materialDef.name];
+  const skinImageUrl = skinImageUrls[materialDef.file ?? materialDef.name];
+  const defaultSkinImageUrl =
+    defaultSkinImageUrls[materialDef.file ?? materialDef.name];
   const { setMetallicImageUrl } = useSkin();
   const { canvasPadding } = useSettings();
   const [alphaImageUrl, setAlphaImageUrl] = useState<string | null>(null);
@@ -50,7 +51,10 @@ export default function MetallicCanvas({
         runningChangeHandlers.current -= 1;
       }
       if (runningChangeHandlers.current === 0) {
-        setMetallicImageUrl(materialDef.name, outputImageUrl);
+        setMetallicImageUrl(
+          materialDef.file ?? materialDef.name,
+          outputImageUrl
+        );
       }
     },
     [

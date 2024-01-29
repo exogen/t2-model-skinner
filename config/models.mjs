@@ -238,7 +238,28 @@ export async function getSkinConfig() {
         { label: "Green Light", name: "greenlight", hasDefault: false },
         { label: "Red Light", name: "lite_red", hasDefault: false },
       ],
-      plasmathrower: [{ label: "Weapon", name: "weapon_plasmathrower" }],
+      plasmathrower: [
+        {
+          label: "Rear & Barrel",
+          name: "weapon_plasma10",
+          file: "weapon_plasma1",
+        },
+        {
+          label: "Top & Front",
+          name: "weapon_plasma21",
+          file: "weapon_plasma2",
+        },
+        {
+          name: "weapon_plasma1",
+          file: "weapon_plasma1",
+          selectable: false,
+        },
+        {
+          name: "weapon_plasma2",
+          file: "weapon_plasma2",
+          selectable: false,
+        },
+      ],
       energy: [
         {
           label: "Weapon",

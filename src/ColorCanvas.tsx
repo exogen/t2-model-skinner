@@ -15,8 +15,9 @@ export default function ColorCanvas({
   materialDef: MaterialDefinition;
 }) {
   const { skinImageUrls, defaultSkinImageUrls } = useWarrior();
-  const skinImageUrl = skinImageUrls[materialDef.name];
-  const defaultSkinImageUrl = defaultSkinImageUrls[materialDef.name];
+  const skinImageUrl = skinImageUrls[materialDef.file ?? materialDef.name];
+  const defaultSkinImageUrl =
+    defaultSkinImageUrls[materialDef.file ?? materialDef.name];
   const { setColorImageUrl } = useSkin();
   const { canvasPadding } = useSettings();
   const [noAlphaImageUrl, setNoAlphaImageUrl] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export default function ColorCanvas({
         width: textureSize[0],
         height: textureSize[1],
       });
-      setColorImageUrl(materialDef.name, imageUrl);
+      setColorImageUrl(materialDef.file ?? materialDef.name, imageUrl);
     },
     [textureSize, canvasPadding, setColorImageUrl, materialDef]
   );

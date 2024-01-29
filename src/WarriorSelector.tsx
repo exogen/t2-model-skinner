@@ -75,7 +75,7 @@ export default function WarriorSelector() {
             <option value="chaingun">Chaingun</option>
             <option value="grenade_launcher">Grenade Launcher</option>
             <option value="sniper">Laser Rifle</option>
-            {/* <option value="plasmathrower">Plasma Cannon</option> */}
+            <option value="plasmathrower">Plasma Cannon</option>
             <option value="energy">Blaster</option>
             <option value="shocklance">Shocklance</option>
             <option value="elf">ELF Projector</option>
@@ -178,7 +178,9 @@ export default function WarriorSelector() {
                 }
               });
               setSelectedSkin(null);
-              setSkinImageUrls({ [materialDef.name]: imageUrl });
+              setSkinImageUrls({
+                [materialDef.file ?? materialDef.name]: imageUrl,
+              });
             }}
             type="file"
             accept=".png, image/png"
