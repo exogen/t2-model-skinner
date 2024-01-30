@@ -29,9 +29,13 @@ const weaponModels = [
 ];
 
 const vehicleModels = [
-  "vehicle_air_scout",
   "vehicle_grav_scout",
+  "vehicle_grav_tank",
+  "turret_assaulttank_mortar",
   "vehicle_land_mpbbase",
+  "vehicle_air_scout",
+  "vehicle_air_bomber",
+  "vehicle_air_hapc",
 ];
 
 export async function getSkinConfig() {
@@ -108,9 +112,13 @@ export async function getSkinConfig() {
       sniper: "weapon_sniper",
       targeting: "weapon_targeting",
       // Vehicles
-      vehicle_air_scout: "vehicle_air_scout",
       vehicle_land_mpbbase: "vehicle_land_mpbbase",
       vehicle_grav_scout: "vehicle_grav_scout",
+      vehicle_grav_tank: "vehicle_grav_tank",
+      turret_assaulttank_mortar: "turret_assaulttank_mortar",
+      vehicle_air_scout: "vehicle_air_scout",
+      vehicle_air_bomber: "vehicle_air_bomber",
+      vehicle_air_hapc: "vehicle_air_hapc",
     },
     animationLabels: {
       Forward: "Run Forward",
@@ -318,6 +326,67 @@ export async function getSkinConfig() {
           size: [256, 256],
         },
       ],
+      vehicle_air_bomber: [
+        {
+          label: "Cockpit & Thrusters",
+          name: "vehicle_air_bomber10",
+          file: "vehicle_air_bomber1",
+          size: [256, 512],
+        },
+        {
+          name: "Unassigned",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          label: "Rear",
+          name: "vehicle_air_bomber2",
+          size: [256, 512],
+        },
+        {
+          label: "Wings",
+          name: "vehicle_air_bomber31",
+          file: "vehicle_air_bomber3",
+        },
+        {
+          name: "vehicle_air_bomber1",
+          size: [256, 512],
+          selectable: false,
+        },
+        {
+          name: "vehicle_air_bomber3",
+          selectable: false,
+        },
+      ],
+      vehicle_air_hapc: [
+        {
+          label: "Cockpit",
+          name: "vehicle_air_bomber1",
+          size: [256, 512],
+        },
+        {
+          name: "Unassigned",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          label: "Wings",
+          name: "vehicle_air_hpc2",
+        },
+        {
+          label: "Seats",
+          name: "vehicle_air_hpc1",
+        },
+        {
+          label: "Thrusters",
+          name: "vehicle_air_hpc30",
+          file: "vehicle_air_hpc3",
+        },
+        {
+          name: "vehicle_air_hpc3",
+          selectable: false,
+        },
+      ],
       vehicle_grav_scout: [
         {
           label: "Vehicle",
@@ -374,6 +443,44 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [128, 128],
+        },
+      ],
+      vehicle_grav_tank: [
+        {
+          label: "Center",
+          name: "Vehicle_grav_tank_bodyMain",
+          size: [256, 512],
+        },
+        {
+          name: "Unassigned",
+          hidden: true,
+          hasDefault: false,
+        },
+        {
+          label: "Sides",
+          name: "vehicle_grav_tank_bodyside10",
+          file: "vehicle_grav_tank_bodyside1",
+          size: [256, 512],
+        },
+        {
+          label: "Thrusters",
+          name: "vehicle_grav_tank_bodyside21",
+          file: "vehicle_grav_tank_bodyside2",
+        },
+        {
+          name: "vehicle_grav_tank_bodyside2",
+          selectable: false,
+        },
+        {
+          name: "vehicle_grav_tank_bodyside1",
+          selectable: false,
+        },
+      ],
+      turret_assaulttank_mortar: [
+        {
+          label: "Turret",
+          name: "turret_assaulttank_mortar",
+          file: "turret_assaultTank",
         },
       ],
       vehicle_land_mpbbase: [
