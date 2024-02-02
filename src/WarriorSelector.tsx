@@ -102,7 +102,7 @@ export default function WarriorSelector() {
           <select
             id="SkinSelect"
             value={selectedSkin ?? ""}
-            onChange={async (event) => {
+            onChange={(event) => {
               const parentNode = event.target.selectedOptions[0]
                 .parentNode as HTMLElement;
               const skinType = event.target.value
