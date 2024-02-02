@@ -3,7 +3,6 @@ import getConfig from "next/config";
 import useSettings from "./useSettings";
 import { WarriorContext } from "./useWarrior";
 import type { MaterialDefinition } from "./Material";
-import Router, { useRouter } from "next/router";
 
 const { publicRuntimeConfig } = getConfig();
 const { materials, modelDefaults } = publicRuntimeConfig;
@@ -82,43 +81,39 @@ function getModelUrl(
   }
 }
 
-function parseQuerySelection(query: {
-  model?: string | string[];
-  skin?: string | string[];
-}) {
-  const { model: modelWithTypeFromUrl, skin: skinWithTypeFromUrl } = query;
-  let selectedModel;
-  let selectedModelType;
-  if (typeof modelWithTypeFromUrl === "string") {
-    [selectedModelType, selectedModel] = modelWithTypeFromUrl.split("|");
-  }
-  let selectedSkin;
-  let selectedSkinType;
-  if (typeof skinWithTypeFromUrl === "string") {
-    [selectedSkinType, selectedSkin] = skinWithTypeFromUrl.split("|");
-  }
-  return {
-    selectedModel: selectedModel || null,
-    selectedModelType: selectedModelType || null,
-    selectedSkin: selectedSkin || null,
-    selectedSkinType: selectedSkinType || null,
-  };
-}
+// const queryParamSeparator = ".";
+
+// function parseQuerySelection(searchParams: URLSearchParams) {
+//   const modelWithTypeFromUrl = searchParams.get("m");
+//   const skinWithTypeFromUrl = searchParams.get("s");
+//   let selectedModel;
+//   let selectedModelType;
+//   if (typeof modelWithTypeFromUrl === "string") {
+//     [selectedModelType, selectedModel] =
+//       modelWithTypeFromUrl.split(queryParamSeparator);
+//   }
+//   let selectedSkin;
+//   let selectedSkinType;
+//   if (typeof skinWithTypeFromUrl === "string") {
+//     [selectedSkinType, selectedSkin] =
+//       skinWithTypeFromUrl.split(queryParamSeparator);
+//   }
+//   return {
+//     selectedModel: selectedModel || null,
+//     selectedModelType: selectedModelType || null,
+//     selectedSkin: selectedSkin || null,
+//     selectedSkinType: selectedSkinType || null,
+//   };
+// }
 
 export default function WarriorProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const defaultsFromUrl = parseQuerySelection(router.query);
-  const [selectedModel, setSelectedModel] = useState<string>(
-    defaultsFromUrl.selectedModel || "lmale"
-  );
-  const [selectedModelType, setSelectedModelType] = useState(
-    defaultsFromUrl.selectedModelType || "player"
-  );
+  const [selectedModel, setSelectedModel] = useState<string>("lmale");
+  const [selectedModelType, setSelectedModelType] = useState("player");
   const [selectedSkin, setSelectedSkin] = useState<string | null>(
-    defaultsFromUrl.selectedSkin || "Blood Eagle"
+    "Blood Eagle"
   );
   const [selectedSkinType, setSelectedSkinType] = useState<string | null>(
-    defaultsFromUrl.selectedSkinType || "default"
+    "default"
   );
   const [selectedAnimation, setSelectedAnimation] = useState<string | null>(
     null
@@ -214,15 +209,6 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     selectedSkin,
     selectedSkinType,
   ]);
-
-  useEffect(() => {
-    Router.replace({
-      query: {
-        model: `${selectedModelType ?? ""}|${selectedModel ?? ""}`,
-        skin: `${selectedSkinType ?? ""}|${selectedSkin ?? ""}`,
-      },
-    });
-  }, [selectedModel, selectedModelType, selectedSkin, selectedSkinType]);
 
   return (
     <WarriorContext.Provider value={context}>

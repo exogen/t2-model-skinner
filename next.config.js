@@ -6,6 +6,8 @@ module.exports = async () => {
     reactStrictMode: true,
     productionBrowserSourceMaps: true,
     publicRuntimeConfig,
+    output: "export",
+    distDir: "docs",
   };
 
   if (process.env.NODE_ENV === "production") {
