@@ -1,3 +1,4 @@
+import path from "path";
 import { globby } from "globby";
 import orderBy from "lodash.orderby";
 
@@ -38,17 +39,21 @@ const vehicleModels = [
   "vehicle_air_hapc",
 ];
 
+const T2_SKINS_PATH = process.env.T2_SKINS_PATH || "../t2-skins";
+
 export async function getSkinConfig() {
   const [defaultSkins, customSkins, customWeaponSkins] = await Promise.all([
     Promise.all(
       models.map((name) => globby(`./public/textures/*.${name}.png`))
     ),
     Promise.all(
-      models.map((name) => globby(`../t2-skins/docs/skins/*.${name}.png`))
+      models.map((name) =>
+        globby(path.join(T2_SKINS_PATH, `docs/skins/*.${name}.png`))
+      )
     ),
     Promise.all(
       weaponModels.map((name) =>
-        globby(`../t2-skins/docs/skins/*/weapon_${name}.png`)
+        globby(path.join(T2_SKINS_PATH, `docs/skins/*/weapon_${name}.png`))
       )
     ),
   ]);

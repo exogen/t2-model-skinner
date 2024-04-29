@@ -1,3 +1,4 @@
+"use client";
 import Head from "next/head";
 import CanvasTools from "../CanvasTools";
 import ToolsProvider from "../ToolsProvider";
