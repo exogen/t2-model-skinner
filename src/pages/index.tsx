@@ -1,6 +1,7 @@
 "use client";
 import Head from "next/head";
 import CanvasTools from "../CanvasTools";
+import AppFooter from "../AppFooter";
 import ToolsProvider from "../ToolsProvider";
 import CanvasBackdrop from "../CanvasBackdrop";
 import CanvasProvider from "../CanvasProvider";
@@ -80,6 +81,7 @@ export default function HomePage() {
                           <MaterialCanvases />
                         </div>
                         <CanvasTools />
+                        <AppFooter />
                       </CanvasInteractions>
                     </ToolsProvider>
                   </CanvasProvider>

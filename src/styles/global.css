@@ -393,6 +393,39 @@ h6 {
   width: 120px;
 }
 
+.AppFooter {
+  display: flex;
+  align-self: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  line-height: 18px;
+  margin: auto 0 10px 0;
+}
+
+.AppFooter a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.AppFooter .Separator {
+  opacity: 0.7;
+}
+
+.Sponsor {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.IconLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  margin: 0 12px 0 0;
+}
+
 @media only screen and (max-width: 899px) {
   main {
     flex-direction: column;
@@ -447,5 +480,11 @@ h6 {
 
   .SliderField input[type="range"] {
     width: 152px;
+  }
+
+  .AppFooter {
+    display: flex;
+    align-self: center;
+    margin-top: 20px;
   }
 }
