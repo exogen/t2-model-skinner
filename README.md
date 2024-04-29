@@ -6,20 +6,20 @@
 
 Clone the repository and run:
 
-```console
-$ npm install
+```sh
+npm install
 ```
 
 Then run `npm start` to launch the development server:
 
-```console
-$ npm start
+```sh
+npm start
 ```
 
 Build the production version of the app with `npm run build`:
 
-```console
-$ npm run build
+```sh
+npm run build
 ```
 
 You will also need to clone the [t2-skins](https://github.com/exogen/t2-skins)
