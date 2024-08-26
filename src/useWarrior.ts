@@ -12,12 +12,14 @@ type WarriorContextValue = {
   setAnimationPaused: (
     animationPaused: boolean | ((animationPaused: boolean) => boolean)
   ) => void;
-  skinImageUrls: Record<string, string>;
-  defaultSkinImageUrls: Record<string, string>;
+  skinImageUrls: Record<string, string[]>;
+  defaultSkinImageUrls: Record<string, string[]>;
   setSkinImageUrls: (
     value:
-      | Record<string, string>
-      | ((prevSkinImageUrls: Record<string, string>) => Record<string, string>)
+      | Record<string, string[]>
+      | ((
+          prevSkinImageUrls: Record<string, string[]>
+        ) => Record<string, string[]>)
   ) => void;
   selectedSkinType: string | null;
   setSelectedSkinType: (selectedSkinType: string | null) => void;

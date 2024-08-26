@@ -45,8 +45,12 @@ type ObjectFilters = {
 export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { actualModel, selectedModelType } = useWarrior();
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState(0);
   const materialDefs = materials[actualModel];
   const materialDef = materialDefs[selectedMaterialIndex] ?? null;
+
+  const frameCount = materialDef.frameCount ?? 1;
+  const hasAnimation = frameCount > 1;
 
   const textureSize = useMemo(
     () => materialDef.size ?? [512, 512],
@@ -63,6 +67,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     setActiveCanvasType("color");
   }
 
+  if (selectedFrameIndex >= frameCount) {
+    setSelectedFrameIndex(0);
+  }
+
+  useEffect(() => {
+    setSelectedFrameIndex(0);
+  }, [materialDef]);
+
   const [backgroundColor, setBackgroundColor] = useState("magenta");
   const [lockedObjects, setLockedObjects] = useState(
     () => new Set<fabric.Object>()
@@ -77,9 +89,11 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   );
 
   const activeCanvas = materialDef
-    ? `${materialDef.name}:${activeCanvasType}`
+    ? `${materialDef.name}:${activeCanvasType}:${selectedFrameIndex}`
     : null;
-  const metallicCanvasId = materialDef ? `${materialDef.name}:metallic` : null;
+  const metallicCanvasId = materialDef
+    ? `${materialDef.name}:metallic:${selectedFrameIndex}`
+    : null;
   const { canvases } = useCanvas();
   const { canvas, notifyChange, undo, redo, canUndo, canRedo } =
     useCanvas(activeCanvas);
@@ -348,54 +362,73 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
               !materialDef.hidden &&
               materialDef.selectable !== false
           )
-          .map(async (materialDef: MaterialDefinition) => {
-            const colorCanvas = canvases[`${materialDef.name}:color`]?.canvas;
-            const metallicCanvas =
-              canvases[`${materialDef.name}:metallic`]?.canvas;
+          .map((materialDef: MaterialDefinition) => {
+            const frameCount = materialDef.frameCount ?? 1;
+            const frames = new Array(frameCount).fill(null);
+            return frames.map(async (_, frameIndex) => {
+              const colorCanvas =
+                canvases[`${materialDef.name}:color:${frameIndex}`]?.canvas;
+              const metallicCanvas =
+                canvases[`${materialDef.name}:metallic:${frameIndex}`]?.canvas;
 
-            const textureSize = materialDef.size ?? [512, 512];
-            let outputImageUrl;
+              const textureSize = materialDef.size ?? [512, 512];
+              let outputImageUrl;
 
-            const colorImageUrl = colorCanvas.toDataURL({
-              top: canvasPadding,
-              left: canvasPadding,
-              width: textureSize[0],
-              height: textureSize[1],
-            });
-
-            if (metallicCanvas) {
-              const metallicImageUrl = metallicCanvas.toDataURL({
+              const colorImageUrl = colorCanvas.toDataURL({
                 top: canvasPadding,
                 left: canvasPadding,
                 width: textureSize[0],
                 height: textureSize[1],
               });
-              outputImageUrl = await combineColorAndAlphaImageUrls({
-                colorImageUrl,
-                metallicImageUrl,
-              });
-            } else {
-              outputImageUrl = colorImageUrl;
-            }
 
-            let filename;
-            switch (selectedModelType) {
-              case "player":
-                filename = `${name}.${actualModel}.png`;
-                break;
-              case "weapon":
-              case "vehicle":
-                if (materialDef) {
-                  filename = `${materialDef.file ?? materialDef.name}.png`;
-                } else if (selectedModelType === "weapon") {
-                  filename = `weapon_${actualModel}.png`;
-                } else {
-                  filename = `${actualModel}.png`;
-                }
-            }
+              if (metallicCanvas) {
+                const metallicImageUrl = metallicCanvas.toDataURL({
+                  top: canvasPadding,
+                  left: canvasPadding,
+                  width: textureSize[0],
+                  height: textureSize[1],
+                });
+                outputImageUrl = await combineColorAndAlphaImageUrls({
+                  colorImageUrl,
+                  metallicImageUrl,
+                });
+              } else {
+                outputImageUrl = colorImageUrl;
+              }
 
-            return { imageUrl: outputImageUrl, filename };
+              let filename;
+              switch (selectedModelType) {
+                case "player":
+                  filename = `${name}.${actualModel}.png`;
+                  break;
+                case "weapon":
+                case "vehicle":
+                  if (materialDef) {
+                    const frameZeroFile = materialDef.file ?? materialDef.name;
+                    if (frameCount > 1) {
+                      const match = frameZeroFile.match(/^(.+)(\d\d)$/);
+                      if (match) {
+                        const baseName = match[1];
+                        filename = `${baseName}${frameIndex
+                          .toString()
+                          .padStart(2, "0")}.png`;
+                      } else {
+                        throw new Error("Unexpected animation filename");
+                      }
+                    } else {
+                      filename = `${frameZeroFile}.png`;
+                    }
+                  } else if (selectedModelType === "weapon") {
+                    filename = `weapon_${actualModel}.png`;
+                  } else {
+                    filename = `${actualModel}.png`;
+                  }
+              }
+
+              return { imageUrl: outputImageUrl, filename };
+            });
           })
+          .flat()
       );
 
       switch (format) {
@@ -484,6 +517,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setSelectedMaterialIndex,
       textureSize,
       hasMetallic,
+      selectedFrameIndex,
+      setSelectedFrameIndex,
+      hasAnimation,
+      frameCount,
     }),
     [
       activeCanvas,
@@ -516,6 +553,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       selectedMaterialIndex,
       textureSize,
       hasMetallic,
+      selectedFrameIndex,
+      hasAnimation,
+      frameCount,
     ]
   );
 

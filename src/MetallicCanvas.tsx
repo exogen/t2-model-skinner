@@ -11,13 +11,16 @@ const defaultTextureSize = [512, 512] as [number, number];
 
 export default function MetallicCanvas({
   materialDef,
+  frameIndex = 0,
 }: {
   materialDef: MaterialDefinition;
+  frameIndex: number;
 }) {
   const { skinImageUrls, defaultSkinImageUrls } = useWarrior();
-  const skinImageUrl = skinImageUrls[materialDef.file ?? materialDef.name];
+  const skinImageUrl =
+    skinImageUrls[materialDef.file ?? materialDef.name]?.[frameIndex];
   const defaultSkinImageUrl =
-    defaultSkinImageUrls[materialDef.file ?? materialDef.name];
+    defaultSkinImageUrls[materialDef.file ?? materialDef.name]?.[frameIndex];
   const { setMetallicImageUrl } = useSkin();
   const { canvasPadding } = useSettings();
   const [alphaImageUrl, setAlphaImageUrl] = useState<string | null>(null);
@@ -53,7 +56,8 @@ export default function MetallicCanvas({
       if (runningChangeHandlers.current === 0) {
         setMetallicImageUrl(
           materialDef.file ?? materialDef.name,
-          outputImageUrl
+          outputImageUrl,
+          frameIndex
         );
       }
     },
@@ -63,6 +67,7 @@ export default function MetallicCanvas({
       setMetallicImageUrl,
       convertGrayscaleImageUrlToMetallicRoughness,
       materialDef,
+      frameIndex,
     ]
   );
 
@@ -106,7 +111,7 @@ export default function MetallicCanvas({
     loadImage,
   ]);
 
-  const canvasId = `${materialDef.name}:metallic`;
+  const canvasId = `${materialDef.name}:metallic:${frameIndex}`;
 
   return textureSize ? (
     <Canvas

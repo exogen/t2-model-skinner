@@ -8,6 +8,20 @@ const { publicRuntimeConfig } = getConfig();
 const { materials, modelDefaults } = publicRuntimeConfig;
 const baseSkinPath = `https://exogen.github.io/t2-skins/skins`;
 
+function getFrameNames(frameZeroFile: string, frameCount: number) {
+  if (frameCount < 2) {
+    return [frameZeroFile];
+  }
+  const match = frameZeroFile.match(/^(.+)(\d\d)$/);
+  if (match) {
+    const baseName = match[1];
+    const frames = new Array(frameCount).fill(null);
+    return frames.map((_, i) => `${baseName}${i.toString().padStart(2, "0")}`);
+  } else {
+    throw new Error("Did not match expected frame format");
+  }
+}
+
 export function getSkinImageUrls({
   basePath,
   actualModel,
@@ -20,43 +34,48 @@ export function getSkinImageUrls({
   selectedModelType: string;
   selectedSkin: string | null;
   selectedSkinType: string | null;
-}): Record<string, string> {
+}): Record<string, string[]> {
   const materialDefs = materials[actualModel];
   switch (selectedModelType) {
     case "player":
       switch (selectedSkinType) {
         case "default":
           return {
-            base: `${basePath}/textures/${selectedSkin}.${actualModel}.png`,
+            base: [`${basePath}/textures/${selectedSkin}.${actualModel}.png`],
           };
         case "custom":
-          return { base: `${baseSkinPath}/${selectedSkin}.${actualModel}.png` };
+          return {
+            base: [`${baseSkinPath}/${selectedSkin}.${actualModel}.png`],
+          };
       }
       break;
     case "weapon":
     case "vehicle":
       return materialDefs.reduce(
         (
-          skinImageUrls: Record<string, string>,
+          skinImageUrls: Record<string, string[]>,
           materialDef: MaterialDefinition
         ) => {
           if (materialDef) {
+            const frameCount = materialDef.frameCount ?? 1;
             switch (selectedSkinType) {
               case "default":
                 if (materialDef.hasDefault !== false) {
-                  skinImageUrls[
-                    materialDef.file ?? materialDef.name
-                  ] = `${basePath}/textures/${
-                    materialDef.file ?? materialDef.name
-                  }.png`;
+                  skinImageUrls[materialDef.file ?? materialDef.name] =
+                    getFrameNames(
+                      materialDef.file ?? materialDef.name,
+                      frameCount
+                    ).map((name) => `${basePath}/textures/${name}.png`);
                 }
                 break;
               case "custom":
-                skinImageUrls[
-                  materialDef.file ?? materialDef.name
-                ] = `${baseSkinPath}/${selectedSkin}/${
-                  materialDef.file ?? materialDef.name
-                }.png`;
+                skinImageUrls[materialDef.file ?? materialDef.name] =
+                  getFrameNames(
+                    materialDef.file ?? materialDef.name,
+                    frameCount
+                  ).map(
+                    (name) => `${baseSkinPath}/${selectedSkin}/${name}.png`
+                  );
                 break;
             }
           }
@@ -127,7 +146,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     selectedAnimation
   );
 
-  const [skinImageUrls, setSkinImageUrls] = useState<Record<string, string>>(
+  const [skinImageUrls, setSkinImageUrls] = useState<Record<string, string[]>>(
     () =>
       getSkinImageUrls({
         basePath,

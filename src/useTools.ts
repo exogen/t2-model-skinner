@@ -41,8 +41,14 @@ interface ToolsContextValue {
   setBackgroundColor: (backgroundColor: string) => void;
   selectedMaterialIndex: number;
   setSelectedMaterialIndex: (materialIndex: number) => void;
+  selectedFrameIndex: number;
+  setSelectedFrameIndex: (
+    frameIndex: number | ((frameIndex: number) => number)
+  ) => void;
   textureSize: [number, number];
   hasMetallic: boolean;
+  hasAnimation: boolean;
+  frameCount: number;
 }
 
 const ToolsContext = React.createContext<ToolsContextValue | null>(null);

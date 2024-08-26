@@ -47,13 +47,11 @@ export async function getSkinConfig() {
       models.map((name) => globby(`./public/textures/*.${name}.png`))
     ),
     Promise.all(
-      models.map((name) =>
-        globby(path.join(T2_SKINS_PATH, `docs/skins/*.${name}.png`))
-      )
+      models.map((name) => globby(`${T2_SKINS_PATH}/docs/skins/*.${name}.png`))
     ),
     Promise.all(
       weaponModels.map((name) =>
-        globby(path.join(T2_SKINS_PATH, `docs/skins/*/weapon_${name}.png`))
+        globby(`${T2_SKINS_PATH}/docs/skins/*/weapon_${name}.png`)
       )
     ),
   ]);
@@ -240,6 +238,8 @@ export async function getSkinConfig() {
           alphaMode: "BLEND",
           metallicFactor: 0,
           roughnessFactor: 1,
+          frameCount: 6,
+          frameTimings: [21, 1, 1, 1, 1, 1],
         },
       ],
       chaingun: [{ label: "Chaingun", name: "weapon_chaingun" }],

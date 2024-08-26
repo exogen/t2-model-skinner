@@ -28,6 +28,8 @@ export type MaterialDefinition = {
   emissiveTexture?: boolean;
   metallicFactor?: number;
   roughnessFactor?: number;
+  frameCount?: number;
+  frameTimings?: number[];
 };
 
 function useTexture({
@@ -39,13 +41,14 @@ function useTexture({
   material: ModelMaterial;
   materialDef?: MaterialDefinition;
   textureType: "baseColorTexture" | "metallicRoughnessTexture";
-  imageUrl?: string;
+  imageUrl?: string[];
 }) {
   const { modelViewer } = useModelViewer();
   const { basePath } = useSettings();
 
   useEffect(() => {
     let stale = false;
+    let animationFrame: ReturnType<typeof requestAnimationFrame>;
 
     const updateTexture = async () => {
       if (!materialDef || materialDef.hidden) {
@@ -64,8 +67,11 @@ function useTexture({
           emissiveTexture = false,
           metallicFactor = 1,
           roughnessFactor = 1,
+          frameCount = 1,
+          frameTimings,
         } = materialDef;
-        let textureUrl = imageUrl ?? `${basePath}/white.png`;
+        let textureUrls =
+          imageUrl ?? new Array(frameCount).fill(`${basePath}/white.png`);
         switch (textureType) {
           case "baseColorTexture":
             if (baseColorFactor) {
@@ -85,15 +91,32 @@ function useTexture({
             material.pbrMetallicRoughness.setMetallicFactor(metallicFactor);
             material.pbrMetallicRoughness.setRoughnessFactor(roughnessFactor);
             if (metallicFactor === 0 && roughnessFactor === 1) {
-              textureUrl = `${basePath}/green.png`;
+              textureUrls = new Array(frameCount).fill(`${basePath}/green.png`);
             }
         }
-        const texture = await modelViewer.createTexture(textureUrl);
+        const textures = await Promise.all(
+          textureUrls.map((textureUrl) => modelViewer.createTexture(textureUrl))
+        );
         if (!stale) {
-          material.pbrMetallicRoughness[textureType].setTexture(texture);
-          if (textureType === "baseColorTexture" && emissiveTexture) {
-            material.emissiveTexture.setTexture(texture);
-          }
+          let frameIndex = 0;
+          let frameProgress = 0;
+          const frame: FrameRequestCallback = (timestamp) => {
+            const frameTiming = frameTimings?.[frameIndex] ?? 1;
+            const texture = textures[frameIndex];
+            material.pbrMetallicRoughness[textureType].setTexture(texture);
+            if (textureType === "baseColorTexture" && emissiveTexture) {
+              material.emissiveTexture.setTexture(texture);
+            }
+            frameProgress += 1;
+            if (frameCount > 1) {
+              if (frameProgress >= frameTiming) {
+                frameIndex = (frameIndex + 1) % frameCount;
+                frameProgress = 0;
+              }
+              animationFrame = requestAnimationFrame(frame);
+            }
+          };
+          animationFrame = requestAnimationFrame(frame);
         }
       }
     };
@@ -102,6 +125,7 @@ function useTexture({
 
     return () => {
       stale = true;
+      cancelAnimationFrame(animationFrame);
     };
   }, [basePath, modelViewer, material, materialDef, textureType, imageUrl]);
 }

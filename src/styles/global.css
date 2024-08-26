@@ -488,3 +488,34 @@ h6 {
     margin-top: 20px;
   }
 }
+
+.FrameSelector {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  border-radius: 5px;
+  padding: 2px 0;
+  background: rgb(74, 193, 171);
+  color: rgb(5, 69, 76);
+}
+
+.FrameSelector button {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.FrameSelector button:disabled {
+  opacity: 0.4;
+}
+
+.FrameInfo {
+  font-size: 12px;
+  font-weight: 500;
+}

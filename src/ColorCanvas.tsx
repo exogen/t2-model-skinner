@@ -11,13 +11,16 @@ const defaultTextureSize = [512, 512] as [number, number];
 
 export default function ColorCanvas({
   materialDef,
+  frameIndex = 0,
 }: {
   materialDef: MaterialDefinition;
+  frameIndex: number;
 }) {
   const { skinImageUrls, defaultSkinImageUrls } = useWarrior();
-  const skinImageUrl = skinImageUrls[materialDef.file ?? materialDef.name];
+  const skinImageUrl =
+    skinImageUrls[materialDef.file ?? materialDef.name]?.[frameIndex];
   const defaultSkinImageUrl =
-    defaultSkinImageUrls[materialDef.file ?? materialDef.name];
+    defaultSkinImageUrls[materialDef.file ?? materialDef.name]?.[frameIndex];
   const { setColorImageUrl } = useSkin();
   const { canvasPadding } = useSettings();
   const [noAlphaImageUrl, setNoAlphaImageUrl] = useState<string | null>(null);
@@ -37,9 +40,13 @@ export default function ColorCanvas({
         width: textureSize[0],
         height: textureSize[1],
       });
-      setColorImageUrl(materialDef.file ?? materialDef.name, imageUrl);
+      setColorImageUrl(
+        materialDef.file ?? materialDef.name,
+        imageUrl,
+        frameIndex
+      );
     },
-    [textureSize, canvasPadding, setColorImageUrl, materialDef]
+    [textureSize, canvasPadding, setColorImageUrl, materialDef, frameIndex]
   );
 
   useEffect(() => {
@@ -79,7 +86,7 @@ export default function ColorCanvas({
     loadImage,
   ]);
 
-  const canvasId = `${materialDef.name}:color`;
+  const canvasId = `${materialDef.name}:color:${frameIndex}`;
 
   return textureSize ? (
     <Canvas

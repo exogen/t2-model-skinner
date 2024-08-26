@@ -14,24 +14,40 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
           };
         });
       },
-      setColorImageUrl(materialFile: string, colorImageUrl: string) {
+      setColorImageUrl(
+        materialFile: string,
+        colorImageUrl: string,
+        frameIndex: number
+      ) {
         setMaterialSkins((materialSkins) => {
+          const newColorImageUrl = Array.from(
+            materialSkins[materialFile]?.colorImageUrl ?? []
+          );
+          newColorImageUrl.splice(frameIndex, 1, colorImageUrl);
           return {
             ...materialSkins,
             [materialFile]: {
               ...materialSkins[materialFile],
-              colorImageUrl,
+              colorImageUrl: newColorImageUrl,
             },
           };
         });
       },
-      setMetallicImageUrl(materialFile: string, metallicImageUrl: string) {
+      setMetallicImageUrl(
+        materialFile: string,
+        metallicImageUrl: string,
+        frameIndex: number
+      ) {
         setMaterialSkins((materialSkins) => {
+          const newMetallicImageUrl = Array.from(
+            materialSkins[materialFile]?.metallicImageUrl ?? []
+          );
+          newMetallicImageUrl.splice(frameIndex, 1, metallicImageUrl);
           return {
             ...materialSkins,
             [materialFile]: {
               ...materialSkins[materialFile],
-              metallicImageUrl,
+              metallicImageUrl: newMetallicImageUrl,
             },
           };
         });
@@ -46,11 +62,11 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
       getSkinImages(materialFile: string) {
         return materialSkins[materialFile];
       },
-      getColorImageUrl(materialFile: string) {
-        return materialSkins[materialFile].colorImageUrl;
+      getColorImageUrl(materialFile: string, frameIndex: number) {
+        return materialSkins[materialFile].colorImageUrl?.[frameIndex];
       },
-      getMetallicImageUrl(materialFile: string) {
-        return materialSkins[materialFile].metallicImageUrl;
+      getMetallicImageUrl(materialFile: string, frameIndex: number) {
+        return materialSkins[materialFile].metallicImageUrl?.[frameIndex];
       },
       ...setters,
     };

@@ -22,10 +22,26 @@ export default function MaterialCanvases() {
         const hasMetallic = !(
           materialDef.metallicFactor === 0 && materialDef.roughnessFactor === 1
         );
+        const frameCount = materialDef.frameCount ?? 1;
+        const frames = new Array(frameCount).fill(null);
         return (
           <React.Fragment key={`${actualModel}-${materialDef.name}`}>
-            <ColorCanvas materialDef={materialDef} />
-            {hasMetallic ? <MetallicCanvas materialDef={materialDef} /> : null}
+            {frames.map((_, i) => (
+              <ColorCanvas
+                materialDef={materialDef}
+                frameIndex={i}
+                key={`color:${i}`}
+              />
+            ))}
+            {hasMetallic
+              ? frames.map((_, i) => (
+                  <MetallicCanvas
+                    materialDef={materialDef}
+                    frameIndex={i}
+                    key={`metallic:${i}`}
+                  />
+                ))
+              : null}
           </React.Fragment>
         );
       })}

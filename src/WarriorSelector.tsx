@@ -184,7 +184,7 @@ export default function WarriorSelector() {
               });
               setSelectedSkin(null);
               setSkinImageUrls({
-                [materialDef.file ?? materialDef.name]: imageUrl,
+                [materialDef.file ?? materialDef.name]: [imageUrl],
               });
             }}
             type="file"
