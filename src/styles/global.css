@@ -51,6 +51,7 @@ main {
 
 select {
   min-width: 8em;
+  min-height: 22px;
   text-overflow: ellipsis;
 }
 
@@ -399,7 +400,7 @@ h6 {
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  margin-top: 17px;
+  margin-top: 19px;
   margin-right: auto;
 }
 
@@ -539,11 +540,13 @@ h6 {
   align-items: center;
   font-size: 11px;
   margin: 0 38px 0 16px;
-  gap: 3px;
+  gap: 6px;
   color: rgb(122, 183, 165);
 }
 
 .AnimationSpeed input[type="checkbox"] {
   width: 12px;
   height: 12px;
+  padding: 0;
+  margin: 0;
 }
