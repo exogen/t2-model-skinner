@@ -23,7 +23,7 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
           const newColorImageUrl = Array.from(
             materialSkins[materialFile]?.colorImageUrl ?? []
           );
-          newColorImageUrl.splice(frameIndex, 1, colorImageUrl);
+          newColorImageUrl[frameIndex] = colorImageUrl;
           return {
             ...materialSkins,
             [materialFile]: {
@@ -42,7 +42,7 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
           const newMetallicImageUrl = Array.from(
             materialSkins[materialFile]?.metallicImageUrl ?? []
           );
-          newMetallicImageUrl.splice(frameIndex, 1, metallicImageUrl);
+          newMetallicImageUrl[frameIndex] = metallicImageUrl;
           return {
             ...materialSkins,
             [materialFile]: {
