@@ -41,7 +41,9 @@ export default function CanvasToggle() {
           <button
             type="button"
             onClick={() => {
-              setSelectedFrameIndex((index) => (index - 1) % frameCount);
+              setSelectedFrameIndex(
+                (index) => (frameCount + index - 1) % frameCount
+              );
             }}
           >
             <FaChevronLeft />
