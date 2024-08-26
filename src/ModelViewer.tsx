@@ -20,12 +20,15 @@ declare global {
   }
 }
 
-function useTimeScale(modelViewer: ModelViewerElement | null) {
+function useTimeScale(
+  modelViewer: ModelViewerElement | null,
+  timeScale: number
+) {
   useEffect(() => {
     if (modelViewer) {
-      modelViewer.timeScale = 0.5;
+      modelViewer.timeScale = timeScale;
     }
-  }, [modelViewer]);
+  }, [modelViewer, timeScale]);
 }
 
 interface ModelViewerProps {
@@ -37,6 +40,7 @@ interface ModelViewerProps {
   metallicImageUrl?: string;
   animationName: string | null;
   animationPaused?: boolean;
+  timeScale?: number;
   cameraOrbit?: string;
   cameraTarget?: string;
   fieldOfView?: string;
@@ -50,6 +54,7 @@ function ModelViewerKeyedByModel({
   exposure = 1,
   animationName,
   animationPaused = false,
+  timeScale = 1,
   cameraOrbit,
   cameraTarget,
   fieldOfView,
@@ -71,7 +76,7 @@ function ModelViewerKeyedByModel({
     };
   }, [modelViewer, isLoaded]);
 
-  useTimeScale(modelViewer);
+  useTimeScale(modelViewer, timeScale);
 
   useEffect(() => {
     if (!modelViewer) {

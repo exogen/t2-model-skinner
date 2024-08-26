@@ -26,6 +26,8 @@ type WarriorContextValue = {
   selectedSkin: string | null;
   setSelectedSkin: (selectedSkin: string | null) => void;
   setSelectedModelType: (selectedModelType: string) => void;
+  slowModeEnabled: boolean;
+  setSlowModeEnabled: (slowModeEnabled: boolean) => void;
 };
 
 const WarriorContext = React.createContext<WarriorContextValue | null>(null);

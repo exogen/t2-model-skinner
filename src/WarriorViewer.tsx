@@ -17,6 +17,7 @@ export default function WarriorViewer() {
     selectedModelType,
     selectedAnimation,
     animationPaused,
+    slowModeEnabled,
   } = useWarrior();
   const { environmentImageUrl, showEnvironment, exposure } = useEnvironment();
 
@@ -27,6 +28,7 @@ export default function WarriorViewer() {
       showEnvironment={showEnvironment}
       animationName={selectedAnimation}
       animationPaused={animationPaused}
+      timeScale={slowModeEnabled ? 0.05 : 0.5}
       cameraOrbit={
         selectedModelType === "weapon" ? "315deg 70deg 105%" : undefined
       }

@@ -138,6 +138,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     null
   );
   const [animationPaused, setAnimationPaused] = useState(false);
+  const [slowModeEnabled, setSlowModeEnabled] = useState(false);
   const { basePath } = useSettings();
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
   const selectedModelUrl = getModelUrl(
@@ -188,6 +189,8 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       skinImageUrls,
       setSkinImageUrls,
       defaultSkinImageUrls,
+      slowModeEnabled,
+      setSlowModeEnabled,
     };
   }, [
     selectedModel,
@@ -207,6 +210,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     skinImageUrls,
     setSkinImageUrls,
     defaultSkinImageUrls,
+    slowModeEnabled,
   ]);
 
   useEffect(() => {

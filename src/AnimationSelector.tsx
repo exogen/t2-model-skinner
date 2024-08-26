@@ -15,6 +15,8 @@ export default function AnimationSelector() {
     setSelectedAnimation,
     animationPaused,
     setAnimationPaused,
+    slowModeEnabled,
+    setSlowModeEnabled,
   } = useWarrior();
 
   const animationList = useMemo(
@@ -27,7 +29,20 @@ export default function AnimationSelector() {
 
   return (
     <>
-      <label>Animation</label>
+      <div className="LabelWithControls">
+        <label>Animation</label>
+        <div className="AnimationSpeed">
+          <input
+            type="checkbox"
+            id="SlowDownCheckbox"
+            checked={slowModeEnabled}
+            onChange={(event) => {
+              setSlowModeEnabled(event.target.checked);
+            }}
+          />{" "}
+          <label htmlFor="SlowDownCheckbox">Slow?</label>
+        </div>
+      </div>
       <div className="Buttons">
         <select
           value={selectedAnimation ?? ""}

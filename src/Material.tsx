@@ -3,6 +3,7 @@ import type { ModelViewerElement } from "@google/model-viewer";
 import useSettings from "./useSettings";
 import useSkin from "./useSkin";
 import useModelViewer from "./useModelViewer";
+import useWarrior from "./useWarrior";
 
 // const secondaryMaterialTextures: Record<string, string[]> = {
 //   disc: ["textures/discshield2"],
@@ -52,6 +53,7 @@ function useTexture({
 }) {
   const { modelViewer } = useModelViewer();
   const { basePath } = useSettings();
+  const { slowModeEnabled } = useWarrior();
 
   useEffect(() => {
     let stale = false;
@@ -81,6 +83,10 @@ function useTexture({
         let textureUrls =
           imageUrl ?? new Array(frameCount).fill(`${basePath}/white.png`);
 
+        if (textureUrls.some((url) => !url)) {
+          return;
+        }
+
         switch (textureType) {
           case "baseColorTexture":
             if (baseColorFactor) {
@@ -103,6 +109,7 @@ function useTexture({
               textureUrls = new Array(frameCount).fill(`${basePath}/green.png`);
             }
         }
+
         const textures = await Promise.all(
           textureUrls.map((textureUrl) => modelViewer.createTexture(textureUrl))
         );
@@ -117,7 +124,7 @@ function useTexture({
               material.emissiveTexture.setTexture(texture);
             }
             if (isMasterTexture) {
-              frameInfo.frameProgress += 1;
+              frameInfo.frameProgress += slowModeEnabled ? 0.05 : 1;
             }
             if (frameCount > 1) {
               const frameTiming = frameTimings?.[frameInfo.frameIndex] ?? 1;
@@ -150,6 +157,7 @@ function useTexture({
     textureType,
     imageUrl,
     frameRef,
+    slowModeEnabled,
   ]);
 }
 

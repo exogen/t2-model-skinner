@@ -192,11 +192,17 @@ select {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+}
+
+.Buttons select {
+  flex: 1 0 auto;
 }
 
 .Buttons button {
   display: grid;
   place-content: center;
+  flex: 0 0 auto;
   border: 1px solid rgb(23, 159, 138);
   border-radius: 2px;
   width: 28px;
@@ -278,10 +284,10 @@ select {
   gap: 10px;
 }
 
-.ModelTools:has(input[type="checkbox"]:checked) {
+/* .ModelTools:has(input[type="checkbox"]:checked) {
   background-color: #01292e;
   background-image: linear-gradient(to bottom, #124044 0%, #001720 100vh);
-}
+} */
 
 .Field {
   display: flex;
@@ -290,11 +296,19 @@ select {
   gap: 4px;
 }
 
-.Field > label {
+.Field > label,
+.Field > div > label {
   text-transform: uppercase;
   font-size: 11px;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
   opacity: 0.8;
+}
+
+.Field .LabelWithControls {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .BrushToolsPopup {
@@ -518,4 +532,18 @@ h6 {
 .FrameInfo {
   font-size: 12px;
   font-weight: 500;
+}
+
+.AnimationSpeed {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  margin: 0 38px 0 16px;
+  gap: 3px;
+  color: rgb(122, 183, 165);
+}
+
+.AnimationSpeed input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
 }
