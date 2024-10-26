@@ -39,13 +39,15 @@ export default function WarriorSelector() {
             const parentNode = event.target.selectedOptions[0]
               .parentNode as HTMLElement;
             const newSelectedModel = event.target.value;
+            const newActualModel =
+              newSelectedModel === "hfemale" ? "hmale" : newSelectedModel;
             const { modelType } = parentNode.dataset;
             if (!modelType) {
               throw new Error("No data-model-type found");
             }
             const newModelHasSkin =
-              defaultSkins[newSelectedModel]?.includes(selectedSkin) ||
-              customSkins[newSelectedModel]?.includes(selectedSkin) ||
+              defaultSkins[newActualModel]?.includes(selectedSkin) ||
+              customSkins[newActualModel]?.includes(selectedSkin) ||
               false;
             // startTransition(() => {
             setSelectedAnimation(null);
@@ -54,7 +56,7 @@ export default function WarriorSelector() {
             setSelectedModel(newSelectedModel);
             setSelectedMaterialIndex(0);
             if (!newModelHasSkin) {
-              setSelectedSkin(modelDefaults[newSelectedModel] ?? null);
+              setSelectedSkin(modelDefaults[newActualModel] ?? null);
               setSelectedSkinType("default");
             }
             // });
