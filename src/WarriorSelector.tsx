@@ -3,6 +3,7 @@ import useWarrior from "./useWarrior";
 import { AiTwotoneFolderOpen } from "react-icons/ai";
 import { useRef } from "react";
 import useTools from "./useTools";
+import { detectFileType } from "./importUtils";
 
 const { publicRuntimeConfig } = getConfig();
 const { defaultSkins, customSkins, modelDefaults, materials } =
@@ -173,11 +174,24 @@ export default function WarriorSelector() {
               const imageUrl = await new Promise<string>((resolve, reject) => {
                 const inputFile = event.target.files?.[0];
                 if (inputFile) {
-                  const reader = new FileReader();
-                  reader.addEventListener("load", (event) => {
-                    resolve(event.target?.result as string);
-                  });
-                  reader.readAsDataURL(inputFile);
+                  const fileType = detectFileType(inputFile);
+                  switch (fileType) {
+                    case "png": {
+                      const reader = new FileReader();
+                      reader.addEventListener("load", (event) => {
+                        resolve(event.target?.result as string);
+                      });
+                      reader.readAsDataURL(inputFile);
+                      break;
+                    }
+                    // case "zip":
+                    // case "vl2": {
+                    //   const skins = await readZipFile(inputFile);
+                    //   if (skins.length) {
+                    //     resolve(skins[0].imageUrl);
+                    //   }
+                    // }
+                  }
                 } else {
                   reject(new Error("No input file provided."));
                 }
@@ -188,6 +202,7 @@ export default function WarriorSelector() {
               });
             }}
             type="file"
+            // accept=".png, image/png, .vl2, .zip, application/zip, application/zip-compressed"
             accept=".png, image/png"
             hidden
           />

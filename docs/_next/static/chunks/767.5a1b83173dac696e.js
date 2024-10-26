@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[767],{767:function(e,n,i){i.d(n,{createZipFile:function(){return createZipFile},savePngFile:function(){return savePngFile},saveZipFile:function(){return saveZipFile}});var t=i(5733),a=i.n(t),s=i(3162);function createZipFile(e){let n=new(a());for(let i of e)n.file("textures/skins/".concat(i.name),i.data);return n}async function saveZipFile(e,n){let i=await e.generateAsync({type:"blob"});(0,s.saveAs)(i,n)}function savePngFile(e,n){(0,s.saveAs)(e,n)}}}]);
-//# sourceMappingURL=767.5a1b83173dac696e.js.map
