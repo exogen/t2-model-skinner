@@ -31,10 +31,6 @@ Build the production version of the app with `npm run build`:
 npm run build
 ```
 
-You will also need to clone the [t2-skins](https://github.com/exogen/t2-skins)
-repository, which is the source for all the custom skins that will be listed in
-the dropdown menu. Adding a new skin to that repository will make it
-automatically appear in the menu during build time.
-
-If [t2-skins](https://github.com/exogen/t2-skins) is not a sibling folder to
-`t2-model-skinner`, set the `T2_SKINS_PATH` environment variable to its path.
+To get new skins to appear in the Custom Skins dropdown menu or the gallery
+page, they must be deployed with the [t2-skins](https://github.com/exogen/t2-skins)
+repository.

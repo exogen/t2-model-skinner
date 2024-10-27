@@ -53,6 +53,7 @@ export default function GalleryPage() {
                     )}.${actualModel}.webp`}
                     width={680}
                     height={800}
+                    alt={name}
                   />
                   <div className={styles.Label}>{name}</div>
                 </div>
