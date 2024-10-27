@@ -4,8 +4,13 @@ import useTools from "./useTools";
 import { usePopper } from "react-popper";
 import Slider from "rc-slider";
 import { RiFileCopyFill } from "react-icons/ri";
-import { FaTrashAlt, FaLock, FaUnlock } from "react-icons/fa";
-import { GoArrowUp, GoArrowDown } from "react-icons/go";
+import {
+  FaTrashAlt,
+  FaLock,
+  FaUnlock,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa";
 import { GiArrowCursor } from "react-icons/gi";
 import { IoMdBrush } from "react-icons/io";
 import { ImPlus, ImUndo2, ImRedo2, ImContrast } from "react-icons/im";
@@ -416,7 +421,7 @@ export default function CanvasTools() {
               title="Bring Forward (F)"
               onClick={bringForward}
             >
-              <GoArrowUp style={{ fontSize: 22 }} />
+              <FaArrowUp />
             </button>
             <button
               type="button"
@@ -424,7 +429,7 @@ export default function CanvasTools() {
               title="Send Backward (B)"
               onClick={sendBackward}
             >
-              <GoArrowDown style={{ fontSize: 22 }} />
+              <FaArrowDown />
             </button>
             <button
               type="button"

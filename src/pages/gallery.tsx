@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CgSpinnerTwo } from "react-icons/cg";
 import useManifest from "../useManifest";
 import styles from "./gallery.module.css";
 import Head from "next/head";
@@ -20,6 +21,7 @@ export default function GalleryPage() {
       <main className={styles.GalleryPage}>
         <div className={styles.Tools}>
           <select
+            tabIndex={0}
             id="ModelSelect"
             aria-label="Player model"
             onChange={(event) => {
@@ -38,24 +40,28 @@ export default function GalleryPage() {
             <option value="hbioderm">Bioderm &middot; Heavy</option>
           </select>
         </div>
-        <div className={styles.Gallery}>
-          {customSkins.map((name) => {
-            return (
-              <div key={name} className={styles.Skin}>
-                <img
-                  className={styles.Preview}
-                  loading="lazy"
-                  src={`${baseManifestPath}/gallery/${encodeURIComponent(
-                    name
-                  )}.${actualModel}.webp`}
-                  width={680}
-                  height={800}
-                />
-                <div className={styles.Label}>{name}</div>
-              </div>
-            );
-          })}
-        </div>
+        {isLoaded ? (
+          <div className={styles.Gallery}>
+            {customSkins.map((name) => {
+              return (
+                <div key={name} className={styles.Skin}>
+                  <img
+                    className={styles.Preview}
+                    loading="lazy"
+                    src={`${baseManifestPath}/gallery/${encodeURIComponent(
+                      name
+                    )}.${actualModel}.webp`}
+                    width={680}
+                    height={800}
+                  />
+                  <div className={styles.Label}>{name}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <CgSpinnerTwo className={styles.Spinner} />
+        )}
       </main>
     </>
   );

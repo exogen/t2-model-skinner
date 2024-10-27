@@ -12,6 +12,11 @@
   z-index: 2;
 }
 
+.Tools select:focus {
+  outline: none;
+  box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.5), 0 0 2px 3px rgb(152, 255, 212);
+}
+
 .Gallery {
   flex: 0 0 auto;
   display: grid;
@@ -50,4 +55,21 @@
 
 .Skin:hover .Label {
   opacity: 1;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.Spinner {
+  flex: 0 0 auto;
+  margin: auto;
+  font-size: 64px;
+  animation: spin 2s linear infinite;
 }
