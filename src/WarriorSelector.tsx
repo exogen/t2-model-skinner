@@ -1,13 +1,15 @@
 import getConfig from "next/config";
 import useWarrior from "./useWarrior";
 import { AiTwotoneFolderOpen } from "react-icons/ai";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
 import { detectFileType } from "./importUtils";
 
 const { publicRuntimeConfig } = getConfig();
-const { defaultSkins, customSkins, modelDefaults, materials } =
-  publicRuntimeConfig;
+const { defaultSkins, modelDefaults, materials } = publicRuntimeConfig;
+
+const baseManifestPath = `https://exogen.github.io/t2-skins`;
+const defaultCustomSkins = {};
 
 export default function WarriorSelector() {
   const {
@@ -26,7 +28,48 @@ export default function WarriorSelector() {
   const { selectedMaterialIndex, setSelectedMaterialIndex } = useTools();
   const materialDefs = materials[actualModel];
   const materialDef = materialDefs[selectedMaterialIndex];
+  const [customSkins, setCustomSkins] =
+    useState<Record<string, string[]>>(defaultCustomSkins);
+  const [newSkins, setNewSkins] =
+    useState<Record<string, string[]>>(defaultCustomSkins);
+  const [selectedSkinSection, setSelectedSkinSection] = useState<string | null>(
+    null
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    let ignore = false;
+
+    const loadCustomSkins = async () => {
+      let res;
+      try {
+        res = await fetch(`${baseManifestPath}/skins.json`, { signal });
+      } catch (err) {
+        return;
+      }
+      if (!ignore) {
+        const json = await res.json();
+        if (!ignore) {
+          setCustomSkins(json.customSkins ?? {});
+          setNewSkins(json.newSkins ?? {});
+        }
+      }
+    };
+
+    loadCustomSkins();
+
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
+  }, []);
+
+  let skinSelectValue = selectedSkin ?? "";
+  if (selectedSkin && selectedSkinSection) {
+    skinSelectValue = `${selectedSkinSection}/${selectedSkin}`;
+  }
 
   return (
     <div className="Toolbar">
@@ -46,10 +89,21 @@ export default function WarriorSelector() {
               throw new Error("No data-model-type found");
             }
             const newModelHasSkin =
-              defaultSkins[newActualModel]?.includes(selectedSkin) ||
-              customSkins[newActualModel]?.includes(selectedSkin) ||
+              (selectedSkin &&
+                (defaultSkins[newActualModel]?.includes(selectedSkin) ||
+                  customSkins[newActualModel]?.includes(selectedSkin))) ||
               false;
-            // startTransition(() => {
+
+            let newModelHasSection = false;
+            if (
+              selectedSkin &&
+              selectedSkinSection === "new" &&
+              newModelHasSkin
+            ) {
+              newModelHasSection =
+                newSkins[newActualModel]?.includes(selectedSkin);
+            }
+
             setSelectedAnimation(null);
             setAnimationPaused(false);
             setSelectedModelType(modelType);
@@ -59,7 +113,9 @@ export default function WarriorSelector() {
               setSelectedSkin(modelDefaults[newActualModel] ?? null);
               setSelectedSkinType("default");
             }
-            // });
+            if (!newModelHasSection) {
+              setSelectedSkinSection(null);
+            }
           }}
         >
           <optgroup label="Players" data-model-type="player">
@@ -104,15 +160,22 @@ export default function WarriorSelector() {
         <div className="Buttons">
           <select
             id="SkinSelect"
-            value={selectedSkin ?? ""}
+            value={skinSelectValue}
             onChange={(event) => {
               const parentNode = event.target.selectedOptions[0]
                 .parentNode as HTMLElement;
               const skinType = event.target.value
                 ? parentNode.dataset.skinType ?? null
                 : null;
-              setSelectedSkin(event.target.value || null);
+              const skinParts = event.target.value.split("/");
+              const selectedSkin = skinParts.slice(-1)[0] ?? null;
+              setSelectedSkin(selectedSkin);
               setSelectedSkinType(skinType);
+              if (skinParts.length > 1) {
+                setSelectedSkinSection(skinParts[0]);
+              } else {
+                setSelectedSkinSection(null);
+              }
             }}
           >
             <option value="">Select a skin…</option>
@@ -127,14 +190,31 @@ export default function WarriorSelector() {
                     );
                   })}
                 </optgroup>
+                {newSkins[actualModel]?.length ? (
+                  <optgroup label="New Skins ✨" data-skin-type="custom">
+                    {newSkins[actualModel]?.map((name: string) => {
+                      return (
+                        <option key={`new/${name}`} value={`new/${name}`}>
+                          {name} ✨
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                ) : null}
                 <optgroup label="Custom Skins" data-skin-type="custom">
-                  {customSkins[actualModel]?.map((name: string) => {
-                    return (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    );
-                  })}
+                  {customSkins === defaultCustomSkins ? (
+                    <option key="loading" value="">
+                      Loading…
+                    </option>
+                  ) : (
+                    customSkins[actualModel]?.map((name: string) => {
+                      return (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      );
+                    })
+                  )}
                 </optgroup>
               </>
             ) : null}
@@ -199,6 +279,7 @@ export default function WarriorSelector() {
                 }
               });
               setSelectedSkin(null);
+              setSelectedSkinSection(null);
               setSkinImageUrls({
                 [materialDef.file ?? materialDef.name]: [imageUrl],
               });
