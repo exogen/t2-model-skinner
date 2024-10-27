@@ -48,8 +48,8 @@ export default function GalleryPage() {
                   src={`${baseManifestPath}/gallery/${encodeURIComponent(
                     name
                   )}.${actualModel}.webp`}
-                  width={800}
-                  height={1600}
+                  width={680}
+                  height={800}
                 />
                 <div className={styles.Label}>{name}</div>
               </div>

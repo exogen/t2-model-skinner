@@ -8,16 +8,16 @@
   flex: 0 0 auto;
   padding: 10px;
   text-align: center;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.7);
   z-index: 2;
 }
 
 .Gallery {
-  --column-count: 1;
   flex: 0 0 auto;
   display: grid;
   width: 100%;
-  grid-template-columns: repeat(var(--column-count), 1fr);
+  background: rgb(12, 31, 40);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .Skin {
@@ -25,6 +25,7 @@
   font-size: 12px;
   text-align: center;
   overflow: hidden;
+  padding-bottom: 32px;
 }
 
 .Preview {
@@ -35,7 +36,7 @@
 
 .Label {
   position: absolute;
-  bottom: 12px;
+  bottom: 16px;
   left: 50%;
   transform: translate(-50%, 0);
   display: inline-block;
