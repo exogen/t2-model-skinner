@@ -6,6 +6,7 @@ module.exports = async () => {
     reactStrictMode: true,
     productionBrowserSourceMaps: true,
     publicRuntimeConfig,
+    trailingSlash: true,
     output: "export",
     distDir: "docs",
   };

@@ -171,6 +171,9 @@ export async function getSkinConfig() {
     },
     cameraOverrides: {
       chaingun: { target: "0m 0m 0m", fov: "12deg" },
+      hmale: { fov: "24deg" },
+      hfemale: { fov: "24deg" },
+      hbioderm: { fov: "24deg" },
     },
     animationLabelOverrides: {
       mmale: {
