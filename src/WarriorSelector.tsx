@@ -1,6 +1,6 @@
 import getConfig from "next/config";
 import useWarrior from "./useWarrior";
-import { AiTwotoneFolderOpen } from "react-icons/ai";
+import { FaFolderOpen } from "react-icons/fa";
 import { useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
 import { detectFileType } from "./importUtils";
@@ -248,7 +248,7 @@ export default function WarriorSelector() {
               }
             }}
           >
-            <AiTwotoneFolderOpen style={{ fontSize: 18 }} />
+            <FaFolderOpen style={{ fontSize: 18 }} />
           </button>
           <input
             ref={fileInputRef}
