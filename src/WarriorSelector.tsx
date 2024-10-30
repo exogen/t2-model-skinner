@@ -1,6 +1,7 @@
 import getConfig from "next/config";
 import useWarrior from "./useWarrior";
 import { FaFolderOpen } from "react-icons/fa";
+import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
 import { detectFileType } from "./importUtils";
@@ -290,6 +291,18 @@ export default function WarriorSelector() {
             hidden
           />
         </div>
+      </div>
+      <div className="Field GalleryField">
+        <a
+          href="gallery/"
+          target="_blank"
+          className="GalleryLink"
+          title="Open skin gallery"
+        >
+          <span className="FieldLabel">Gallery</span>
+          <br />
+          <BsFillGrid3X3GapFill />
+        </a>
       </div>
     </div>
   );
