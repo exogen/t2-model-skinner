@@ -45,7 +45,7 @@ main {
 
 .Toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   align-self: stretch;
   gap: 20px;
 }
@@ -495,8 +495,10 @@ h6 {
 }
 
 .GalleryLink {
-  display: block;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   font-size: 20px;
   margin-left: auto;
   color: inherit;
@@ -505,7 +507,6 @@ h6 {
 
 .GalleryLink svg {
   color: rgb(74, 193, 171);
-  margin: 2px 0 2px 0;
 }
 
 @media only screen and (max-width: 899px) {

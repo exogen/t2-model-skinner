@@ -300,7 +300,6 @@ export default function WarriorSelector() {
           title="Open skin gallery"
         >
           <span className="FieldLabel">Gallery</span>
-          <br />
           <BsFillGrid3X3GapFill />
         </a>
       </div>
