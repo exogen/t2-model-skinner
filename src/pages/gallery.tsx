@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { CgSpinnerTwo } from "react-icons/cg";
+import { FaChevronLeft, FaGithub } from "react-icons/fa";
 import useManifest from "../useManifest";
 import styles from "./gallery.module.css";
 import Head from "next/head";
+import Link from "next/link";
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const emptySkins: string[] = [];
@@ -20,6 +22,10 @@ export default function GalleryPage() {
       </Head>
       <main className={styles.GalleryPage}>
         <div className={styles.Tools}>
+          <Link className={styles.Back} href="../">
+            <FaChevronLeft size={12} className={styles.Icon} />{" "}
+            <span className={styles.Label}>Back to Editor</span>
+          </Link>
           <select
             tabIndex={0}
             id="ModelSelect"
@@ -39,6 +45,12 @@ export default function GalleryPage() {
             <option value="mbioderm">Bioderm &middot; Medium</option>
             <option value="hbioderm">Bioderm &middot; Heavy</option>
           </select>
+          <a
+            href="https://github.com/exogen/t2-model-skinner"
+            className={styles.IconLink}
+          >
+            <FaGithub size={32} />
+          </a>
         </div>
         {isLoaded ? (
           <div className={styles.Gallery}>
@@ -55,7 +67,7 @@ export default function GalleryPage() {
                     height={800}
                     alt={name}
                   />
-                  <div className={styles.Label}>{name}</div>
+                  <div className={styles.Name}>{name}</div>
                 </div>
               );
             })}
