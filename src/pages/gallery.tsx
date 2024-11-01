@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CgSpinnerTwo } from "react-icons/cg";
 import { FaChevronLeft, FaGithub } from "react-icons/fa";
+import { useRouter } from "next/router";
+import orderBy from "lodash.orderby";
 import useManifest from "../useManifest";
 import styles from "./gallery.module.css";
 import Head from "next/head";
@@ -10,10 +12,48 @@ const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const emptySkins: string[] = [];
 
 export default function GalleryPage() {
+  const router = useRouter();
   const [manifest, isLoaded] = useManifest();
   const [selectedModel, setSelectedModel] = useState("lmale");
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
   const customSkins = manifest.customSkins?.[actualModel] ?? emptySkins;
+
+  const newSkinList = useMemo(() => {
+    if (manifest?.newSkins && selectedModel === "new") {
+      const skinsByName = new Map<string, string[]>();
+      Object.entries(manifest.newSkins).forEach(([model, names]) => {
+        names.forEach((name) => {
+          const skinModels = skinsByName.get(name) ?? [];
+          skinModels.push(model);
+          skinsByName.set(name, skinModels);
+        });
+      });
+      const sortedSkinNames = orderBy(
+        Array.from(skinsByName.keys()),
+        [(name: string) => name.toLowerCase()],
+        ["asc"]
+      );
+      const allNewSkins: Array<{ name: string; model: string }> = [];
+      sortedSkinNames.forEach((name: string) => {
+        const skinModels = skinsByName.get(name) ?? [];
+        allNewSkins.push(...skinModels.map((model) => ({ name, model })));
+      });
+      return allNewSkins;
+    } else {
+      return [];
+    }
+  }, [selectedModel, manifest]);
+
+  const filteredSkins = selectedModel === "new" ? newSkinList : customSkins;
+
+  const filter =
+    router.query.filter && typeof router.query.filter === "string"
+      ? router.query.filter
+      : "lmale";
+
+  useEffect(() => {
+    setSelectedModel(filter);
+  }, [filter]);
 
   return (
     <>
@@ -31,10 +71,11 @@ export default function GalleryPage() {
             id="ModelSelect"
             aria-label="Player model"
             onChange={(event) => {
-              setSelectedModel(event.target.value);
+              router.push(`?filter=${event.target.value}`);
             }}
             value={selectedModel}
           >
+            <option value="new">All new skins ✨</option>
             <option value="lmale">Human Male &middot; Light</option>
             <option value="mmale">Human Male &middot; Medium</option>
             <option value="hmale">Human Male &middot; Heavy</option>
@@ -54,20 +95,31 @@ export default function GalleryPage() {
         </div>
         {isLoaded ? (
           <div className={styles.Gallery}>
-            {customSkins.map((name) => {
+            {filteredSkins.map((name) => {
+              let skinName;
+              let skinModel;
+              if (typeof name === "string") {
+                skinName = name;
+                skinModel = actualModel;
+              } else {
+                skinName = name.name;
+                skinModel = name.model;
+              }
+              const url = `${baseManifestPath}/gallery/${encodeURIComponent(
+                skinName
+              )}.${skinModel}.webp`;
+
               return (
-                <div key={name} className={styles.Skin}>
+                <div key={`${skinName}:${skinModel}`} className={styles.Skin}>
                   <img
                     className={styles.Preview}
                     loading="lazy"
-                    src={`${baseManifestPath}/gallery/${encodeURIComponent(
-                      name
-                    )}.${actualModel}.webp`}
+                    src={url}
                     width={680}
                     height={800}
-                    alt={name}
+                    alt={skinName}
                   />
-                  <div className={styles.Name}>{name}</div>
+                  <div className={styles.Name}>{skinName}</div>
                 </div>
               );
             })}
