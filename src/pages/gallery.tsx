@@ -11,6 +11,17 @@ import Link from "next/link";
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const emptySkins: string[] = [];
 
+const modelOrder: Record<string, number> = {
+  lmale: 0,
+  mmale: 1,
+  lfemale: 2,
+  mfemale: 3,
+  hmale: 4,
+  lbioderm: 5,
+  mbioderm: 6,
+  hbioderm: 7,
+};
+
 export default function GalleryPage() {
   const router = useRouter();
   const [manifest, isLoaded] = useManifest();
@@ -20,25 +31,17 @@ export default function GalleryPage() {
 
   const newSkinList = useMemo(() => {
     if (manifest?.newSkins && selectedModel === "new") {
-      const skinsByName = new Map<string, string[]>();
-      Object.entries(manifest.newSkins).forEach(([model, names]) => {
-        names.forEach((name) => {
-          const skinModels = skinsByName.get(name) ?? [];
-          skinModels.push(model);
-          skinsByName.set(name, skinModels);
-        });
-      });
-      const sortedSkinNames = orderBy(
-        Array.from(skinsByName.keys()),
-        [(name: string) => name.toLowerCase()],
-        ["asc"]
-      );
       const allNewSkins: Array<{ name: string; model: string }> = [];
-      sortedSkinNames.forEach((name: string) => {
-        const skinModels = skinsByName.get(name) ?? [];
-        allNewSkins.push(...skinModels.map((model) => ({ name, model })));
+
+      Object.entries(manifest.newSkins).forEach(([model, names]) => {
+        allNewSkins.push(...names.map((name) => ({ name, model })));
       });
-      return allNewSkins;
+
+      return orderBy(
+        allNewSkins,
+        [(skin) => skin.name.toLowerCase(), (skin) => modelOrder[skin.model]],
+        ["asc", "asc"]
+      );
     } else {
       return [];
     }
