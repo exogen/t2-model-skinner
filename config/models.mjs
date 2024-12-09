@@ -13,33 +13,6 @@ const models = [
   "hbioderm",
 ];
 
-const weaponModels = [
-  "chaingun",
-  "disc",
-  "elf",
-  "energy",
-  "grenade_launcher",
-  "missile",
-  "mortar",
-  "plasmathrower",
-  "repair",
-  "shocklance",
-  "sniper",
-  "targeting",
-];
-
-const vehicleModels = [
-  "vehicle_grav_scout",
-  "vehicle_grav_tank",
-  "turret_assaulttank_mortar",
-  "vehicle_land_mpbbase",
-  "vehicle_air_scout",
-  "vehicle_air_bomber",
-  "vehicle_air_hapc",
-];
-
-const T2_SKINS_PATH = process.env.T2_SKINS_PATH || "../t2-skins";
-
 export async function getSkinConfig() {
   const defaultSkins = await Promise.all(
     models.map((name) => globby(`./public/textures/*.${name}.png`))
@@ -171,6 +144,8 @@ export async function getSkinConfig() {
     },
     cameraOverrides: {
       chaingun: { target: "0m 0m 0m", fov: "12deg" },
+      plasmathrower: { target: "0.002m -0.001m 0m", fov: "12deg" },
+      energy: { fov: "31deg", orbit: "135deg 70deg 105%" },
       hmale: { fov: "24deg" },
       hfemale: { fov: "24deg" },
       hbioderm: { fov: "24deg" },

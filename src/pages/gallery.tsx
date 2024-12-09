@@ -79,15 +79,31 @@ export default function GalleryPage() {
             value={selectedModel}
           >
             <option value="new">All new skins ✨</option>
-            <option value="lmale">Human Male &middot; Light</option>
-            <option value="mmale">Human Male &middot; Medium</option>
-            <option value="hmale">Human Male &middot; Heavy</option>
-            <option value="lfemale">Human Female &middot; Light</option>
-            <option value="mfemale">Human Female &middot; Medium</option>
-            <option value="hfemale">Human Female &middot; Heavy</option>
-            <option value="lbioderm">Bioderm &middot; Light</option>
-            <option value="mbioderm">Bioderm &middot; Medium</option>
-            <option value="hbioderm">Bioderm &middot; Heavy</option>
+            <optgroup label="Players" data-model-type="player">
+              <option value="lmale">Human Male &bull; Light</option>
+              <option value="mmale">Human Male &bull; Medium</option>
+              <option value="hmale">Human Male &bull; Heavy</option>
+              <option value="lfemale">Human Female &bull; Light</option>
+              <option value="mfemale">Human Female &bull; Medium</option>
+              <option value="hfemale">Human Female &bull; Heavy</option>
+              <option value="lbioderm">Bioderm &bull; Light</option>
+              <option value="mbioderm">Bioderm &bull; Medium</option>
+              <option value="hbioderm">Bioderm &bull; Heavy</option>
+            </optgroup>
+            <optgroup label="Weapons" data-model-type="weapon">
+              <option value="disc">Disc Launcher</option>
+              <option value="chaingun">Chaingun</option>
+              <option value="grenade_launcher">Grenade Launcher</option>
+              <option value="sniper">Laser Rifle</option>
+              <option value="plasmathrower">Plasma Cannon</option>
+              <option value="energy">Blaster</option>
+              <option value="shocklance">Shocklance</option>
+              <option value="elf">ELF Projector</option>
+              <option value="missile">Missile Launcher</option>
+              <option value="mortar">Mortar</option>
+              <option value="repair">Repair Pack</option>
+              <option value="targeting">Targeting Laser</option>
+            </optgroup>
           </select>
           <a
             href="https://github.com/exogen/t2-model-skinner"

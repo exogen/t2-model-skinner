@@ -30,7 +30,8 @@ export default function WarriorViewer() {
       animationPaused={animationPaused}
       timeScale={slowModeEnabled ? 0.05 : 0.5}
       cameraOrbit={
-        selectedModelType === "weapon" ? "315deg 70deg 105%" : undefined
+        cameraOverrides[selectedModel]?.orbit ??
+        (selectedModelType === "weapon" ? "315deg 70deg 105%" : undefined)
       }
       cameraTarget={cameraOverrides[selectedModel]?.target}
       fieldOfView={cameraOverrides[selectedModel]?.fov}
