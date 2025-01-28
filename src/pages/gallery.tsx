@@ -104,6 +104,16 @@ export default function GalleryPage() {
               <option value="repair">Repair Pack</option>
               <option value="targeting">Targeting Laser</option>
             </optgroup>
+            <optgroup label="Vehicles" data-model-type="vehicle">
+              <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
+              <option value="vehicle_grav_tank">Beowulf Assault Tank</option>
+              <option value="vehicle_land_mpbbase">
+                Jericho Mobile Point Base
+              </option>
+              <option value="vehicle_air_scout">Shrike Scout Fighter</option>
+              <option value="vehicle_air_bomber">Thundersword Bomber</option>
+              <option value="vehicle_air_hapc">HAVOC Gunship Transport</option>
+            </optgroup>
           </select>
           <a
             href="https://github.com/exogen/t2-model-skinner"
