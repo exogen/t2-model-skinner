@@ -24,7 +24,6 @@ const ignoreFilePattern = /^(\.|__MACOSX)/;
 
 export async function readZipFile(inputFile: File) {
   const content = await JSZip.loadAsync(inputFile);
-  console.log("files", content.files);
   const skins = await Promise.all(
     Object.entries(content.files).map(async ([path, file]) => {
       if (!ignoreFilePattern.test(path)) {
