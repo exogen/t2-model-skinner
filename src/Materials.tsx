@@ -15,9 +15,7 @@ export default function Materials() {
   return (
     <>
       {model.materials.map((material, i) => {
-        const materialDef =
-          materialDefs.find((materialDef) => materialDef.index === i) ??
-          materialDefs[i];
+        const materialDef = materialDefs[i];
         return (
           <Material
             key={material.name}

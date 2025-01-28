@@ -162,14 +162,14 @@ export async function getSkinConfig() {
       },
     },
     materials: {
-      lmale: [{ name: "base", label: "Warrior" }],
-      mmale: [{ name: "base", label: "Warrior" }],
-      hmale: [{ name: "base", label: "Warrior" }],
-      lfemale: [{ name: "base", label: "Warrior" }],
-      mfemale: [{ name: "base", label: "Warrior" }],
-      lbioderm: [{ name: "base", label: "Warrior" }],
-      mbioderm: [{ name: "base", label: "Warrior" }],
-      hbioderm: [{ name: "base", label: "Warrior" }],
+      lmale: [{ name: "base", label: "Warrior", fileSuffix: ".lmale" }],
+      mmale: [{ name: "base", label: "Warrior", fileSuffix: ".mmale" }],
+      hmale: [{ name: "base", label: "Warrior", fileSuffix: ".hmale" }],
+      lfemale: [{ name: "base", label: "Warrior", fileSuffix: ".lfemale" }],
+      mfemale: [{ name: "base", label: "Warrior", fileSuffix: ".mfemale" }],
+      lbioderm: [{ name: "base", label: "Warrior", fileSuffix: ".lbioderm" }],
+      mbioderm: [{ name: "base", label: "Warrior", fileSuffix: ".mbioderm" }],
+      hbioderm: [{ name: "base", label: "Warrior", fileSuffix: ".hbioderm" }],
       disc: [
         { name: "weapon_disc", label: "Weapon" },
         {
@@ -184,6 +184,7 @@ export async function getSkinConfig() {
           roughnessFactor: 1,
           frameCount: 6,
           frameTimings: [21, 1, 1, 1, 1, 1],
+          optional: true,
         },
       ],
       chaingun: [{ label: "Chaingun", name: "weapon_chaingun" }],
@@ -192,8 +193,18 @@ export async function getSkinConfig() {
       ],
       sniper: [
         { label: "Weapon", name: "weapon_sniper" },
-        { label: "Green Light", name: "greenlight", hasDefault: false },
-        { label: "Red Light", name: "lite_red", hasDefault: false },
+        {
+          label: "Green Light",
+          name: "greenlight",
+          hasDefault: false,
+          optional: true,
+        },
+        {
+          label: "Red Light",
+          name: "lite_red",
+          hasDefault: false,
+          optional: true,
+        },
       ],
       plasmathrower: [
         {
@@ -237,11 +248,16 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [256, 128],
+          optional: true,
         },
       ],
       elf: [
         { label: "Weapon", name: "weapon_elf", file: "weapon_elf" },
-        { label: "Glow", name: "weapon_elf0", file: "weapon_elf" },
+        {
+          label: "Glow",
+          name: "weapon_elf0",
+          file: "weapon_elf",
+        },
       ],
       missile: [{ label: "Weapon", name: "weapon_missile" }],
       mortar: [{ label: "Weapon", name: "weapon_mortar" }],
@@ -273,6 +289,7 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [256, 256],
+          optional: true,
         },
       ],
       vehicle_air_bomber: [
@@ -381,6 +398,7 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [128, 128],
+          optional: true,
         },
         {
           label: "Windshield Inner",
@@ -392,6 +410,7 @@ export async function getSkinConfig() {
           metallicFactor: 0,
           roughnessFactor: 1,
           size: [128, 128],
+          optional: true,
         },
       ],
       vehicle_grav_tank: [
@@ -446,6 +465,7 @@ export async function getSkinConfig() {
           name: "Vehicle_Land_Assault_wheel",
           file: "Vehicle_Land_Assault_Wheel",
           size: [512, 256],
+          optional: true,
         },
       ],
     },

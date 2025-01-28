@@ -14,14 +14,15 @@ export type ModelMaterial = NonNullable<
 >["materials"][number];
 
 export type MaterialDefinition = {
-  index?: number;
   name: string;
   label?: string;
   file?: string;
+  fileSuffix?: string;
   hasDefault?: boolean;
   size?: [number, number];
   hidden?: boolean;
   selectable?: boolean;
+  optional?: boolean;
   alphaMode?: "BLEND" | "MASK" | "OPAQUE";
   alphaCutoff?: number;
   baseColorFactor?: [number, number, number, number];

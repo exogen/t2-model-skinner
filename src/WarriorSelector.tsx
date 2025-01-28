@@ -4,10 +4,10 @@ import { FaFolderOpen } from "react-icons/fa";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
-import { detectFileType } from "./importUtils";
+import { importMultipleFilesToModels } from "./importUtils";
 
 const { publicRuntimeConfig } = getConfig();
-const { defaultSkins, modelDefaults, materials } = publicRuntimeConfig;
+const { defaultSkins, modelDefaults /*materials*/ } = publicRuntimeConfig;
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const defaultCustomSkins = {};
@@ -25,10 +25,12 @@ export default function WarriorSelector() {
     setSelectedAnimation,
     setSkinImageUrls,
     setAnimationPaused,
+    // importedSkins,
+    // setImportedSkins,
   } = useWarrior();
-  const { selectedMaterialIndex, setSelectedMaterialIndex } = useTools();
-  const materialDefs = materials[actualModel];
-  const materialDef = materialDefs[selectedMaterialIndex];
+  const { /*selectedMaterialIndex,*/ setSelectedMaterialIndex } = useTools();
+  // const materialDefs = materials[actualModel];
+  // const materialDef = materialDefs[selectedMaterialIndex];
   const [customSkins, setCustomSkins] =
     useState<Record<string, string[]>>(defaultCustomSkins);
   const [newSkins, setNewSkins] =
@@ -254,40 +256,27 @@ export default function WarriorSelector() {
           <input
             ref={fileInputRef}
             onChange={async (event) => {
-              const imageUrl = await new Promise<string>((resolve, reject) => {
-                const inputFile = event.target.files?.[0];
-                if (inputFile) {
-                  const fileType = detectFileType(inputFile);
-                  switch (fileType) {
-                    case "png": {
-                      const reader = new FileReader();
-                      reader.addEventListener("load", (event) => {
-                        resolve(event.target?.result as string);
-                      });
-                      reader.readAsDataURL(inputFile);
-                      break;
-                    }
-                    // case "zip":
-                    // case "vl2": {
-                    //   const skins = await readZipFile(inputFile);
-                    //   if (skins.length) {
-                    //     resolve(skins[0].imageUrl);
-                    //   }
-                    // }
+              const foundModels = await importMultipleFilesToModels(
+                event.target.files ?? []
+              );
+              const selectedModelSkins = foundModels.get(actualModel);
+              if (selectedModelSkins) {
+                const skins = Array.from(selectedModelSkins.values());
+                for (const skin of skins) {
+                  if (skin.isComplete) {
+                    setSelectedSkin(null);
+                    setSelectedSkinSection(null);
+                    setSkinImageUrls(
+                      Object.fromEntries(skin.materials.entries())
+                    );
+                    break;
                   }
-                } else {
-                  reject(new Error("No input file provided."));
                 }
-              });
-              setSelectedSkin(null);
-              setSelectedSkinSection(null);
-              setSkinImageUrls({
-                [materialDef.file ?? materialDef.name]: [imageUrl],
-              });
+              }
             }}
             type="file"
-            // accept=".png, image/png, .vl2, .zip, application/zip, application/zip-compressed"
-            accept=".png, image/png"
+            accept=".png, image/png, .vl2, .zip, application/zip, application/zip-compressed"
+            multiple
             hidden
           />
         </div>

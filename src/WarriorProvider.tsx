@@ -146,6 +146,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     actualModel,
     selectedAnimation
   );
+  const [importedSkins, setImportedSkins] = useState(() => new Map());
 
   const [skinImageUrls, setSkinImageUrls] = useState<Record<string, string[]>>(
     () =>
@@ -191,6 +192,8 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       defaultSkinImageUrls,
       slowModeEnabled,
       setSlowModeEnabled,
+      importedSkins,
+      setImportedSkins,
     };
   }, [
     selectedModel,
@@ -211,6 +214,8 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     setSkinImageUrls,
     defaultSkinImageUrls,
     slowModeEnabled,
+    importedSkins,
+    setImportedSkins,
   ]);
 
   useEffect(() => {
