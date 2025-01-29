@@ -4,13 +4,15 @@ import { FaFolderOpen } from "react-icons/fa";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
-import { importMultipleFilesToModels } from "./importUtils";
+import { importMultipleFilesToModels, modelToModelType } from "./importUtils";
 
 const { publicRuntimeConfig } = getConfig();
 const { defaultSkins, modelDefaults /*materials*/ } = publicRuntimeConfig;
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const defaultCustomSkins = {};
+
+const emptyMap = new Map();
 
 export default function WarriorSelector() {
   const {
@@ -23,10 +25,9 @@ export default function WarriorSelector() {
     setSelectedSkinType,
     actualModel,
     setSelectedAnimation,
-    setSkinImageUrls,
     setAnimationPaused,
-    // importedSkins,
-    // setImportedSkins,
+    importedSkins,
+    addImportedSkins,
   } = useWarrior();
   const { /*selectedMaterialIndex,*/ setSelectedMaterialIndex } = useTools();
   // const materialDefs = materials[actualModel];
@@ -39,6 +40,12 @@ export default function WarriorSelector() {
     null
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const importedSkinsForModel = importedSkins.get(actualModel) ?? emptyMap;
+
+  const selectableImportedSkins = Array.from(
+    importedSkinsForModel.values()
+  ).filter((skin) => skin.isComplete);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -193,6 +200,20 @@ export default function WarriorSelector() {
                     );
                   })}
                 </optgroup>
+                {selectableImportedSkins.length ? (
+                  <optgroup label="Imported Skins" data-skin-type="import">
+                    {selectableImportedSkins.map((skin) => {
+                      return (
+                        <option
+                          key={`import/${skin.name ?? "__untitled__"}`}
+                          value={`import/${skin.name ?? "__untitled__"}`}
+                        >
+                          {skin.name || "Untitled Imported Skin"}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                ) : null}
                 {newSkins[actualModel]?.length ? (
                   <optgroup label="New Skins ✨" data-skin-type="custom">
                     {newSkins[actualModel]?.map((name: string) => {
@@ -229,6 +250,20 @@ export default function WarriorSelector() {
                     <option value={modelDefaults[actualModel]}>Default</option>
                   </optgroup>
                 ) : null}
+                {selectableImportedSkins.length ? (
+                  <optgroup label="Imported Skins" data-skin-type="import">
+                    {selectableImportedSkins.map((skin) => {
+                      return (
+                        <option
+                          key={`import/${skin.name ?? "__untitled__"}`}
+                          value={`import/${skin.name ?? "__untitled__"}`}
+                        >
+                          {skin.name || "Untitled Imported Skin"}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                ) : null}
                 {customSkins[actualModel]?.length ? (
                   <optgroup label="Custom Skins" data-skin-type="custom">
                     {customSkins[actualModel].map((name: string) => (
@@ -259,16 +294,34 @@ export default function WarriorSelector() {
               const foundModels = await importMultipleFilesToModels(
                 event.target.files ?? []
               );
-              const selectedModelSkins = foundModels.get(actualModel);
-              if (selectedModelSkins) {
-                const skins = Array.from(selectedModelSkins.values());
-                for (const skin of skins) {
+              addImportedSkins(foundModels);
+              const currentModelSkins = foundModels.get(actualModel);
+              if (currentModelSkins) {
+                const completeSkins = Array.from(
+                  currentModelSkins.values()
+                ).filter((skin) => skin.isComplete);
+                if (completeSkins.length) {
+                  const skin = completeSkins[0];
+                  setSelectedSkinType("import");
+                  setSelectedSkinSection("import");
+                  setSelectedSkin(skin.name ?? "__untitled__");
+                  setSelectedMaterialIndex(0);
+                  setSelectedAnimation(null);
+                  return;
+                }
+              }
+              for (const [modelName, skinsByName] of Array.from(
+                foundModels.entries()
+              )) {
+                for (const skin of Array.from(skinsByName.values())) {
                   if (skin.isComplete) {
-                    setSelectedSkin(null);
-                    setSelectedSkinSection(null);
-                    setSkinImageUrls(
-                      Object.fromEntries(skin.materials.entries())
-                    );
+                    setSelectedModel(modelName);
+                    setSelectedModelType(modelToModelType(modelName));
+                    setSelectedSkinType("import");
+                    setSelectedSkinSection("import");
+                    setSelectedSkin(skin.name ?? "__untitled__");
+                    setSelectedMaterialIndex(0);
+                    setSelectedAnimation(null);
                     break;
                   }
                 }

@@ -22,6 +22,43 @@ export function clearImportedSkins() {
 
 const ignoreFilePattern = /^(\.|__MACOSX)/;
 
+export function modelToModelType(modelName: string) {
+  switch (modelName) {
+    case "lmale":
+    case "mmale":
+    case "hmale":
+    case "lfemale":
+    case "mfemale":
+    case "hfemale":
+    case "lbioderm":
+    case "mbioderm":
+    case "hbioderm":
+      return "player";
+    case "disc":
+    case "chaingun":
+    case "grenade_launcher":
+    case "sniper":
+    case "plasmathrower":
+    case "energy":
+    case "shocklance":
+    case "elf":
+    case "missile":
+    case "mortar":
+    case "repair":
+    case "targeting":
+      return "weapon";
+    case "vehicle_grav_scout":
+    case "vehicle_grav_tank":
+    case "vehicle_land_mpbbase":
+    case "vehicle_air_scout":
+    case "vehicle_air_bomber":
+    case "vehicle_air_hapc":
+      return "vehicle";
+    default:
+      throw new Error("Unknown model");
+  }
+}
+
 export async function readZipFile(inputFile: File) {
   const content = await JSZip.loadAsync(inputFile);
   const skins = await Promise.all(
@@ -175,7 +212,7 @@ function pathToModels(path: string, skinName: string | null = null) {
   return null;
 }
 
-type Skin = {
+export type Skin = {
   name: string | null;
   isComplete: null | boolean;
   materials: Map<string, string[]>;

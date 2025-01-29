@@ -1,4 +1,5 @@
 import React, { useContext } from "react";
+import { Skin } from "./importUtils";
 
 type WarriorContextValue = {
   actualModel: string;
@@ -28,6 +29,8 @@ type WarriorContextValue = {
   setSelectedModelType: (selectedModelType: string) => void;
   slowModeEnabled: boolean;
   setSlowModeEnabled: (slowModeEnabled: boolean) => void;
+  importedSkins: Map<string, Map<string | null, Skin>>;
+  addImportedSkins: (newSkins: Map<string, Map<string | null, Skin>>) => void;
 };
 
 const WarriorContext = React.createContext<WarriorContextValue | null>(null);

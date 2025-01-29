@@ -1,12 +1,28 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import getConfig from "next/config";
 import useSettings from "./useSettings";
 import { WarriorContext } from "./useWarrior";
 import type { MaterialDefinition } from "./Material";
+import type { Skin } from "./importUtils";
 
 const { publicRuntimeConfig } = getConfig();
 const { materials, modelDefaults } = publicRuntimeConfig;
 const baseSkinPath = `https://exogen.github.io/t2-skins/skins`;
+
+let IMPORTED_SKINS: Map<string, Map<string | null, Skin>> = new Map();
+
+function mergeNewImportedSkins(newSkins: typeof IMPORTED_SKINS) {
+  const newImportedSkins = new Map(IMPORTED_SKINS.entries());
+  newSkins.forEach((newSkinsByName, modelName) => {
+    const skinsByName =
+      newImportedSkins.get(modelName) ?? new Map<string | null, Skin>();
+    newSkinsByName.forEach((skin, skinName) => {
+      skinsByName.set(skinName, skin);
+    });
+    newImportedSkins.set(modelName, skinsByName);
+  });
+  IMPORTED_SKINS = newImportedSkins;
+}
 
 function getFrameNames(frameZeroFile: string, frameCount: number) {
   if (frameCount < 2) {
@@ -36,6 +52,17 @@ export function getSkinImageUrls({
   selectedSkinType: string | null;
 }): Record<string, string[]> {
   const materialDefs = materials[actualModel];
+  if (selectedSkin && selectedSkinType === "import") {
+    const skinsByName = IMPORTED_SKINS.get(actualModel);
+    if (skinsByName) {
+      const key = selectedSkin === "__untitled__" ? null : selectedSkin;
+      const skin = skinsByName.get(key);
+      if (skin && skin.isComplete) {
+        return Object.fromEntries(skin.materials);
+      }
+    }
+    return {};
+  }
   switch (selectedModelType) {
     case "player":
       switch (selectedSkinType) {
@@ -146,7 +173,12 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     actualModel,
     selectedAnimation
   );
-  const [importedSkins, setImportedSkins] = useState(() => new Map());
+  const [importedSkins, setImportedSkins] = useState(IMPORTED_SKINS);
+
+  const addImportedSkins = useCallback((newSkins: typeof IMPORTED_SKINS) => {
+    mergeNewImportedSkins(newSkins);
+    setImportedSkins(IMPORTED_SKINS);
+  }, []);
 
   const [skinImageUrls, setSkinImageUrls] = useState<Record<string, string[]>>(
     () =>
@@ -193,7 +225,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       slowModeEnabled,
       setSlowModeEnabled,
       importedSkins,
-      setImportedSkins,
+      addImportedSkins,
     };
   }, [
     selectedModel,
@@ -215,7 +247,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     defaultSkinImageUrls,
     slowModeEnabled,
     importedSkins,
-    setImportedSkins,
+    addImportedSkins,
   ]);
 
   useEffect(() => {
