@@ -149,6 +149,13 @@ export async function getSkinConfig() {
       hmale: { fov: "24deg" },
       hfemale: { fov: "24deg" },
       hbioderm: { fov: "24deg" },
+      vehicle_grav_scout: { orbit: "290deg 60deg 130%" },
+      vehicle_grav_tank: { orbit: "290deg 60deg 130%" },
+      turret_assaulttank_mortar: { orbit: "290deg 60deg 130%" },
+      vehicle_land_mpbbase: { orbit: "290deg 60deg 130%" },
+      vehicle_air_scout: { orbit: "290deg 60deg 130%" },
+      vehicle_air_bomber: { orbit: "290deg 60deg 130%" },
+      vehicle_air_hapc: { orbit: "290deg 60deg 130%" },
     },
     animationLabelOverrides: {
       mmale: {
