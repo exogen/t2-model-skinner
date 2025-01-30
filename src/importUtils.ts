@@ -8,17 +8,12 @@ type MaterialDefinition = {
   hidden?: boolean;
   selectable?: boolean;
   optional?: boolean;
+  frameCount?: number;
 };
 
 const { publicRuntimeConfig } = getConfig();
 const materialMap: Record<string, MaterialDefinition[]> =
   publicRuntimeConfig.materials;
-
-const importedSkinsByModel = new Map();
-
-export function clearImportedSkins() {
-  importedSkinsByModel.clear();
-}
 
 const ignoreFilePattern = /^(\.|__MACOSX)/;
 
@@ -169,8 +164,29 @@ let pathToModelMap: Map<
     modelName: string;
     material: MaterialDefinition;
     index: number;
+    frameIndex?: number;
   }>
 >;
+
+function getFrameInfo(nameWithoutExtension: string) {
+  const match = /^(.+[^\d])(\d{2,})$/.exec(nameWithoutExtension);
+  if (match) {
+    const head = match[1];
+    const tail = match[2];
+    const frameIndex = parseInt(tail, 10);
+    const frameZeroFile = `${head}${"0".padStart(tail.length, "0")}`;
+    const models = pathToModelMap.get(frameZeroFile) ?? [];
+    return models
+      .filter((model) => typeof model.material.frameCount === "number")
+      .map((model) => {
+        return {
+          ...model,
+          frameIndex,
+        };
+      });
+  }
+  return [];
+}
 
 function pathToModels(path: string, skinName: string | null = null) {
   if (!pathToModelMap) {
@@ -195,17 +211,28 @@ function pathToModels(path: string, skinName: string | null = null) {
         };
       }
     } else {
-      const key = parts[0];
-      const models = pathToModelMap.get(key);
-      if (models) {
+      const frameInfo = getFrameInfo(parts[0]);
+      if (frameInfo.length) {
         return {
           path,
           basename,
           nameWithoutExtension,
           extension: match[2],
           skinName,
-          models,
+          models: frameInfo,
         };
+      } else {
+        const models = pathToModelMap.get(parts[0]);
+        if (models) {
+          return {
+            path,
+            basename,
+            nameWithoutExtension,
+            extension: match[2],
+            skinName,
+            models,
+          };
+        }
       }
     }
   }
@@ -233,10 +260,10 @@ export function fileArrayToModels(
           isComplete: null,
           materials: new Map(),
         };
-        skinMaterials.materials.set(
-          model.material.file ?? model.material.name,
-          [file.imageUrl]
-        );
+        const key = model.material.file ?? model.material.name;
+        const materialFrames = skinMaterials.materials.get(key) ?? [];
+        materialFrames[model.frameIndex ?? 0] = file.imageUrl;
+        skinMaterials.materials.set(key, materialFrames);
         skinsByName.set(fileInfo.skinName, skinMaterials);
         foundModels.set(model.modelName, skinsByName);
       });
