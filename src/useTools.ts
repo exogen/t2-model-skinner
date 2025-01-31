@@ -49,6 +49,12 @@ interface ToolsContextValue {
   hasMetallic: boolean;
   hasAnimation: boolean;
   frameCount: number;
+  selectedExportMaterials: boolean[];
+  setSelectedExportMaterials: (
+    selectedExportMaterials:
+      | boolean[]
+      | ((selectedExportMaterials: boolean[]) => boolean[])
+  ) => void;
 }
 
 const ToolsContext = React.createContext<ToolsContextValue | null>(null);

@@ -177,11 +177,54 @@ select {
   margin-left: 3px;
 }
 
+.Export .ExportOptionsButton {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+}
+
+.Export .ExportOptionsButton svg {
+  margin-top: 2px;
+}
+
 .Export select {
   width: 6em;
   min-width: 6em;
   flex: 0 0 auto;
   margin-left: 3px;
+}
+
+.ExportOptionsPopup {
+  background: rgba(5, 22, 21, 0.9);
+  border-radius: 4px;
+  border: 1px solid rgb(0, 255, 200);
+  padding: 10px 12px;
+  user-select: none;
+}
+
+.ExportOptionsPopup .Fields {
+  align-items: flex-start;
+}
+
+.ExportOptionsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.ExportOptionsList li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0;
+  padding: 0 10px 0 0;
+}
+
+.ExportOptionsPopup select {
+  margin: 4px;
 }
 
 .SliderContainer {
@@ -320,10 +363,6 @@ select {
   border: 1px solid rgb(0, 255, 200);
   padding: 10px 12px;
   user-select: none;
-}
-
-.PopupArrow {
-  display: none;
 }
 
 .Fields {

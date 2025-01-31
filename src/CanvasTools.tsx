@@ -1,4 +1,5 @@
 import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
+import getConfig from "next/config";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
 import { usePopper } from "react-popper";
@@ -6,6 +7,7 @@ import Slider from "rc-slider";
 import { RiFileCopyFill } from "react-icons/ri";
 import {
   FaTrashAlt,
+  FaAngleDown,
   FaLock,
   FaUnlock,
   FaArrowUp,
@@ -14,11 +16,16 @@ import {
 import { GiArrowCursor } from "react-icons/gi";
 import { IoMdBrush } from "react-icons/io";
 import { ImPlus, ImUndo2, ImRedo2, ImContrast } from "react-icons/im";
+import useWarrior from "./useWarrior";
+import { MaterialDefinition } from "./Material";
+
+const { publicRuntimeConfig } = getConfig();
+const { materials } = publicRuntimeConfig;
 
 export default function CanvasTools() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const fileTypeRef = useRef<HTMLSelectElement | null>(null);
+  const [exportFileType, setExportFileType] = useState("vl2");
   const {
     activeCanvas,
     backgroundColor,
@@ -50,7 +57,11 @@ export default function CanvasTools() {
     activeCanvasType,
     addImages,
     exportSkin,
+    selectedExportMaterials,
+    setSelectedExportMaterials,
   } = useTools();
+  const { actualModel } = useWarrior();
+  const materialDefs: MaterialDefinition[] = materials[actualModel];
   const { canvas, isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
   const [isMac, setIsMac] = useState(false);
   const commandKeyPrefix = isMac ? "⌘" : "Ctrl ";
@@ -61,12 +72,10 @@ export default function CanvasTools() {
     null
   );
   const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
-  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
   const [isBrushToolsOpen, setBrushToolsOpen] = useState(false);
   const [isFilterToolsOpen, setFilterToolsOpen] = useState(false);
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     modifiers: [
-      { name: "arrow", options: { element: arrowElement } },
       {
         name: "offset",
         options: {
@@ -75,6 +84,25 @@ export default function CanvasTools() {
       },
     ],
   });
+
+  // Export popup
+  const [isExportOptionsOpen, setExportOptionsOpen] = useState(false);
+  const [exportReferenceElement, setExportReferenceElement] =
+    useState<HTMLElement | null>(null);
+  const { styles: exportStyles, attributes: exportAttributes } = usePopper(
+    exportReferenceElement,
+    popperElement,
+    {
+      modifiers: [
+        {
+          name: "offset",
+          options: {
+            offset: [0, 10],
+          },
+        },
+      ],
+    }
+  );
 
   const isSelectionLocked = selectedObjects.length
     ? selectedObjects.every((object) => lockedObjects.has(object))
@@ -394,12 +422,6 @@ export default function CanvasTools() {
                     </div>
                   </div>
                 </div>
-
-                <div
-                  className="PopupArrow"
-                  ref={setArrowElement}
-                  style={styles.arrow}
-                />
               </div>
             ) : null}
             <button
@@ -587,12 +609,6 @@ export default function CanvasTools() {
                     </div>
                   </div>
                 </div>
-
-                <div
-                  className="PopupArrow"
-                  ref={setArrowElement}
-                  style={styles.arrow}
-                />
               </div>
             ) : null}
           </>
@@ -607,21 +623,103 @@ export default function CanvasTools() {
           size={12}
         />
         <button
+          className="ExportOptionsButton"
+          type="button"
+          ref={setExportReferenceElement}
+          data-active={isExportOptionsOpen ? "" : undefined}
+          aria-label="Export Options"
+          title="Export Options"
+          onClick={() => {
+            setExportOptionsOpen((isOpen) => !isOpen);
+          }}
+        >
+          .{exportFileType}
+          <FaAngleDown />
+        </button>
+
+        {isExportOptionsOpen ? (
+          <div
+            className="ExportOptionsPopup"
+            ref={setPopperElement}
+            style={exportStyles.popper}
+            tabIndex={-1}
+            onBlur={(event) => {
+              const newFocusElement = event.relatedTarget;
+              const isFocusLeaving =
+                !newFocusElement ||
+                !event.currentTarget.contains(newFocusElement);
+              if (isFocusLeaving) {
+                setExportOptionsOpen(false);
+              }
+            }}
+            {...exportAttributes.popper}
+          >
+            <div className="Fields">
+              <div className="Field">
+                <label>Export Materials</label>
+                <ul className="ExportOptionsList">
+                  {materialDefs.map((material, i) => {
+                    if (
+                      material &&
+                      material.selectable !== false &&
+                      !material.hidden
+                    ) {
+                      return (
+                        <li key={material.name}>
+                          <input
+                            id={`MaterialSelect-${material.name}`}
+                            type="checkbox"
+                            checked={selectedExportMaterials[i] !== false}
+                            onChange={(event) => {
+                              setSelectedExportMaterials(
+                                (selectedExportMaterials) => {
+                                  const newSelectedExportMaterials =
+                                    selectedExportMaterials.slice();
+                                  newSelectedExportMaterials[i] =
+                                    event.target.checked;
+                                  return newSelectedExportMaterials;
+                                }
+                              );
+                            }}
+                          />
+                          <label htmlFor={`MaterialSelect-${material.name}`}>
+                            {material.label}
+                          </label>
+                        </li>
+                      );
+                    } else {
+                      return null;
+                    }
+                  })}
+                </ul>
+              </div>
+
+              <div className="Field">
+                <label htmlFor="ExportFormat">Export Format</label>
+                <select
+                  id="ExportFormat"
+                  value={exportFileType}
+                  onChange={(event) => {
+                    setExportFileType(event.target.value);
+                  }}
+                >
+                  <option value="png">.png</option>
+                  <option value="vl2">.vl2</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <button
           type="button"
           onClick={() => {
             const name = nameInputRef.current ? nameInputRef.current.value : "";
-            const format = fileTypeRef.current
-              ? fileTypeRef.current.value
-              : ".png";
-            exportSkin({ name, format });
+            exportSkin({ name, format: exportFileType });
           }}
         >
           Export
         </button>
-        <select ref={fileTypeRef} defaultValue="vl2">
-          <option value="png">.png</option>
-          <option value="vl2">.vl2</option>
-        </select>
       </div>
     </div>
   );

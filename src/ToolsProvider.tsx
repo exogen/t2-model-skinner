@@ -46,13 +46,15 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { actualModel, selectedModelType } = useWarrior();
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
   const [selectedFrameIndex, setSelectedFrameIndex] = useState(0);
-  const materialDefs = materials[actualModel];
+  const materialDefs: MaterialDefinition[] = materials[actualModel];
   const materialDef = materialDefs[selectedMaterialIndex] ?? null;
-
   const frameCount = materialDef.frameCount ?? 1;
   const hasAnimation = frameCount > 1;
+  const [selectedExportMaterials, setSelectedExportMaterials] = useState<
+    boolean[]
+  >([]);
 
-  const textureSize = useMemo(
+  const textureSize: [number, number] = useMemo(
     () => materialDef.size ?? [512, 512],
     [materialDef]
   );
@@ -70,6 +72,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   if (selectedFrameIndex >= frameCount) {
     setSelectedFrameIndex(0);
   }
+
+  useEffect(() => {
+    setSelectedExportMaterials(
+      materialDefs.map((material) =>
+        Boolean(material && material.selectable !== false && !material.hidden)
+      )
+    );
+  }, [materialDefs]);
 
   useEffect(() => {
     setSelectedFrameIndex(0);
@@ -357,10 +367,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       const materialExports = await Promise.all(
         materialDefs
           .filter(
-            (materialDef: MaterialDefinition) =>
-              materialDef &&
-              !materialDef.hidden &&
-              materialDef.selectable !== false
+            (materialDef: MaterialDefinition, i) =>
+              selectedExportMaterials[i] !== false
           )
           .map((materialDef: MaterialDefinition) => {
             const frameCount = materialDef.frameCount ?? 1;
@@ -396,7 +404,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
                 outputImageUrl = colorImageUrl;
               }
 
-              let filename;
+              let filename: string;
               switch (selectedModelType) {
                 case "player":
                   filename = `${name}.${actualModel}.png`;
@@ -423,6 +431,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
                   } else {
                     filename = `${actualModel}.png`;
                   }
+                  break;
+                default:
+                  throw new Error("Unknown model type");
               }
 
               return { imageUrl: outputImageUrl, filename };
@@ -433,8 +444,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
       switch (format) {
         case "png": {
-          const { imageUrl, filename } = materialExports[selectedMaterialIndex];
-          savePngFile(imageUrl, filename);
+          materialExports.forEach((materialExport) => {
+            const { imageUrl, filename } = materialExport;
+            savePngFile(imageUrl, filename);
+          });
           break;
         }
         case "vl2": {
@@ -472,8 +485,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canvases,
       combineColorAndAlphaImageUrls,
       materialDefs,
-      selectedMaterialIndex,
       selectedModelType,
+      selectedExportMaterials,
     ]
   );
 
@@ -521,6 +534,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setSelectedFrameIndex,
       hasAnimation,
       frameCount,
+      selectedExportMaterials,
+      setSelectedExportMaterials,
     }),
     [
       activeCanvas,
@@ -556,6 +571,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       selectedFrameIndex,
       hasAnimation,
       frameCount,
+      selectedExportMaterials,
     ]
   );
 
