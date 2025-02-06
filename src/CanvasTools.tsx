@@ -340,7 +340,7 @@ export default function CanvasTools() {
             data-active={isFilterToolsOpen ? "" : undefined}
             aria-label="Filters"
             title="Filters"
-            disabled={!selectionHasImages}
+            disabled={hasSelection && !selectionHasImages}
             onClick={() => {
               setFilterToolsOpen((isOpen) => !isOpen);
             }}
