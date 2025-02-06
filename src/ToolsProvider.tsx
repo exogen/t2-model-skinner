@@ -40,6 +40,7 @@ type ObjectFilters = {
   HueRotation?: number;
   Saturation?: number;
   Brightness?: number;
+  Contrast?: number;
 };
 
 export default function ToolsProvider({ children }: { children: ReactNode }) {
@@ -107,8 +108,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { canvases } = useCanvas();
   const { canvas, notifyChange, undo, redo, canUndo, canRedo } =
     useCanvas(activeCanvas);
-  const { canvas: metallicCanvas } = useCanvas(metallicCanvasId);
-  const [isDrawingMode, setDrawingMode] = useState(false);
+  const { canvas: metallicCanvas, setDrawingMode } =
+    useCanvas(metallicCanvasId);
   const { combineColorAndAlphaImageUrls } = useImageWorker();
   const { canvasPadding } = useSettings();
   const [filterChanges, setFilterChanges] = useState<
@@ -126,7 +127,33 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const getFilter = (name: keyof ObjectFilters) => {
+  const setFilter = useCallback(
+    (name: keyof ObjectFilters, value: number) => {
+      const filterChanges: Array<[fabric.Object, ObjectFilters]> = [];
+      const newFilterMap = new Map(filterMap);
+      let applyObjects = selectedObjects;
+      if (layerMode === "AllLayers") {
+        applyObjects = canvas?._objects ?? [];
+      } else if (layerMode === "BaseLayer") {
+        applyObjects = canvas?._objects.slice(0, 1) ?? [];
+      }
+      for (const applyObject of applyObjects) {
+        if (applyObject instanceof fabric.Image) {
+          const existingFilters = filterMap.get(applyObject) ?? {};
+          const newFilters = { ...existingFilters, [name]: value };
+          newFilterMap.set(applyObject, newFilters);
+          filterChanges.push([applyObject, newFilters]);
+        }
+      }
+      setFilterMap(newFilterMap);
+      setFilterChanges(filterChanges);
+    },
+    [canvas, layerMode, filterMap, selectedObjects]
+  );
+
+  const getFilter = (
+    name: keyof ObjectFilters
+  ): [number | null, (value: number) => void] => {
     let applyObjects = selectedObjects;
     if (layerMode === "AllLayers") {
       applyObjects = canvas?._objects ?? [];
@@ -142,54 +169,18 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
           .slice(1)
           .every((applyObject, i) => getValue(i + 1) === firstValue)
       ) {
-        return firstValue;
+        return [firstValue, (value: number) => setFilter(name, value)];
       }
-      return null;
+      return [null, (value: number) => setFilter(name, value)];
     } else {
-      return 0;
+      return [0, (value: number) => setFilter(name, value)];
     }
   };
 
-  const hueRotate = getFilter("HueRotation");
-  const saturation = getFilter("Saturation");
-  const brightness = getFilter("Brightness");
-
-  const setFilter = useCallback(
-    (name: keyof ObjectFilters, value: number) => {
-      const filterChanges: Array<[fabric.Object, ObjectFilters]> = [];
-      const newFilterMap = new Map(filterMap);
-      let applyObjects = selectedObjects;
-      if (layerMode === "AllLayers") {
-        applyObjects = canvas?._objects ?? [];
-      } else if (layerMode === "BaseLayer") {
-        applyObjects = canvas?._objects.slice(0, 1) ?? [];
-      }
-      for (const applyObject of applyObjects) {
-        const existingFilters = filterMap.get(applyObject) ?? {};
-        const newFilters = { ...existingFilters, [name]: value };
-        newFilterMap.set(applyObject, newFilters);
-        filterChanges.push([applyObject, newFilters]);
-      }
-      setFilterMap(newFilterMap);
-      setFilterChanges(filterChanges);
-    },
-    [canvas, layerMode, filterMap, selectedObjects]
-  );
-
-  const setHueRotate = useCallback(
-    (value: number) => setFilter("HueRotation", value),
-    [setFilter]
-  );
-
-  const setSaturation = useCallback(
-    (value: number) => setFilter("Saturation", value),
-    [setFilter]
-  );
-
-  const setBrightness = useCallback(
-    (value: number) => setFilter("Brightness", value),
-    [setFilter]
-  );
+  const [hueRotate, setHueRotate] = getFilter("HueRotation");
+  const [saturation, setSaturation] = getFilter("Saturation");
+  const [brightness, setBrightness] = getFilter("Brightness");
+  const [contrast, setContrast] = getFilter("Contrast");
 
   useEffect(() => {
     if (!filterChanges.length) {
@@ -198,9 +189,13 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     for (const [selectedObject, newFilters] of filterChanges) {
       if (selectedObject instanceof fabric.Image) {
         selectedObject.filters = [];
+        if (activeCanvasType === "metallic") {
+          const grayscaleFilter = new fabric.Image.filters.Grayscale();
+          selectedObject.filters.push(grayscaleFilter);
+        }
         for (const key in newFilters) {
-          const filterValue = newFilters[key as keyof ObjectFilters] ?? 0;
-          if (filterValue !== 0) {
+          const filterValue = newFilters[key as keyof ObjectFilters];
+          if (filterValue != null) {
             switch (key) {
               case "HueRotation":
                 selectedObject.filters.push(
@@ -224,6 +219,13 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
                   })
                 );
                 break;
+              case "Contrast":
+                selectedObject.filters.push(
+                  new fabric.Image.filters.Contrast({
+                    contrast: filterValue,
+                  })
+                );
+                break;
             }
           }
         }
@@ -234,7 +236,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     if (notifyChange) {
       notifyChange();
     }
-  }, [filterChanges, notifyChange]);
+  }, [filterChanges, activeCanvasType, notifyChange]);
 
   const lockSelection = useCallback(() => {
     if (selectedObjects.length) {
@@ -319,7 +321,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         canvas.setActiveObject(lastAddedImage);
       }
     },
-    [canvas, activeCanvasType, textureSize]
+    [canvas, activeCanvasType, setDrawingMode, textureSize]
   );
 
   const duplicate = useCallback(async () => {
@@ -509,6 +511,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setSaturation,
       brightness,
       setBrightness,
+      contrast,
+      setContrast,
       layerMode,
       setLayerMode,
       selectedObjects,
@@ -524,8 +528,6 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canUndo,
       canRedo,
       exportSkin,
-      isDrawingMode,
-      setDrawingMode,
       selectedMaterialIndex,
       setSelectedMaterialIndex,
       textureSize,
@@ -547,10 +549,12 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       hueRotate,
       saturation,
       brightness,
+      contrast,
       layerMode,
       setHueRotate,
       setSaturation,
       setBrightness,
+      setContrast,
       selectedObjects,
       lockSelection,
       unlockSelection,
@@ -564,7 +568,6 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canUndo,
       canRedo,
       exportSkin,
-      isDrawingMode,
       selectedMaterialIndex,
       textureSize,
       hasMetallic,

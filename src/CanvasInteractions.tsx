@@ -10,6 +10,7 @@ export default function CanvasInteractions({
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     activeCanvas,
+    activeCanvasType,
     bringForward,
     sendBackward,
     duplicate,
@@ -143,14 +144,14 @@ export default function CanvasInteractions({
             break;
           }
           case "p": {
-            if (activeCanvas === "metallic") {
+            if (activeCanvasType === "metallic") {
               event.preventDefault();
               setDrawingMode(true);
             }
             break;
           }
           case "s":
-            if (activeCanvas === "color") {
+            if (activeCanvasType === "metallic") {
               event.preventDefault();
               setDrawingMode(false);
             }

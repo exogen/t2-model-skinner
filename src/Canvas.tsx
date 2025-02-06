@@ -5,7 +5,7 @@ import useTools from "./useTools";
 import { fabric } from "fabric";
 import { createFabricImage } from "./fabricUtils";
 
-type JSONSnapshot = ReturnType<typeof Canvas.prototype["toJSON"]>;
+type JSONSnapshot = ReturnType<(typeof Canvas.prototype)["toJSON"]>;
 
 function updateObjectControlOptions() {
   fabric.Object.prototype.set({
@@ -165,6 +165,10 @@ export default function Canvas({
   useEffect(() => {
     if (canvas) {
       canvas.isDrawingMode = isDrawingMode;
+      if (isDrawingMode) {
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+      }
     }
   }, [canvas, isDrawingMode]);
 
