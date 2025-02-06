@@ -160,6 +160,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     } else if (layerMode === "BaseLayer") {
       applyObjects = canvas?._objects.slice(0, 1) ?? [];
     }
+    applyObjects = applyObjects.filter(
+      (object) => object instanceof fabric.Image
+    );
     if (applyObjects.length) {
       const getValue = (i: number) =>
         (filterMap.get(applyObjects[i]) ?? {})[name] ?? 0;
