@@ -361,6 +361,36 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     // forceUpdateRef.current();
   }, [canvas]);
 
+  const copyToMetallic = useCallback(async () => {
+    if (activeCanvasType === "color" && metallicCanvas) {
+      const colorImageUrl = canvas.toDataURL({
+        top: canvasPadding,
+        left: canvasPadding,
+        width: textureSize[0],
+        height: textureSize[1],
+      });
+      const image = await createFabricImage(colorImageUrl);
+      if (!image.filters) {
+        image.filters = [];
+      }
+      const grayscaleFilter = new fabric.Image.filters.Grayscale();
+      image.filters.push(grayscaleFilter);
+      image.applyFilters();
+      metallicCanvas.centerObject(image);
+      metallicCanvas.add(image);
+      metallicCanvas.setActiveObject(image);
+      setDrawingMode(false);
+      setActiveCanvasType("metallic");
+    }
+  }, [
+    metallicCanvas,
+    canvas,
+    activeCanvasType,
+    canvasPadding,
+    setDrawingMode,
+    textureSize,
+  ]);
+
   const exportSkin = useCallback(
     async ({ format, name = "" }: { format: string; name: string }) => {
       const { savePngFile, saveZipFile, createZipFile } = await import(
@@ -530,6 +560,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       redo,
       canUndo,
       canRedo,
+      copyToMetallic,
       exportSkin,
       selectedMaterialIndex,
       setSelectedMaterialIndex,
@@ -570,6 +601,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       redo,
       canUndo,
       canRedo,
+      copyToMetallic,
       exportSkin,
       selectedMaterialIndex,
       textureSize,

@@ -245,8 +245,10 @@ select {
 }
 
 .Buttons button {
-  display: grid;
-  place-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   flex: 0 0 auto;
   border: 1px solid rgb(23, 159, 138);
   border-radius: 3px;
@@ -256,6 +258,7 @@ select {
   color: rgb(5, 69, 76);
   font-size: 16px;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .Buttons button:hover:not(:disabled),
@@ -294,6 +297,16 @@ select {
 .ButtonGroup button:not(:last-child) {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+.Buttons .MetallicButton {
+  width: auto;
+  padding-right: 6px;
+}
+
+.Buttons .ButtonLabel {
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .CanvasToggle {

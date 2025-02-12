@@ -25,6 +25,7 @@ interface ToolsContextValue {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  copyToMetallic: () => Promise<void>;
   addImages: (imageUrls: string[]) => void;
   duplicate: () => void;
   sendBackward: () => void;

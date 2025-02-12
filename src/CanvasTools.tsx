@@ -6,6 +6,7 @@ import useTools from "./useTools";
 import { usePopper } from "react-popper";
 import Slider from "rc-slider";
 import { RiFileCopyFill } from "react-icons/ri";
+import { HiSparkles } from "react-icons/hi";
 import {
   FaTrashAlt,
   FaAngleDown,
@@ -43,6 +44,7 @@ export default function CanvasTools() {
     redo,
     canUndo,
     canRedo,
+    copyToMetallic,
     brushColor,
     setBrushColor,
     brushSize,
@@ -681,6 +683,17 @@ export default function CanvasTools() {
               <ImRedo2 />
             </button>
           </div>
+          {activeCanvasType === "color" ? (
+            <button
+              type="button"
+              className="MetallicButton"
+              aria-label="Copy to Metallic"
+              title="Copy to Metallic"
+              onClick={copyToMetallic}
+            >
+              <HiSparkles /> <span className="ButtonLabel">Metal</span>
+            </button>
+          ) : null}
         </>
       </div>
       <div className="Export">
