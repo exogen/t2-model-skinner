@@ -46,6 +46,7 @@ export async function getSkinConfig() {
       elf: "weapon_elf",
       energy: "weapon_energy",
       grenade_launcher: "weapon_grenade_launcher",
+      mine: "mine",
       missile: "weapon_missile",
       mortar: "weapon_mortar",
       plasmathrower: "weapon_plasmathrower",
@@ -270,6 +271,15 @@ export async function getSkinConfig() {
       mortar: [{ label: "Weapon", name: "weapon_mortar" }],
       repair: [{ label: "Weapon", name: "weapon_repair" }],
       targeting: [{ label: "Weapon", name: "weapon_targeting" }],
+      mine: [
+        {
+          label: "Weapon",
+          name: "mine",
+          size: [512, 512],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+        },
+      ],
       // Vehicles
       vehicle_air_scout: [
         {

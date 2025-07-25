@@ -315,7 +315,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
           image.filters.push(grayscaleFilter);
           image.applyFilters();
         }
-        setDrawingMode(false);
+        if (metallicCanvas) {
+          setDrawingMode(false);
+        }
         canvas.centerObject(image);
         canvas.add(image);
         lastAddedImage = image;
@@ -324,7 +326,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         canvas.setActiveObject(lastAddedImage);
       }
     },
-    [canvas, activeCanvasType, setDrawingMode, textureSize]
+    [textureSize, activeCanvasType, metallicCanvas, canvas, setDrawingMode]
   );
 
   const duplicate = useCallback(async () => {

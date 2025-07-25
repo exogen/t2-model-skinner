@@ -152,6 +152,7 @@ export default function WarriorSelector() {
             <option value="mortar">Mortar</option>
             <option value="repair">Repair Pack</option>
             <option value="targeting">Targeting Laser</option>
+            <option value="mine">Mine</option>
           </optgroup>
           <optgroup label="Vehicles" data-model-type="vehicle">
             <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
