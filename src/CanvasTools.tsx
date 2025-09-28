@@ -125,6 +125,20 @@ export default function CanvasTools() {
     };
 
   useEffect(() => {
+    try {
+      const savedExportFileType = localStorage.getItem("exportFileType");
+      switch (savedExportFileType) {
+        case "vl2":
+        case "png":
+          setExportFileType(savedExportFileType);
+          break;
+      }
+    } catch (err) {
+      // Probably blocked. That's okay.
+    }
+  }, []);
+
+  useEffect(() => {
     if (navigator.platform && navigator.platform.startsWith("Mac")) {
       setIsMac(true);
     } else if (navigator.userAgent.match(/\(Macintosh;/)) {
@@ -783,6 +797,14 @@ export default function CanvasTools() {
                   value={exportFileType}
                   onChange={(event) => {
                     setExportFileType(event.target.value);
+                    try {
+                      localStorage.setItem(
+                        "exportFileType",
+                        event.target.value
+                      );
+                    } catch (err) {
+                      // Probably blocked. That's okay.
+                    }
                   }}
                 >
                   <option value="png">.png</option>
