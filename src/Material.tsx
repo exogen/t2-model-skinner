@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef } from "react";
+import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import type { ModelViewerElement } from "@google/model-viewer";
 import useSettings from "./useSettings";
 import useSkin from "./useSkin";
@@ -45,12 +45,14 @@ function useTexture({
   textureType,
   imageUrl,
   frameRef,
+  onReady,
 }: {
   material: ModelMaterial;
   materialDef?: MaterialDefinition;
   textureType: "baseColorTexture" | "metallicRoughnessTexture";
   imageUrl?: string[];
   frameRef: MutableRefObject<FrameInfo>;
+  onReady?: () => void;
 }) {
   const { modelViewer } = useModelViewer();
   const { basePath } = useSettings();
@@ -63,10 +65,16 @@ function useTexture({
     const updateTexture = async () => {
       if (!materialDef || materialDef.hidden) {
         if (textureType === "metallicRoughnessTexture") {
+          if (onReady) {
+            onReady();
+          }
           return;
         } else {
           material.setAlphaMode("BLEND");
           material.pbrMetallicRoughness.setBaseColorFactor([0, 0, 0, 0]);
+          if (onReady) {
+            onReady();
+          }
         }
       } else {
         const {
@@ -138,6 +146,9 @@ function useTexture({
           };
 
           frame(0);
+          if (onReady) {
+            onReady();
+          }
         }
       }
     };
@@ -159,19 +170,39 @@ function useTexture({
     imageUrl,
     frameRef,
     slowModeEnabled,
+    onReady,
   ]);
 }
 
 interface MaterialProps {
   material: ModelMaterial;
   materialDef?: MaterialDefinition;
+  onReady?: (imageUrls: Array<string[] | undefined>) => void;
 }
 
-export default function Material({ material, materialDef }: MaterialProps) {
+export default function Material({
+  material,
+  materialDef,
+  onReady,
+}: MaterialProps) {
   const { getSkinImages } = useSkin();
   const { colorImageUrl, metallicImageUrl } =
     getSkinImages(materialDef?.file ?? material.name) ?? {};
   const frameRef = useRef<FrameInfo>({ frameIndex: 0, frameProgress: 0 });
+
+  const onTextureReady = useMemo(() => {
+    let i = 0;
+    return () => {
+      i += 1;
+      if (i === 2) {
+        const event = new Event("material-ready");
+        window.dispatchEvent(event);
+        if (onReady) {
+          onReady([colorImageUrl, metallicImageUrl]);
+        }
+      }
+    };
+  }, [colorImageUrl, metallicImageUrl, onReady]);
 
   useTexture({
     material,
@@ -179,6 +210,7 @@ export default function Material({ material, materialDef }: MaterialProps) {
     textureType: "baseColorTexture",
     imageUrl: colorImageUrl,
     frameRef,
+    onReady: onTextureReady,
   });
   useTexture({
     material,
@@ -186,6 +218,7 @@ export default function Material({ material, materialDef }: MaterialProps) {
     textureType: "metallicRoughnessTexture",
     imageUrl: metallicImageUrl,
     frameRef,
+    onReady: onTextureReady,
   });
 
   return null;
