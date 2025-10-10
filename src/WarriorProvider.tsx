@@ -61,7 +61,7 @@ export function getSkinImageUrls({
         return Object.fromEntries(skin.materials);
       }
     }
-    return {};
+    throw new Error("No skin found");
   }
   switch (selectedModelType) {
     case "player":
@@ -252,15 +252,19 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (selectedSkin) {
-      setSkinImageUrls(
-        getSkinImageUrls({
+      try {
+        const skinImageUrls = getSkinImageUrls({
           basePath,
           actualModel,
           selectedModelType,
           selectedSkin,
           selectedSkinType,
-        })
-      );
+        });
+        setSkinImageUrls(skinImageUrls);
+      } catch (err) {
+        setSelectedSkinType("default");
+        setSelectedSkin(modelDefaults[actualModel]);
+      }
     }
   }, [
     basePath,
