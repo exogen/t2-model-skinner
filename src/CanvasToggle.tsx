@@ -38,7 +38,7 @@ export default function CanvasToggle() {
           </button>
         ) : null}
       </div>
-      <div className="CanvasToggle" hidden>
+      <div className="CanvasToggle" style={{ display: "none" }}>
         <button
           type="button"
           data-selected={sizeMultiplier === 1 ? "" : undefined}
