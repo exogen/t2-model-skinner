@@ -6,6 +6,7 @@ import type { MaterialDefinition } from "./Material";
 import useWarrior from "./useWarrior";
 import useImageWorker from "./useImageWorker";
 import useImageLoader from "./useImageLoader";
+import useTools from "./useTools";
 
 const defaultTextureSize = [512, 512] as [number, number];
 
@@ -26,11 +27,12 @@ export default function ColorCanvas({
   const [noAlphaImageUrl, setNoAlphaImageUrl] = useState<string | null>(null);
   const { removeAlphaFromArrayBuffer } = useImageWorker();
   const { loadImage } = useImageLoader();
+  const { sizeMultiplier } = useTools();
 
-  const textureSize = useMemo(
-    () => materialDef.size ?? defaultTextureSize,
-    [materialDef]
-  );
+  const textureSize = useMemo<[number, number]>(() => {
+    const [width, height] = materialDef.size ?? defaultTextureSize;
+    return [width * sizeMultiplier, height * sizeMultiplier];
+  }, [materialDef.size, sizeMultiplier]);
 
   const handleChange = useCallback<CanvasProps["onChange"]>(
     async (canvas) => {
@@ -86,7 +88,7 @@ export default function ColorCanvas({
     loadImage,
   ]);
 
-  const canvasId = `${materialDef.name}:color:${frameIndex}`;
+  const canvasId = `${materialDef.name}:color:${frameIndex}:${sizeMultiplier}`;
 
   return textureSize ? (
     <Canvas

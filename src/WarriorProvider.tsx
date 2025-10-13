@@ -4,9 +4,10 @@ import useSettings from "./useSettings";
 import { WarriorContext } from "./useWarrior";
 import type { MaterialDefinition } from "./Material";
 import type { Skin } from "./importUtils";
+import { useRouter } from "next/router";
 
 const { publicRuntimeConfig } = getConfig();
-const { materials, modelDefaults } = publicRuntimeConfig;
+const { materials, modelDefaults, defaultSkins } = publicRuntimeConfig;
 const baseSkinPath = `https://exogen.github.io/t2-skins/skins`;
 
 let IMPORTED_SKINS: Map<string, Map<string | null, Skin>> = new Map();
@@ -35,6 +36,55 @@ function getFrameNames(frameZeroFile: string, frameCount: number) {
     return frames.map((_, i) => `${baseName}${i.toString().padStart(2, "0")}`);
   } else {
     throw new Error("Did not match expected frame format");
+  }
+}
+
+function modelToType(model: string) {
+  switch (model) {
+    case "lmale":
+    case "mmale":
+    case "hmale":
+    case "lfemale":
+    case "mfemale":
+    case "hfemale":
+    case "lbioderm":
+    case "mbioderm":
+    case "hbioderm":
+      return "player";
+    case "disc":
+    case "chaingun":
+    case "grenade_launcher":
+    case "sniper":
+    case "plasmathrower":
+    case "energy":
+    case "shocklance":
+    case "elf":
+    case "missile":
+    case "mortar":
+    case "repair":
+    case "targeting":
+    case "mine":
+      return "weapon";
+    case "vehicle_grav_scout":
+    case "vehicle_grav_tank":
+    case "vehicle_land_mpbbase":
+    case "vehicle_air_scout":
+    case "vehicle_air_bomber":
+    case "vehicle_air_hapc":
+      return "vehicle";
+    default:
+      return null;
+  }
+}
+
+function skinToType(actualModel: string, skinName: string) {
+  const defaultSkin = modelDefaults[actualModel];
+  if (skinName === defaultSkin) {
+    return "default";
+  } else if (defaultSkins[actualModel]?.includes(skinName)) {
+    return "default";
+  } else {
+    return "custom";
   }
 }
 
@@ -127,32 +177,8 @@ function getModelUrl(
   }
 }
 
-// const queryParamSeparator = ".";
-
-// function parseQuerySelection(searchParams: URLSearchParams) {
-//   const modelWithTypeFromUrl = searchParams.get("m");
-//   const skinWithTypeFromUrl = searchParams.get("s");
-//   let selectedModel;
-//   let selectedModelType;
-//   if (typeof modelWithTypeFromUrl === "string") {
-//     [selectedModelType, selectedModel] =
-//       modelWithTypeFromUrl.split(queryParamSeparator);
-//   }
-//   let selectedSkin;
-//   let selectedSkinType;
-//   if (typeof skinWithTypeFromUrl === "string") {
-//     [selectedSkinType, selectedSkin] =
-//       skinWithTypeFromUrl.split(queryParamSeparator);
-//   }
-//   return {
-//     selectedModel: selectedModel || null,
-//     selectedModelType: selectedModelType || null,
-//     selectedSkin: selectedSkin || null,
-//     selectedSkinType: selectedSkinType || null,
-//   };
-// }
-
 export default function WarriorProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [selectedModel, setSelectedModel] = useState<string>("lmale");
   const [selectedModelType, setSelectedModelType] = useState("player");
   const [selectedSkin, setSelectedSkin] = useState<string | null>(
@@ -248,6 +274,57 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     slowModeEnabled,
     importedSkins,
     addImportedSkins,
+  ]);
+
+  useEffect(() => {
+    if (router.isReady) {
+      const modelName = router.query.m;
+      if (typeof modelName === "string") {
+        const modelType = modelToType(modelName);
+        const actualModel = modelName === "hfemale" ? "hmale" : modelName;
+        if (modelType) {
+          setSelectedModel(modelName);
+          setSelectedModelType(modelType);
+          const skinPath = router.query.s;
+          if (typeof skinPath === "string") {
+            const skinType = skinToType(actualModel, skinPath);
+            setSelectedSkin(skinPath);
+            setSelectedSkinType(skinType);
+            console.log("set model and skin from route:", modelName, skinPath);
+          }
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
+
+  const { replace: replaceRoute } = router;
+
+  useEffect(() => {
+    if (router.isReady) {
+      if (router.query.m !== selectedModel || router.query.s !== selectedSkin) {
+        console.log(
+          "router is ready. query params do not match, replacing:",
+          selectedModel,
+          selectedSkin
+        );
+        replaceRoute(
+          {
+            pathname: router.pathname,
+            query: { ...router.query, m: selectedModel, s: selectedSkin },
+          },
+          undefined,
+          { shallow: true }
+        );
+      }
+    }
+  }, [
+    replaceRoute,
+    router.isReady,
+    router.pathname,
+    router.query,
+    selectedSkin,
+    selectedModel,
   ]);
 
   useEffect(() => {

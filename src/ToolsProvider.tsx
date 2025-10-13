@@ -14,6 +14,8 @@ const { publicRuntimeConfig } = getConfig();
 
 const { materials } = publicRuntimeConfig;
 
+const defaultTextureSize = [512, 512] as [number, number];
+
 function lockObject(object: fabric.Object) {
   object.lockMovementX = true;
   object.lockMovementY = true;
@@ -47,6 +49,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { actualModel, selectedModelType } = useWarrior();
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
   const [selectedFrameIndex, setSelectedFrameIndex] = useState(0);
+  const [sizeMultiplier, setSizeMultiplier] = useState<number>(1);
   const materialDefs: MaterialDefinition[] = materials[actualModel];
   const materialDef = materialDefs[selectedMaterialIndex] ?? null;
   const frameCount = materialDef.frameCount ?? 1;
@@ -55,10 +58,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     boolean[]
   >([]);
 
-  const textureSize: [number, number] = useMemo(
-    () => materialDef.size ?? [512, 512],
-    [materialDef]
-  );
+  const textureSize: [number, number] = useMemo(() => {
+    const [width, height] = materialDef.size ?? defaultTextureSize;
+    return [width * sizeMultiplier, height * sizeMultiplier];
+  }, [materialDef.size, sizeMultiplier]);
 
   const hasMetallic = !(
     materialDef.metallicFactor === 0 && materialDef.roughnessFactor === 1
@@ -73,6 +76,21 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   if (selectedFrameIndex >= frameCount) {
     setSelectedFrameIndex(0);
   }
+
+  useEffect(() => {
+    try {
+      const savedSizeMultiplier = localStorage.getItem("sizeMultiplier");
+      switch (savedSizeMultiplier) {
+        case "1":
+        case "2":
+        case "4":
+          setSizeMultiplier(+savedSizeMultiplier);
+          break;
+      }
+    } catch (err) {
+      // Probably blocked. That's okay.
+    }
+  }, []);
 
   useEffect(() => {
     setSelectedExportMaterials(
@@ -100,10 +118,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   );
 
   const activeCanvas = materialDef
-    ? `${materialDef.name}:${activeCanvasType}:${selectedFrameIndex}`
+    ? `${materialDef.name}:${activeCanvasType}:${selectedFrameIndex}:${sizeMultiplier}`
     : null;
   const metallicCanvasId = materialDef
-    ? `${materialDef.name}:metallic:${selectedFrameIndex}`
+    ? `${materialDef.name}:metallic:${selectedFrameIndex}:${sizeMultiplier}`
     : null;
   const { canvases } = useCanvas();
   const { canvas, notifyChange, undo, redo, canUndo, canRedo } =
@@ -412,11 +430,19 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
             const frames = new Array(frameCount).fill(null);
             return frames.map(async (_, frameIndex) => {
               const colorCanvas =
-                canvases[`${materialDef.name}:color:${frameIndex}`]?.canvas;
+                canvases[
+                  `${materialDef.name}:color:${frameIndex}:${sizeMultiplier}`
+                ]?.canvas;
               const metallicCanvas =
-                canvases[`${materialDef.name}:metallic:${frameIndex}`]?.canvas;
+                canvases[
+                  `${materialDef.name}:metallic:${frameIndex}:${sizeMultiplier}`
+                ]?.canvas;
 
-              const textureSize = materialDef.size ?? [512, 512];
+              const baseTextureSize = materialDef.size ?? defaultTextureSize;
+              const textureSize = [
+                baseTextureSize[0] * sizeMultiplier,
+                baseTextureSize[1] * sizeMultiplier,
+              ];
               let outputImageUrl;
 
               const colorImageUrl = colorCanvas.toDataURL({
@@ -500,15 +526,17 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
             (match, a, b) => (a || b).toUpperCase()
           );
           let zipFileName = "";
+          const multiplierString =
+            sizeMultiplier > 1 ? `-@${sizeMultiplier}x` : "";
           switch (selectedModelType) {
             case "player":
-              zipFileName = `zPlayerSkin-${name}.vl2`;
+              zipFileName = `zPlayerSkin-${name}${multiplierString}.vl2`;
               break;
             case "weapon":
-              zipFileName = `zWeapon${camelCaseName}-${name}.vl2`;
+              zipFileName = `zWeapon${camelCaseName}-${name}${multiplierString}.vl2`;
               break;
             case "vehicle":
-              zipFileName = `z${camelCaseName}-${name}.vl2`;
+              zipFileName = `z${camelCaseName}-${name}${multiplierString}.vl2`;
               break;
           }
           await saveZipFile(zip, zipFileName);
@@ -517,13 +545,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       return;
     },
     [
-      actualModel,
-      canvasPadding,
-      canvases,
-      combineColorAndAlphaImageUrls,
       materialDefs,
-      selectedModelType,
       selectedExportMaterials,
+      canvases,
+      sizeMultiplier,
+      canvasPadding,
+      selectedModelType,
+      combineColorAndAlphaImageUrls,
+      actualModel,
     ]
   );
 
@@ -572,6 +601,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setSelectedFrameIndex,
       hasAnimation,
       frameCount,
+      sizeMultiplier,
+      setSizeMultiplier,
       selectedExportMaterials,
       setSelectedExportMaterials,
     }),
@@ -583,14 +614,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       brushColor,
       brushSize,
       hueRotate,
-      saturation,
-      brightness,
-      contrast,
-      layerMode,
       setHueRotate,
+      saturation,
       setSaturation,
+      brightness,
       setBrightness,
+      contrast,
       setContrast,
+      layerMode,
       selectedObjects,
       lockSelection,
       unlockSelection,
@@ -611,6 +642,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       selectedFrameIndex,
       hasAnimation,
       frameCount,
+      sizeMultiplier,
+      setSizeMultiplier,
       selectedExportMaterials,
     ]
   );

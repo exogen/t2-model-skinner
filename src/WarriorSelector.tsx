@@ -5,11 +5,11 @@ import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
 import { importMultipleFilesToModels, modelToModelType } from "./importUtils";
+import useManifest from "./useManifest";
 
 const { publicRuntimeConfig } = getConfig();
-const { defaultSkins, modelDefaults /*materials*/ } = publicRuntimeConfig;
+const { defaultSkins, modelDefaults } = publicRuntimeConfig;
 
-const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const defaultCustomSkins = {};
 
 const emptyMap = new Map();
@@ -40,6 +40,7 @@ export default function WarriorSelector() {
     null
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [manifest, isManifestLoaded] = useManifest();
 
   const importedSkinsForModel = importedSkins.get(actualModel) ?? emptyMap;
 
@@ -48,33 +49,11 @@ export default function WarriorSelector() {
   ).filter((skin) => skin.isComplete);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    let ignore = false;
-
-    const loadCustomSkins = async () => {
-      let res;
-      try {
-        res = await fetch(`${baseManifestPath}/skins.json`, { signal });
-      } catch (err) {
-        return;
-      }
-      if (!ignore) {
-        const json = await res.json();
-        if (!ignore) {
-          setCustomSkins(json.customSkins ?? {});
-          setNewSkins(json.newSkins ?? {});
-        }
-      }
-    };
-
-    loadCustomSkins();
-
-    return () => {
-      ignore = true;
-      controller.abort();
-    };
-  }, []);
+    if (isManifestLoaded) {
+      setCustomSkins(manifest.customSkins);
+      setNewSkins(manifest.newSkins);
+    }
+  }, [manifest, isManifestLoaded]);
 
   let skinSelectValue = selectedSkin ?? "";
   if (selectedSkin && selectedSkinSection) {

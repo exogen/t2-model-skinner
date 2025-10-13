@@ -158,7 +158,11 @@ export default function GalleryPage() {
               )}.${skinModel}.webp`;
 
               return (
-                <div key={`${skinName}:${skinModel}`} className={styles.Skin}>
+                <Link
+                  key={`${skinName}:${skinModel}`}
+                  className={styles.Skin}
+                  href={`/?m=${skinModel}&s=${encodeURIComponent(skinName)}`}
+                >
                   <img
                     className={styles.Preview}
                     loading="lazy"
@@ -168,7 +172,7 @@ export default function GalleryPage() {
                     alt={skinName}
                   />
                   <div className={styles.Name}>{skinName}</div>
-                </div>
+                </Link>
               );
             })}
           </div>

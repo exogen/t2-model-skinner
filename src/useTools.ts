@@ -52,6 +52,10 @@ interface ToolsContextValue {
   hasMetallic: boolean;
   hasAnimation: boolean;
   frameCount: number;
+  sizeMultiplier: number;
+  setSizeMultiplier: (
+    sizeMultiplier: number | ((sizeMultiplier: number) => number)
+  ) => void;
   selectedExportMaterials: boolean[];
   setSelectedExportMaterials: (
     selectedExportMaterials:

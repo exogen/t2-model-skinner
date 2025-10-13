@@ -10,6 +10,8 @@ export default function CanvasToggle() {
     frameCount,
     selectedFrameIndex,
     setSelectedFrameIndex,
+    sizeMultiplier,
+    setSizeMultiplier,
   } = useTools();
 
   return (
@@ -35,6 +37,35 @@ export default function CanvasToggle() {
             Metallic
           </button>
         ) : null}
+      </div>
+      <div className="CanvasToggle" hidden>
+        <button
+          type="button"
+          data-selected={sizeMultiplier === 1 ? "" : undefined}
+          onClick={() => {
+            setSizeMultiplier(1);
+          }}
+        >
+          1&times;
+        </button>
+        <button
+          type="button"
+          data-selected={sizeMultiplier === 2 ? "" : undefined}
+          onClick={() => {
+            setSizeMultiplier(2);
+          }}
+        >
+          2&times;
+        </button>
+        <button
+          type="button"
+          data-selected={sizeMultiplier === 4 ? "" : undefined}
+          onClick={() => {
+            setSizeMultiplier(4);
+          }}
+        >
+          4&times;
+        </button>
       </div>
       {hasAnimation ? (
         <div className="FrameSelector">
