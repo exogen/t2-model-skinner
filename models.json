@@ -41,9 +41,21 @@
       "Storm"
     ],
     "hfemale": [],
-    "lbioderm": ["Horde", "Inferno", "Storm"],
-    "mbioderm": ["Horde", "Inferno", "Storm"],
-    "hbioderm": ["Horde", "Inferno", "Storm"]
+    "lbioderm": [
+      "Horde",
+      "Inferno",
+      "Storm"
+    ],
+    "mbioderm": [
+      "Horde",
+      "Inferno",
+      "Storm"
+    ],
+    "hbioderm": [
+      "Horde",
+      "Inferno",
+      "Storm"
+    ]
   },
   "modelDefaults": {
     "lmale": "Blood Eagle",
@@ -157,67 +169,173 @@
     "Diesidert0": "Death (Right Side Alternate)"
   },
   "cameraOverrides": {
-    "chaingun": { "target": "0m 0m 0m", "fov": "12deg" },
-    "plasmathrower": { "target": "0.002m -0.001m 0m", "fov": "12deg" },
-    "energy": { "fov": "31deg", "orbit": "135deg 70deg 105%" },
-    "hmale": { "fov": "24deg" },
-    "hfemale": { "fov": "24deg" },
-    "hbioderm": { "fov": "24deg" },
-    "vehicle_grav_scout": { "orbit": "290deg 60deg 130%" },
-    "vehicle_grav_tank": { "orbit": "290deg 60deg 130%" },
-    "turret_assaulttank_mortar": { "orbit": "290deg 60deg 130%" },
-    "vehicle_land_mpbbase": { "orbit": "290deg 60deg 130%" },
-    "vehicle_air_scout": { "orbit": "290deg 60deg 130%" },
-    "vehicle_air_bomber": { "orbit": "290deg 60deg 130%" },
-    "vehicle_air_hapc": { "orbit": "290deg 60deg 130%" }
+    "chaingun": {
+      "target": "0m 0m 0m",
+      "fov": "12deg"
+    },
+    "plasmathrower": {
+      "target": "0.002m -0.001m 0m",
+      "fov": "12deg"
+    },
+    "energy": {
+      "fov": "31deg",
+      "orbit": "135deg 70deg 105%"
+    },
+    "hmale": {
+      "fov": "24deg"
+    },
+    "hfemale": {
+      "fov": "24deg"
+    },
+    "hbioderm": {
+      "fov": "24deg"
+    },
+    "vehicle_grav_scout": {
+      "orbit": "290deg 60deg 130%"
+    },
+    "vehicle_grav_tank": {
+      "orbit": "290deg 60deg 130%"
+    },
+    "turret_assaulttank_mortar": {
+      "orbit": "290deg 60deg 130%"
+    },
+    "vehicle_land_mpbbase": {
+      "orbit": "290deg 60deg 130%"
+    },
+    "vehicle_air_scout": {
+      "orbit": "290deg 60deg 130%"
+    },
+    "vehicle_air_bomber": {
+      "orbit": "290deg 60deg 130%"
+    },
+    "vehicle_air_hapc": {
+      "orbit": "290deg 60deg 130%"
+    }
   },
   "animationLabelOverrides": {
-    "mmale": { "Back": "Strafe Left" },
-    "mfemale": { "Dielegrt": "Death (Slump)" },
-    "lbioderm": { "Root": "Gravcycle" }
+    "mmale": {
+      "Back": "Strafe Left"
+    },
+    "mfemale": {
+      "Dielegrt": "Death (Slump)"
+    },
+    "lbioderm": {
+      "Root": "Gravcycle"
+    }
   },
   "materials": {
-    "lmale": [{ "name": "base", "label": "Warrior", "fileSuffix": ".lmale" }],
-    "mmale": [{ "name": "base", "label": "Warrior", "fileSuffix": ".mmale" }],
-    "hmale": [{ "name": "base", "label": "Warrior", "fileSuffix": ".hmale" }],
+    "lmale": [
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".lmale"
+      }
+    ],
+    "mmale": [
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".mmale"
+      }
+    ],
+    "hmale": [
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".hmale"
+      }
+    ],
     "lfemale": [
-      { "name": "base", "label": "Warrior", "fileSuffix": ".lfemale" }
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".lfemale"
+      }
     ],
     "mfemale": [
-      { "name": "base", "label": "Warrior", "fileSuffix": ".mfemale" }
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".mfemale"
+      }
     ],
     "lbioderm": [
-      { "name": "base", "label": "Warrior", "fileSuffix": ".lbioderm" }
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".lbioderm"
+      }
     ],
     "mbioderm": [
-      { "name": "base", "label": "Warrior", "fileSuffix": ".mbioderm" }
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".mbioderm"
+      }
     ],
     "hbioderm": [
-      { "name": "base", "label": "Warrior", "fileSuffix": ".hbioderm" }
+      {
+        "name": "base",
+        "label": "Warrior",
+        "fileSuffix": ".hbioderm"
+      }
     ],
     "disc": [
-      { "name": "weapon_disc", "label": "Weapon" },
+      {
+        "name": "weapon_disc",
+        "label": "Weapon"
+      },
       {
         "name": "dcase00",
         "label": "Disc Case",
-        "size": [256, 256],
-        "baseColorFactor": [1, 1, 1, 0.7],
-        "emissiveFactor": [1, 1, 1],
+        "size": [
+          256,
+          256
+        ],
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          0.7
+        ],
+        "emissiveFactor": [
+          1,
+          1,
+          1
+        ],
         "emissiveTexture": true,
         "alphaMode": "BLEND",
         "metallicFactor": 0,
         "roughnessFactor": 1,
         "frameCount": 6,
-        "frameTimings": [21, 1, 1, 1, 1, 1],
+        "frameTimings": [
+          21,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
         "optional": true
       }
     ],
-    "chaingun": [{ "label": "Chaingun", "name": "weapon_chaingun" }],
+    "chaingun": [
+      {
+        "label": "Chaingun",
+        "name": "weapon_chaingun"
+      }
+    ],
     "grenade_launcher": [
-      { "label": "Grenade Launcher", "name": "weapon_grenade_launcher" }
+      {
+        "label": "Grenade Launcher",
+        "name": "weapon_grenade_launcher"
+      }
     ],
     "sniper": [
-      { "label": "Weapon", "name": "weapon_sniper" },
+      {
+        "label": "Weapon",
+        "name": "weapon_sniper"
+      },
       {
         "label": "Green Light",
         "name": "greenlight",
@@ -254,37 +372,86 @@
       }
     ],
     "energy": [
-      { "label": "Weapon", "name": "blinn1", "file": "weapon_energy" }
+      {
+        "label": "Weapon",
+        "name": "blinn1",
+        "file": "weapon_energy"
+      }
     ],
     "shocklance": [
-      { "label": "Weapon", "name": "weapon_shocklance", "size": [512, 256] },
+      {
+        "label": "Weapon",
+        "name": "weapon_shocklance",
+        "size": [
+          512,
+          256
+        ]
+      },
       {
         "label": "Glow",
         "name": "weapon_shocklance_glow_",
         "file": "weapon_shocklance_glow ",
-        "emissiveFactor": [1, 1, 1],
+        "emissiveFactor": [
+          1,
+          1,
+          1
+        ],
         "alphaMode": "MASK",
         "alphaCutoff": 255,
         "emissiveTexture": true,
         "metallicFactor": 0,
         "roughnessFactor": 1,
-        "size": [256, 128],
+        "size": [
+          256,
+          128
+        ],
         "optional": true
       }
     ],
     "elf": [
-      { "label": "Weapon", "name": "weapon_elf", "file": "weapon_elf" },
-      { "label": "Glow", "name": "weapon_elf0", "file": "weapon_elf" }
+      {
+        "label": "Weapon",
+        "name": "weapon_elf",
+        "file": "weapon_elf"
+      },
+      {
+        "label": "Glow",
+        "name": "weapon_elf0",
+        "file": "weapon_elf"
+      }
     ],
-    "missile": [{ "label": "Weapon", "name": "weapon_missile" }],
-    "mortar": [{ "label": "Weapon", "name": "weapon_mortar" }],
-    "repair": [{ "label": "Weapon", "name": "weapon_repair" }],
-    "targeting": [{ "label": "Weapon", "name": "weapon_targeting" }],
+    "missile": [
+      {
+        "label": "Weapon",
+        "name": "weapon_missile"
+      }
+    ],
+    "mortar": [
+      {
+        "label": "Weapon",
+        "name": "weapon_mortar"
+      }
+    ],
+    "repair": [
+      {
+        "label": "Weapon",
+        "name": "weapon_repair"
+      }
+    ],
+    "targeting": [
+      {
+        "label": "Weapon",
+        "name": "weapon_targeting"
+      }
+    ],
     "mine": [
       {
         "label": "Weapon",
         "name": "mine",
-        "size": [512, 512],
+        "size": [
+          512,
+          512
+        ],
         "metallicFactor": 0,
         "roughnessFactor": 1
       }
@@ -295,17 +462,32 @@
         "name": "vehicle_air_scout0",
         "file": "vehicle_air_scout"
       },
-      { "name": "Unassigned", "hidden": true, "hasDefault": false },
-      { "name": "vehicle_air_scout", "hidden": true, "hasDefault": false },
+      {
+        "name": "Unassigned",
+        "hidden": true,
+        "hasDefault": false
+      },
+      {
+        "name": "vehicle_air_scout",
+        "hidden": true,
+        "hasDefault": false
+      },
       {
         "label": "Flare",
         "name": "shrikeflare2",
-        "emissiveFactor": [0, 0, 0],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
         "alphaMode": "BLEND",
         "emissiveTexture": true,
         "metallicFactor": 0,
         "roughnessFactor": 1,
-        "size": [256, 256],
+        "size": [
+          256,
+          256
+        ],
         "optional": true
       }
     ],
@@ -314,10 +496,24 @@
         "label": "Cockpit & Thrusters",
         "name": "vehicle_air_bomber10",
         "file": "vehicle_air_bomber1",
-        "size": [256, 512]
+        "size": [
+          256,
+          512
+        ]
       },
-      { "name": "Unassigned", "hidden": true, "hasDefault": false },
-      { "label": "Rear", "name": "vehicle_air_bomber2", "size": [256, 512] },
+      {
+        "name": "Unassigned",
+        "hidden": true,
+        "hasDefault": false
+      },
+      {
+        "label": "Rear",
+        "name": "vehicle_air_bomber2",
+        "size": [
+          256,
+          512
+        ]
+      },
       {
         "label": "Wings",
         "name": "vehicle_air_bomber31",
@@ -325,31 +521,64 @@
       },
       {
         "name": "vehicle_air_bomber1",
-        "size": [256, 512],
+        "size": [
+          256,
+          512
+        ],
         "selectable": false
       },
-      { "name": "vehicle_air_bomber3", "selectable": false }
+      {
+        "name": "vehicle_air_bomber3",
+        "selectable": false
+      }
     ],
     "vehicle_air_hapc": [
-      { "label": "Cockpit", "name": "vehicle_air_bomber1", "size": [256, 512] },
-      { "name": "Unassigned", "hidden": true, "hasDefault": false },
-      { "label": "Wings", "name": "vehicle_air_hpc2" },
-      { "label": "Seats", "name": "vehicle_air_hpc1" },
+      {
+        "label": "Cockpit",
+        "name": "vehicle_air_bomber1",
+        "size": [
+          256,
+          512
+        ]
+      },
+      {
+        "name": "Unassigned",
+        "hidden": true,
+        "hasDefault": false
+      },
+      {
+        "label": "Wings",
+        "name": "vehicle_air_hpc2"
+      },
+      {
+        "label": "Seats",
+        "name": "vehicle_air_hpc1"
+      },
       {
         "label": "Thrusters",
         "name": "vehicle_air_hpc30",
         "file": "vehicle_air_hpc3"
       },
-      { "name": "vehicle_air_hpc3", "selectable": false }
+      {
+        "name": "vehicle_air_hpc3",
+        "selectable": false
+      }
     ],
     "vehicle_grav_scout": [
       {
         "label": "Vehicle",
         "name": "Vehicle_grav_scout0",
         "file": "Vehicle_grav_scout",
-        "size": [512, 256]
+        "size": [
+          512,
+          256
+        ]
       },
-      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      {
+        "name": "Unassigned",
+        "hidden": true,
+        "hasDefault": false
+      },
       {
         "label": "Pipes",
         "name": "Vehicle_grav_scout_pipes1",
@@ -357,12 +586,20 @@
         "metallicFactor": 0,
         "roughnessFactor": 1
       },
-      { "name": "Vehicle_grav_scout", "hidden": true, "hasDefault": false },
+      {
+        "name": "Vehicle_grav_scout",
+        "hidden": true,
+        "hasDefault": false
+      },
       {
         "label": "Side Thrusters",
         "name": "Vehicle_grav_scout_pipes",
         "file": "Vehicle_grav_scout_pipes",
-        "emissiveFactor": [1, 1, 1],
+        "emissiveFactor": [
+          1,
+          1,
+          1
+        ],
         "alphaMode": "OPAQUE",
         "metallicFactor": 0,
         "roughnessFactor": 1,
@@ -375,10 +612,18 @@
         "file": "Vehicle_grav_scout_windshield",
         "selectable": false,
         "alphaMode": "BLEND",
-        "baseColorFactor": [1, 1, 1, 0.5],
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          0.5
+        ],
         "metallicFactor": 0,
         "roughnessFactor": 1,
-        "size": [128, 128],
+        "size": [
+          128,
+          128
+        ],
         "optional": true
       },
       {
@@ -387,10 +632,18 @@
         "file": "Vehicle_grav_scout_windshieldInner",
         "selectable": false,
         "alphaMode": "BLEND",
-        "baseColorFactor": [1, 1, 1, 0.5],
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          0.5
+        ],
         "metallicFactor": 0,
         "roughnessFactor": 1,
-        "size": [128, 128],
+        "size": [
+          128,
+          128
+        ],
         "optional": true
       }
     ],
@@ -398,22 +651,38 @@
       {
         "label": "Center",
         "name": "Vehicle_grav_tank_bodyMain",
-        "size": [256, 512]
+        "size": [
+          256,
+          512
+        ]
       },
-      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      {
+        "name": "Unassigned",
+        "hidden": true,
+        "hasDefault": false
+      },
       {
         "label": "Sides",
         "name": "vehicle_grav_tank_bodyside10",
         "file": "vehicle_grav_tank_bodyside1",
-        "size": [256, 512]
+        "size": [
+          256,
+          512
+        ]
       },
       {
         "label": "Thrusters",
         "name": "vehicle_grav_tank_bodyside21",
         "file": "vehicle_grav_tank_bodyside2"
       },
-      { "name": "vehicle_grav_tank_bodyside2", "selectable": false },
-      { "name": "vehicle_grav_tank_bodyside1", "selectable": false }
+      {
+        "name": "vehicle_grav_tank_bodyside2",
+        "selectable": false
+      },
+      {
+        "name": "vehicle_grav_tank_bodyside1",
+        "selectable": false
+      }
     ],
     "turret_assaulttank_mortar": [
       {
@@ -423,19 +692,37 @@
       }
     ],
     "vehicle_land_mpbbase": [
-      { "label": "Vehicle Front", "name": "vehicle_land_mpb1" },
-      { "label": "Vehicle Back", "name": "vehicle_land_mpb2" },
+      {
+        "label": "Vehicle Front",
+        "name": "vehicle_land_mpb1"
+      },
+      {
+        "label": "Vehicle Back",
+        "name": "vehicle_land_mpb2"
+      },
       {
         "label": "Wheels",
         "name": "Vehicle_Land_Assault_wheel",
         "file": "Vehicle_Land_Assault_Wheel",
-        "size": [512, 256],
+        "size": [
+          512,
+          256
+        ],
         "optional": true
       }
     ]
   },
   "animations": {
-    "global": ["Forward", "Back", "Jump", "Jet", "Fall", "Land", "ski", "Root"],
+    "global": [
+      "Forward",
+      "Back",
+      "Jump",
+      "Jet",
+      "Fall",
+      "Land",
+      "ski",
+      "Root"
+    ],
     "lmale": [
       "Idlepda",
       "Side",
