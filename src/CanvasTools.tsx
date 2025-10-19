@@ -258,6 +258,7 @@ export default function CanvasTools() {
                 data-active={isDrawingMode ? "" : undefined}
                 aria-label="Paint Mode"
                 title="Paint Mode (P)"
+                ref={brushRefs.setReference}
                 {...getBrushReferenceProps()}
               >
                 <IoMdBrush />
@@ -373,6 +374,7 @@ export default function CanvasTools() {
             aria-label="Filters"
             title="Filters"
             disabled={hasSelection && !selectionHasImages}
+            ref={filterRefs.setReference}
             {...getFilterReferenceProps()}
           >
             <ImContrast />
@@ -659,6 +661,7 @@ export default function CanvasTools() {
           data-active={isExportOptionsOpen ? "" : undefined}
           aria-label="Export Options"
           title="Export Options"
+          ref={exportRefs.setReference}
           {...getExportReferenceProps()}
         >
           .{exportFileType}
