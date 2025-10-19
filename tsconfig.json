@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["node", "react"],
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": false,
@@ -10,14 +11,26 @@
     "incremental": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "paths": {
-      "fabric": ["./vendor/fabric"]
-    }
+      "@config/models.json": ["./models.json"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["next-env.d.ts", "pngjs-browser.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": [
+    "./types/*.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "docs/types/**/*.ts",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules", "vendor"]
 }

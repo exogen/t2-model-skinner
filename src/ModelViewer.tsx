@@ -26,6 +26,7 @@ function useTimeScale(
 ) {
   useEffect(() => {
     if (modelViewer) {
+      // eslint-disable-next-line react-hooks/immutability
       modelViewer.timeScale = timeScale;
     }
   }, [modelViewer, timeScale]);
@@ -97,14 +98,9 @@ function ModelViewerKeyedByModel({
     };
   }, [modelViewer, modelUrl]);
 
-  useEffect(() => {
-    if (!modelViewer) {
-      return;
-    }
-    if (modelViewer.loaded) {
-      setLoaded(true);
-    }
-  }, [modelViewer, modelUrl]);
+  if (!isLoaded && modelViewer && modelViewer.loaded) {
+    setLoaded(true);
+  }
 
   useEffect(() => {
     if (!modelViewer || !isLoaded) {
@@ -138,7 +134,7 @@ function ModelViewerKeyedByModel({
         min-field-of-view="10deg"
         max-field-of-view="45deg"
         animation-name={animationName ?? undefined}
-        autoplay={animationName ? "true" : "false"}
+        autoplay={animationName != null}
         touch-action="pan-y"
         exposure={exposure}
         environment-image={environmentImageUrl ?? undefined}

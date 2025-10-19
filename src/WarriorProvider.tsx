@@ -1,13 +1,12 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import getConfig from "next/config";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSettings from "./useSettings";
 import { WarriorContext } from "./useWarrior";
-import type { MaterialDefinition } from "./Material";
+import type { MaterialDefinition } from "./models";
 import type { Skin } from "./importUtils";
-import { useRouter } from "next/router";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-const { materials, modelDefaults, defaultSkins } = publicRuntimeConfig;
+const { materials, modelDefaults, defaultSkins } = modelConfig;
 const baseSkinPath = `https://exogen.github.io/t2-skins/skins`;
 
 let IMPORTED_SKINS: Map<string, Map<string | null, Skin>> = new Map();
@@ -179,6 +178,10 @@ function getModelUrl(
 
 export default function WarriorProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchParamsInitialized, setSearchParamsInitialized] = useState(false);
+
   const [selectedModel, setSelectedModel] = useState<string>("lmale");
   const [selectedModelType, setSelectedModelType] = useState("player");
   const [selectedSkin, setSelectedSkin] = useState<string | null>(
@@ -276,56 +279,39 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     addImportedSkins,
   ]);
 
-  useEffect(() => {
-    if (router.isReady) {
-      const modelName = router.query.m;
-      if (typeof modelName === "string") {
-        const modelType = modelToType(modelName);
-        const actualModel = modelName === "hfemale" ? "hmale" : modelName;
-        if (modelType) {
-          setSelectedModel(modelName);
-          setSelectedModelType(modelType);
-          const skinPath = router.query.s;
-          if (typeof skinPath === "string") {
-            const skinType = skinToType(actualModel, skinPath);
-            setSelectedSkin(skinPath);
-            setSelectedSkinType(skinType);
-            console.log("set model and skin from route:", modelName, skinPath);
-          }
+  if (!searchParamsInitialized) {
+    const modelName = searchParams.get("m");
+    const skinPath = searchParams.get("s");
+    if (typeof modelName === "string") {
+      const modelType = modelToType(modelName);
+      const actualModel = modelName === "hfemale" ? "hmale" : modelName;
+      if (modelType) {
+        setSelectedModel(modelName);
+        setSelectedModelType(modelType);
+        if (typeof skinPath === "string") {
+          const skinType = skinToType(actualModel, skinPath);
+          setSelectedSkin(skinPath);
+          setSelectedSkinType(skinType);
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
-
-  const { replace: replaceRoute } = router;
+    setSearchParamsInitialized(true);
+  }
 
   useEffect(() => {
-    if (router.isReady) {
-      if (router.query.m !== selectedModel || router.query.s !== selectedSkin) {
-        console.log(
-          "router is ready. query params do not match, replacing:",
-          selectedModel,
-          selectedSkin
-        );
-        replaceRoute(
-          {
-            pathname: router.pathname,
-            query: { ...router.query, m: selectedModel, s: selectedSkin },
-          },
-          undefined,
-          { shallow: true }
-        );
-      }
+    if (!selectedSkin) {
+      return;
     }
-  }, [
-    replaceRoute,
-    router.isReady,
-    router.pathname,
-    router.query,
-    selectedSkin,
-    selectedModel,
-  ]);
+    const modelName = searchParams.get("m");
+    const skinPath = searchParams.get("s");
+    if (modelName !== selectedModel || skinPath !== selectedSkin) {
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("m", selectedModel);
+      newSearchParams.set("s", selectedSkin);
+      const url = `${pathname}?${newSearchParams}`;
+      router.replace(url, { scroll: false });
+    }
+  }, [pathname, router, searchParams, selectedModel, selectedSkin]);
 
   useEffect(() => {
     if (selectedSkin) {
@@ -344,8 +330,8 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [
-    basePath,
     actualModel,
+    basePath,
     selectedModelType,
     selectedSkin,
     selectedSkinType,

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as Comlink from "comlink";
-import Worker from "worker-loader!./imageProcessing.worker";
 import type { ImageFunctions } from "./imageProcessing.worker";
 
 export default function useImageWorker() {
@@ -15,16 +14,16 @@ export default function useImageWorker() {
     };
     return {
       async combineColorAndAlphaImageUrls(...args) {
-        const functions = await getFunctions();
-        return functions?.combineColorAndAlphaImageUrls(...args);
+        const functions = getFunctions();
+        return await functions?.combineColorAndAlphaImageUrls(...args);
       },
       async removeAlphaFromArrayBuffer(...args) {
-        const functions = await getFunctions();
-        return functions?.removeAlphaFromArrayBuffer(...args);
+        const functions = getFunctions();
+        return await functions?.removeAlphaFromArrayBuffer(...args);
       },
       async convertArrayBufferAlphaToGrayscale(...args) {
-        const functions = await getFunctions();
-        return functions?.convertArrayBufferAlphaToGrayscale(...args);
+        const functions = getFunctions();
+        return await functions?.convertArrayBufferAlphaToGrayscale(...args);
       },
       async convertGrayscaleImageUrlToMetallicRoughness(...args) {
         const functions = await getFunctions();
@@ -34,14 +33,17 @@ export default function useImageWorker() {
   }, []);
 
   useEffect(() => {
-    const worker = new Worker();
-    const functions = Comlink.wrap<ImageFunctions>(worker);
+    const worker = new Worker(
+      new URL("./imageProcessing.worker.ts", import.meta.url)
+    );
+    const proxy = Comlink.wrap<ImageFunctions>(worker);
 
     workerRef.current = worker;
-    functionsRef.current = functions;
+    functionsRef.current = proxy;
 
     return () => {
-      functions[Comlink.releaseProxy]();
+      proxy[Comlink.releaseProxy]();
+      functionsRef.current = null;
       worker.terminate();
     };
   }, []);

@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import getConfig from "next/config";
+import modelConfig from "./models";
 
 type MaterialDefinition = {
   name: string;
@@ -11,9 +11,7 @@ type MaterialDefinition = {
   frameCount?: number;
 };
 
-const { publicRuntimeConfig } = getConfig();
-const materialMap: Record<string, MaterialDefinition[]> =
-  publicRuntimeConfig.materials;
+const materialMap: Record<string, MaterialDefinition[]> = modelConfig.materials;
 
 const ignoreFilePattern = /^(\.|__MACOSX)/;
 

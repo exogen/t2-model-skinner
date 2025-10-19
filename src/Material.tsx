@@ -1,9 +1,10 @@
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef, RefObject } from "react";
 import type { ModelViewerElement } from "@google/model-viewer";
 import useSettings from "./useSettings";
 import useSkin from "./useSkin";
 import useModelViewer from "./useModelViewer";
 import useWarrior from "./useWarrior";
+import type { MaterialDefinition } from "./models";
 
 // const secondaryMaterialTextures: Record<string, string[]> = {
 //   disc: ["textures/discshield2"],
@@ -12,27 +13,6 @@ import useWarrior from "./useWarrior";
 export type ModelMaterial = NonNullable<
   ModelViewerElement["model"]
 >["materials"][number];
-
-export type MaterialDefinition = {
-  name: string;
-  label?: string;
-  file?: string;
-  fileSuffix?: string;
-  hasDefault?: boolean;
-  size?: [number, number];
-  hidden?: boolean;
-  selectable?: boolean;
-  optional?: boolean;
-  alphaMode?: "BLEND" | "MASK" | "OPAQUE";
-  alphaCutoff?: number;
-  baseColorFactor?: [number, number, number, number];
-  emissiveFactor?: [number, number, number];
-  emissiveTexture?: boolean;
-  metallicFactor?: number;
-  roughnessFactor?: number;
-  frameCount?: number;
-  frameTimings?: number[];
-};
 
 type FrameInfo = {
   frameIndex: number;
@@ -51,7 +31,7 @@ function useTexture({
   materialDef?: MaterialDefinition;
   textureType: "baseColorTexture" | "metallicRoughnessTexture";
   imageUrl?: string[];
-  frameRef: MutableRefObject<FrameInfo>;
+  frameRef: RefObject<FrameInfo>;
   onReady?: () => void;
 }) {
   const { modelViewer } = useModelViewer();
@@ -190,27 +170,12 @@ export default function Material({
     getSkinImages(materialDef?.file ?? material.name) ?? {};
   const frameRef = useRef<FrameInfo>({ frameIndex: 0, frameProgress: 0 });
 
-  const onTextureReady = useMemo(() => {
-    let i = 0;
-    return () => {
-      i += 1;
-      if (i === 2) {
-        const event = new Event("material-ready");
-        window.dispatchEvent(event);
-        if (onReady) {
-          onReady([colorImageUrl, metallicImageUrl]);
-        }
-      }
-    };
-  }, [colorImageUrl, metallicImageUrl, onReady]);
-
   useTexture({
     material,
     materialDef,
     textureType: "baseColorTexture",
     imageUrl: colorImageUrl,
     frameRef,
-    onReady: onTextureReady,
   });
   useTexture({
     material,
@@ -218,7 +183,6 @@ export default function Material({
     textureType: "metallicRoughnessTexture",
     imageUrl: metallicImageUrl,
     frameRef,
-    onReady: onTextureReady,
   });
 
   return null;

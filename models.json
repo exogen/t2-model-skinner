@@ -1,0 +1,648 @@
+{
+  "defaultSkins": {
+    "lmale": [
+      "Blood Eagle",
+      "Children of the Phoenix",
+      "Diamond Sword",
+      "Inferno",
+      "Starwolf",
+      "Storm"
+    ],
+    "mmale": [
+      "Blood Eagle",
+      "Children of the Phoenix",
+      "Diamond Sword",
+      "Inferno",
+      "Starwolf",
+      "Storm"
+    ],
+    "hmale": [
+      "Blood Eagle",
+      "Children of the Phoenix",
+      "Diamond Sword",
+      "Inferno",
+      "Starwolf",
+      "Storm"
+    ],
+    "lfemale": [
+      "Blood Eagle",
+      "Children of the Phoenix",
+      "Diamond Sword",
+      "Inferno",
+      "Starwolf",
+      "Storm"
+    ],
+    "mfemale": [
+      "Blood Eagle",
+      "Children of the Phoenix",
+      "Diamond Sword",
+      "Inferno",
+      "Starwolf",
+      "Storm"
+    ],
+    "hfemale": [],
+    "lbioderm": ["Horde", "Inferno", "Storm"],
+    "mbioderm": ["Horde", "Inferno", "Storm"],
+    "hbioderm": ["Horde", "Inferno", "Storm"]
+  },
+  "modelDefaults": {
+    "lmale": "Blood Eagle",
+    "mmale": "Blood Eagle",
+    "hmale": "Blood Eagle",
+    "lfemale": "Blood Eagle",
+    "mfemale": "Blood Eagle",
+    "hfemale": "Blood Eagle",
+    "lbioderm": "Storm",
+    "mbioderm": "Storm",
+    "hbioderm": "Storm",
+    "chaingun": "weapon_chaingun",
+    "disc": "weapon_disc",
+    "elf": "weapon_elf",
+    "energy": "weapon_energy",
+    "grenade_launcher": "weapon_grenade_launcher",
+    "mine": "mine",
+    "missile": "weapon_missile",
+    "mortar": "weapon_mortar",
+    "plasmathrower": "weapon_plasmathrower",
+    "repair": "weapon_repair",
+    "shocklance": "weapon_shocklance",
+    "sniper": "weapon_sniper",
+    "targeting": "weapon_targeting",
+    "vehicle_land_mpbbase": "vehicle_land_mpbbase",
+    "vehicle_grav_scout": "vehicle_grav_scout",
+    "vehicle_grav_tank": "vehicle_grav_tank",
+    "turret_assaulttank_mortar": "turret_assaulttank_mortar",
+    "vehicle_air_scout": "vehicle_air_scout",
+    "vehicle_air_bomber": "vehicle_air_bomber",
+    "vehicle_air_hapc": "vehicle_air_hapc"
+  },
+  "animationLabels": {
+    "Forward": "Run Forward",
+    "Back": "Run Backward",
+    "Back0": "Run Backward",
+    "Root": "Idle",
+    "Root2": "Run Backward",
+    "Root3": "Idle",
+    "Idlepda": "Idle (PDA)",
+    "PDA": "Idle (PDA)",
+    "Root1": "Idle (PDA)",
+    "Jump": "Jump",
+    "Jump0": "Jump (Alternate)",
+    "Jump1": "Jump (Alternate)",
+    "Jump2": "Jump (Alternate)",
+    "Jump3": "Jump (Alternate)",
+    "Jet": "Jet",
+    "Fall": "Fall",
+    "Land": "Land",
+    "Land1": "Land (Alternate)",
+    "ski": "Ski",
+    "Side": "Strafe Left",
+    "Celwave": "Wave",
+    "Celbow": "Bow",
+    "Celdisco": "Dance",
+    "Celdance": "Dance",
+    "Celflex": "Flex",
+    "Celflex1": "Flex",
+    "Celrocky": "Awesome",
+    "Celjump": "Awesome",
+    "Celsalute": "Salute",
+    "celTaunt": "Too Bad",
+    "CelebrationGora": "Wave Arms",
+    "Celgora": "Wave Arms",
+    "CelebrationJump": "Bull Charge",
+    "Tauntbull": "Bull Charge",
+    "CelebrationJump0": "Celebrate",
+    "CelebrationJump4": "The Greatest",
+    "CelebrationRoar": "Roar",
+    "Celroar": "Roar",
+    "Celraor": "Roar",
+    "Celflex2": "Flex",
+    "celyeah": "Yeah",
+    "celtaunt": "Too Bad",
+    "Tauntbutt": "Butt",
+    "Tauntkiss": "Blow Kiss",
+    "Tauntbest": "The Greatest",
+    "Taunimp": "Move!",
+    "Tauntimp": "Move!",
+    "Sitting": "Sit",
+    "Scoutroot": "Gravcycle",
+    "Recoilde": "Recoil",
+    "Light_recoil": "Recoil",
+    "Dieforward": "Death (Fall Forward)",
+    "DeathForward": "Death (Fall Forward)",
+    "Dieslump": "Death (Slump)",
+    "DeathSlump": "Death (Slump)",
+    "Diespin": "Death (Spin)",
+    "DeathSpin": "Death (Spin)",
+    "diechest": "Death (Hold Chest)",
+    "Diechest": "Death (Hold Chest)",
+    "DeathChest": "Death (Hold Chest)",
+    "Dieback": "Death (Hold Back)",
+    "DeathBack": "Death (Hold Back)",
+    "Diehead": "Death (Hold Head)",
+    "DeathHead": "Death (Hold Head)",
+    "Dieknees": "Death (On Knees)",
+    "DeathKnees": "Death (On Knees)",
+    "Dieleglf": "Death (Left Leg Injury)",
+    "Dieleglft": "Death (Left Leg Injury)",
+    "DeathLegLeft": "Death (Left Leg Injury)",
+    "Dielegrt": "Death (Right Leg Injury)",
+    "Dielegtrt": "Death (Right Leg Injury)",
+    "DeathLegRight": "Death (Right Leg Injury)",
+    "Dielegrt0": "Death (Right Leg Injury)",
+    "Diesidelf": "Death (Left Side)",
+    "DeathSideLeft": "Death (Left Side)",
+    "Diesidert": "Death (Right Side)",
+    "DeathSideRight": "Death (Right Side)",
+    "Diesidert0": "Death (Right Side Alternate)"
+  },
+  "cameraOverrides": {
+    "chaingun": { "target": "0m 0m 0m", "fov": "12deg" },
+    "plasmathrower": { "target": "0.002m -0.001m 0m", "fov": "12deg" },
+    "energy": { "fov": "31deg", "orbit": "135deg 70deg 105%" },
+    "hmale": { "fov": "24deg" },
+    "hfemale": { "fov": "24deg" },
+    "hbioderm": { "fov": "24deg" },
+    "vehicle_grav_scout": { "orbit": "290deg 60deg 130%" },
+    "vehicle_grav_tank": { "orbit": "290deg 60deg 130%" },
+    "turret_assaulttank_mortar": { "orbit": "290deg 60deg 130%" },
+    "vehicle_land_mpbbase": { "orbit": "290deg 60deg 130%" },
+    "vehicle_air_scout": { "orbit": "290deg 60deg 130%" },
+    "vehicle_air_bomber": { "orbit": "290deg 60deg 130%" },
+    "vehicle_air_hapc": { "orbit": "290deg 60deg 130%" }
+  },
+  "animationLabelOverrides": {
+    "mmale": { "Back": "Strafe Left" },
+    "mfemale": { "Dielegrt": "Death (Slump)" },
+    "lbioderm": { "Root": "Gravcycle" }
+  },
+  "materials": {
+    "lmale": [{ "name": "base", "label": "Warrior", "fileSuffix": ".lmale" }],
+    "mmale": [{ "name": "base", "label": "Warrior", "fileSuffix": ".mmale" }],
+    "hmale": [{ "name": "base", "label": "Warrior", "fileSuffix": ".hmale" }],
+    "lfemale": [
+      { "name": "base", "label": "Warrior", "fileSuffix": ".lfemale" }
+    ],
+    "mfemale": [
+      { "name": "base", "label": "Warrior", "fileSuffix": ".mfemale" }
+    ],
+    "lbioderm": [
+      { "name": "base", "label": "Warrior", "fileSuffix": ".lbioderm" }
+    ],
+    "mbioderm": [
+      { "name": "base", "label": "Warrior", "fileSuffix": ".mbioderm" }
+    ],
+    "hbioderm": [
+      { "name": "base", "label": "Warrior", "fileSuffix": ".hbioderm" }
+    ],
+    "disc": [
+      { "name": "weapon_disc", "label": "Weapon" },
+      {
+        "name": "dcase00",
+        "label": "Disc Case",
+        "size": [256, 256],
+        "baseColorFactor": [1, 1, 1, 0.7],
+        "emissiveFactor": [1, 1, 1],
+        "emissiveTexture": true,
+        "alphaMode": "BLEND",
+        "metallicFactor": 0,
+        "roughnessFactor": 1,
+        "frameCount": 6,
+        "frameTimings": [21, 1, 1, 1, 1, 1],
+        "optional": true
+      }
+    ],
+    "chaingun": [{ "label": "Chaingun", "name": "weapon_chaingun" }],
+    "grenade_launcher": [
+      { "label": "Grenade Launcher", "name": "weapon_grenade_launcher" }
+    ],
+    "sniper": [
+      { "label": "Weapon", "name": "weapon_sniper" },
+      {
+        "label": "Green Light",
+        "name": "greenlight",
+        "hasDefault": false,
+        "optional": true
+      },
+      {
+        "label": "Red Light",
+        "name": "lite_red",
+        "hasDefault": false,
+        "optional": true
+      }
+    ],
+    "plasmathrower": [
+      {
+        "label": "Rear & Barrel",
+        "name": "weapon_plasma10",
+        "file": "weapon_plasma1"
+      },
+      {
+        "label": "Top & Front",
+        "name": "weapon_plasma21",
+        "file": "weapon_plasma2"
+      },
+      {
+        "name": "weapon_plasma1",
+        "file": "weapon_plasma1",
+        "selectable": false
+      },
+      {
+        "name": "weapon_plasma2",
+        "file": "weapon_plasma2",
+        "selectable": false
+      }
+    ],
+    "energy": [
+      { "label": "Weapon", "name": "blinn1", "file": "weapon_energy" }
+    ],
+    "shocklance": [
+      { "label": "Weapon", "name": "weapon_shocklance", "size": [512, 256] },
+      {
+        "label": "Glow",
+        "name": "weapon_shocklance_glow_",
+        "file": "weapon_shocklance_glow ",
+        "emissiveFactor": [1, 1, 1],
+        "alphaMode": "MASK",
+        "alphaCutoff": 255,
+        "emissiveTexture": true,
+        "metallicFactor": 0,
+        "roughnessFactor": 1,
+        "size": [256, 128],
+        "optional": true
+      }
+    ],
+    "elf": [
+      { "label": "Weapon", "name": "weapon_elf", "file": "weapon_elf" },
+      { "label": "Glow", "name": "weapon_elf0", "file": "weapon_elf" }
+    ],
+    "missile": [{ "label": "Weapon", "name": "weapon_missile" }],
+    "mortar": [{ "label": "Weapon", "name": "weapon_mortar" }],
+    "repair": [{ "label": "Weapon", "name": "weapon_repair" }],
+    "targeting": [{ "label": "Weapon", "name": "weapon_targeting" }],
+    "mine": [
+      {
+        "label": "Weapon",
+        "name": "mine",
+        "size": [512, 512],
+        "metallicFactor": 0,
+        "roughnessFactor": 1
+      }
+    ],
+    "vehicle_air_scout": [
+      {
+        "label": "Vehicle",
+        "name": "vehicle_air_scout0",
+        "file": "vehicle_air_scout"
+      },
+      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      { "name": "vehicle_air_scout", "hidden": true, "hasDefault": false },
+      {
+        "label": "Flare",
+        "name": "shrikeflare2",
+        "emissiveFactor": [0, 0, 0],
+        "alphaMode": "BLEND",
+        "emissiveTexture": true,
+        "metallicFactor": 0,
+        "roughnessFactor": 1,
+        "size": [256, 256],
+        "optional": true
+      }
+    ],
+    "vehicle_air_bomber": [
+      {
+        "label": "Cockpit & Thrusters",
+        "name": "vehicle_air_bomber10",
+        "file": "vehicle_air_bomber1",
+        "size": [256, 512]
+      },
+      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      { "label": "Rear", "name": "vehicle_air_bomber2", "size": [256, 512] },
+      {
+        "label": "Wings",
+        "name": "vehicle_air_bomber31",
+        "file": "vehicle_air_bomber3"
+      },
+      {
+        "name": "vehicle_air_bomber1",
+        "size": [256, 512],
+        "selectable": false
+      },
+      { "name": "vehicle_air_bomber3", "selectable": false }
+    ],
+    "vehicle_air_hapc": [
+      { "label": "Cockpit", "name": "vehicle_air_bomber1", "size": [256, 512] },
+      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      { "label": "Wings", "name": "vehicle_air_hpc2" },
+      { "label": "Seats", "name": "vehicle_air_hpc1" },
+      {
+        "label": "Thrusters",
+        "name": "vehicle_air_hpc30",
+        "file": "vehicle_air_hpc3"
+      },
+      { "name": "vehicle_air_hpc3", "selectable": false }
+    ],
+    "vehicle_grav_scout": [
+      {
+        "label": "Vehicle",
+        "name": "Vehicle_grav_scout0",
+        "file": "Vehicle_grav_scout",
+        "size": [512, 256]
+      },
+      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      {
+        "label": "Pipes",
+        "name": "Vehicle_grav_scout_pipes1",
+        "file": "Vehicle_grav_scout_pipes",
+        "metallicFactor": 0,
+        "roughnessFactor": 1
+      },
+      { "name": "Vehicle_grav_scout", "hidden": true, "hasDefault": false },
+      {
+        "label": "Side Thrusters",
+        "name": "Vehicle_grav_scout_pipes",
+        "file": "Vehicle_grav_scout_pipes",
+        "emissiveFactor": [1, 1, 1],
+        "alphaMode": "OPAQUE",
+        "metallicFactor": 0,
+        "roughnessFactor": 1,
+        "emissiveTexture": true,
+        "selectable": false
+      },
+      {
+        "label": "Windshield",
+        "name": "Vehicle_grav_scout_windshield",
+        "file": "Vehicle_grav_scout_windshield",
+        "selectable": false,
+        "alphaMode": "BLEND",
+        "baseColorFactor": [1, 1, 1, 0.5],
+        "metallicFactor": 0,
+        "roughnessFactor": 1,
+        "size": [128, 128],
+        "optional": true
+      },
+      {
+        "label": "Windshield Inner",
+        "name": "Vehicle_grav_scout_windshieldInner",
+        "file": "Vehicle_grav_scout_windshieldInner",
+        "selectable": false,
+        "alphaMode": "BLEND",
+        "baseColorFactor": [1, 1, 1, 0.5],
+        "metallicFactor": 0,
+        "roughnessFactor": 1,
+        "size": [128, 128],
+        "optional": true
+      }
+    ],
+    "vehicle_grav_tank": [
+      {
+        "label": "Center",
+        "name": "Vehicle_grav_tank_bodyMain",
+        "size": [256, 512]
+      },
+      { "name": "Unassigned", "hidden": true, "hasDefault": false },
+      {
+        "label": "Sides",
+        "name": "vehicle_grav_tank_bodyside10",
+        "file": "vehicle_grav_tank_bodyside1",
+        "size": [256, 512]
+      },
+      {
+        "label": "Thrusters",
+        "name": "vehicle_grav_tank_bodyside21",
+        "file": "vehicle_grav_tank_bodyside2"
+      },
+      { "name": "vehicle_grav_tank_bodyside2", "selectable": false },
+      { "name": "vehicle_grav_tank_bodyside1", "selectable": false }
+    ],
+    "turret_assaulttank_mortar": [
+      {
+        "label": "Turret",
+        "name": "turret_assaulttank_mortar",
+        "file": "turret_assaultTank"
+      }
+    ],
+    "vehicle_land_mpbbase": [
+      { "label": "Vehicle Front", "name": "vehicle_land_mpb1" },
+      { "label": "Vehicle Back", "name": "vehicle_land_mpb2" },
+      {
+        "label": "Wheels",
+        "name": "Vehicle_Land_Assault_wheel",
+        "file": "Vehicle_Land_Assault_Wheel",
+        "size": [512, 256],
+        "optional": true
+      }
+    ]
+  },
+  "animations": {
+    "global": ["Forward", "Back", "Jump", "Jet", "Fall", "Land", "ski", "Root"],
+    "lmale": [
+      "Idlepda",
+      "Side",
+      "Jump0",
+      "Land1",
+      "Recoilde",
+      "Celwave",
+      "Celdisco",
+      "Celflex",
+      "Celrocky",
+      "Celsalute",
+      "celTaunt",
+      "Taunimp",
+      "Tauntbest",
+      "Dieback",
+      "diechest",
+      "Dieforward",
+      "Diehead",
+      "Dieknees",
+      "Dieleglf",
+      "Dielegrt",
+      "Diesidelf",
+      "Diesidert",
+      "Dieslump",
+      "Diespin",
+      "Scoutroot",
+      "Sitting"
+    ],
+    "mmale": [
+      "Back0",
+      "Jump3",
+      "Recoilde",
+      "Celwave",
+      "Celdance",
+      "Celflex",
+      "Celrocky",
+      "Celsalute",
+      "celtaunt",
+      "Tauntbest",
+      "Tauntimp",
+      "Dieback",
+      "Diechest",
+      "Dieforward",
+      "Diehead",
+      "Dieknees",
+      "Dieleglf",
+      "Dielegrt",
+      "Diesidelf",
+      "Diesidert",
+      "Diespin",
+      "Sitting"
+    ],
+    "hmale": [
+      "Idlepda",
+      "Jump1",
+      "Side",
+      "Recoilde",
+      "Celwave",
+      "Celdance",
+      "Celflex",
+      "Celjump",
+      "Celsalute",
+      "celtaunt",
+      "Tauntbest",
+      "Tauntimp",
+      "Dieback",
+      "Diechest",
+      "Dieforward",
+      "Diehead",
+      "Dieknees",
+      "Dielegrt",
+      "Diesidelf",
+      "Diesidert",
+      "Diesidert0",
+      "Dieslump",
+      "Diespin"
+    ],
+    "lfemale": [
+      "Idlepda",
+      "Jump1",
+      "Side",
+      "Recoilde",
+      "Celwave",
+      "Celbow",
+      "Celdance",
+      "Celsalute",
+      "Tauntbest",
+      "Tauntbutt",
+      "Tauntimp",
+      "Tauntkiss",
+      "Dieback",
+      "Diechest",
+      "Dieforward",
+      "Diehead",
+      "Dieknees",
+      "Dieleglf",
+      "Dielegrt",
+      "Diesidelf",
+      "Diesidert",
+      "Dieslump",
+      "Diespin",
+      "Scoutroot",
+      "Sitting"
+    ],
+    "mfemale": [
+      "Idlepda",
+      "Jump1",
+      "Side",
+      "Recoilde",
+      "Celwave",
+      "Celbow",
+      "Celdisco",
+      "Celsalute",
+      "Tauntbest",
+      "Tauntbutt",
+      "Tauntimp",
+      "Tauntkiss",
+      "Dieback",
+      "Diechest",
+      "Dieforward",
+      "Diehead",
+      "Dieknees",
+      "Dieleglf",
+      "Dielegrt",
+      "Dielegrt0",
+      "Diesidelf",
+      "Diesidert",
+      "Diespin",
+      "Sitting"
+    ],
+    "lbioderm": [
+      "Root3",
+      "PDA",
+      "Jump2",
+      "Side",
+      "Light_recoil",
+      "CelebrationGora",
+      "CelebrationJump",
+      "CelebrationJump0",
+      "CelebrationJump4",
+      "CelebrationRoar",
+      "Salute",
+      "Celflex2",
+      "celyeah",
+      "DeathBack",
+      "DeathChest",
+      "DeathForward",
+      "DeathHead",
+      "DeathKnees",
+      "DeathLegLeft",
+      "DeathLegRight",
+      "DeathSideLeft",
+      "DeathSideRight",
+      "DeathSlump",
+      "DeathSpin",
+      "Sitting"
+    ],
+    "mbioderm": [
+      "Root1",
+      "Jump2",
+      "Side",
+      "Recoilde",
+      "Salute",
+      "Celflex1",
+      "Celgora",
+      "Celjump",
+      "Celroar",
+      "celyeah",
+      "Tauntbest",
+      "Tauntbull",
+      "DeathBack",
+      "DeathChest",
+      "DeathHead",
+      "DeathSideLeft",
+      "DeathSpin",
+      "Dieforward",
+      "Dieknees",
+      "Dieleglft",
+      "Dielegtrt",
+      "Diesidert",
+      "Dieslump",
+      "Sitting"
+    ],
+    "hbioderm": [
+      "Root1",
+      "Jump2",
+      "Side",
+      "Recoilde",
+      "Salute",
+      "Celflex2",
+      "Celgora",
+      "Celjump",
+      "Celraor",
+      "celyeah",
+      "Tauntbest",
+      "Tauntbull",
+      "DeathBack",
+      "DeathChest",
+      "DeathForward",
+      "DeathHead",
+      "DeathKnees",
+      "DeathLegLeft",
+      "DeathLegRight",
+      "DeathSideLeft",
+      "DeathSideRight",
+      "DeathSlump",
+      "DeathSpin"
+    ]
+  }
+}

@@ -1,5 +1,4 @@
 import { PNG } from "pngjs/browser";
-import getStream from "get-stream";
 
 export function arrayBufferToBase64(arrayBuffer: ArrayBuffer) {
   let base64 = "";
@@ -63,16 +62,40 @@ export async function rgbaToArrayBuffer(
     width: number;
     height: number;
   }
-) {
+): Promise<ArrayBuffer> {
   const png = new PNG({
     width,
     height,
     inputHasAlpha: true,
   });
   png.data = rgba;
-  png.pack();
-  const arrayBuffer = await getStream.buffer(png);
+  const arrayBuffer = await pngToArrayBuffer(png);
   return arrayBuffer;
+}
+
+async function pngToArrayBuffer(png: PNG): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Uint8Array[] = [];
+    const stream = png.pack();
+
+    stream.on("data", (chunk: Uint8Array) => {
+      chunks.push(chunk);
+    });
+
+    stream.on("end", () => {
+      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+      const merged = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      resolve(merged.buffer);
+    });
+
+    stream.on("error", reject);
+  });
 }
 
 export function arrayBufferToImageUrl(arrayBuffer: ArrayBuffer) {

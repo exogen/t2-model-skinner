@@ -1,3 +1,4 @@
+"use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useCanvas from "./useCanvas";
 import useSettings from "./useSettings";
@@ -5,7 +6,7 @@ import useTools from "./useTools";
 import { fabric } from "fabric";
 import { createFabricImage } from "./fabricUtils";
 
-type JSONSnapshot = ReturnType<(typeof Canvas.prototype)["toJSON"]>;
+type JSONSnapshot = ReturnType<(typeof Canvas.prototype)["toDatalessJSON"]>;
 
 function updateObjectControlOptions() {
   fabric.Object.prototype.set({
@@ -42,7 +43,7 @@ export default function Canvas({
   const { canvasPadding } = useSettings();
   const { registerCanvas, unregisterCanvas } = useCanvas();
   const [isDrawingMode, setDrawingMode] = useState(defaultDrawingMode);
-  const handleChangeRef = useRef<CanvasProps["onChange"]>();
+  const handleChangeRef = useRef<CanvasProps["onChange"]>(null);
   const trackChanges = useRef(true);
   const [undoHistory, setUndoHistory] = useState<JSONSnapshot[]>(() => []);
   const [redoHistory, setRedoHistory] = useState<JSONSnapshot[]>(() => []);
@@ -64,6 +65,7 @@ export default function Canvas({
     if (undoHistory.length > 1) {
       const [restoreState, currentState] = undoHistory.slice(-2);
       trackChanges.current = false;
+      // eslint-disable-next-line react-hooks/immutability
       canvas.renderOnAddRemove = false;
       canvas.clear();
       canvas.loadFromJSON(restoreState, () => {
@@ -83,6 +85,7 @@ export default function Canvas({
     if (redoHistory.length > 0) {
       const nextState = redoHistory[0];
       trackChanges.current = false;
+      // eslint-disable-next-line react-hooks/immutability
       canvas.renderOnAddRemove = false;
       canvas.clear();
       canvas.loadFromJSON(nextState, () => {
@@ -127,14 +130,24 @@ export default function Canvas({
       clearTimeout(changeTimer);
       changeTimer = setTimeout(() => {
         const snapshot = snapshotCanvas();
-        setUndoHistory((history) => [...history.slice(-5), snapshot]);
+        setUndoHistory((history) => {
+          if (history.length === 0) {
+            return [snapshot];
+          }
+          const lastSnapshot = history[history.length - 1];
+          if (JSON.stringify(snapshot) === JSON.stringify(lastSnapshot)) {
+            return history;
+          } else {
+            return [...history.slice(-5), snapshot];
+          }
+        });
         setRedoHistory([]);
-      }, 150);
+      }, 250);
     };
 
     const snapshotCanvas = () => {
       isSnapshotting = true;
-      const snapshot = canvas.toJSON([
+      const snapshot = canvas.toDatalessJSON([
         "lockMovementX",
         "lockMovementY",
         "lockRotation",
@@ -164,6 +177,7 @@ export default function Canvas({
 
   useEffect(() => {
     if (canvas) {
+      // eslint-disable-next-line react-hooks/immutability
       canvas.isDrawingMode = isDrawingMode;
       if (isDrawingMode) {
         canvas.discardActiveObject();

@@ -1,14 +1,13 @@
-import getConfig from "next/config";
 import useWarrior from "./useWarrior";
 import { FaFolderOpen } from "react-icons/fa";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import useTools from "./useTools";
 import { importMultipleFilesToModels, modelToModelType } from "./importUtils";
 import useManifest from "./useManifest";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-const { defaultSkins, modelDefaults } = publicRuntimeConfig;
+const { defaultSkins, modelDefaults } = modelConfig;
 
 const defaultCustomSkins = {};
 
@@ -48,12 +47,13 @@ export default function WarriorSelector() {
     importedSkinsForModel.values()
   ).filter((skin) => skin.isComplete);
 
-  useEffect(() => {
-    if (isManifestLoaded) {
-      setCustomSkins(manifest.customSkins);
-      setNewSkins(manifest.newSkins);
-    }
-  }, [manifest, isManifestLoaded]);
+  if (
+    isManifestLoaded &&
+    (customSkins !== manifest.customSkins || newSkins !== manifest.newSkins)
+  ) {
+    setCustomSkins(manifest.customSkins);
+    setNewSkins(manifest.newSkins);
+  }
 
   let skinSelectValue = selectedSkin ?? "";
   if (selectedSkin && selectedSkinSection) {

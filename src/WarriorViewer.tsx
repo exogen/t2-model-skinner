@@ -1,14 +1,12 @@
 import dynamic from "next/dynamic";
-import getConfig from "next/config";
 import useEnvironment from "./useEnvironment";
 import useWarrior from "./useWarrior";
 import Materials from "./Materials";
+import modelConfig from "./models";
 
 const ModelViewer = dynamic(() => import("./ModelViewer"), { ssr: false });
 
-const { publicRuntimeConfig } = getConfig();
-
-const { cameraOverrides } = publicRuntimeConfig;
+const { cameraOverrides } = modelConfig;
 
 export default function WarriorViewer() {
   const {
