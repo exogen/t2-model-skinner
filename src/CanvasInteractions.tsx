@@ -26,6 +26,7 @@ export default function CanvasInteractions({
     for (const object of objects) {
       object.top = (object.top ?? 0) + top;
       object.left = (object.left ?? 0) + left;
+      object.setCoords();
     }
     notifyChange();
   };
