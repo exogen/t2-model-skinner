@@ -19,6 +19,8 @@ interface ToolsContextValue {
   setBrightness: (brightness: number) => void;
   contrast: number | null;
   setContrast: (contrast: number) => void;
+  opacity: number | null;
+  setOpacity: (opacity: number) => void;
   layerMode: string;
   setLayerMode: (layerMode: string) => void;
   deleteSelection: () => void;

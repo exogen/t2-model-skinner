@@ -42,6 +42,7 @@ type ObjectFilters = {
   Saturation?: number;
   Brightness?: number;
   Contrast?: number;
+  Opacity?: number;
 };
 
 export default function ToolsProvider({ children }: { children: ReactNode }) {
@@ -171,6 +172,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const getFilter = (
     name: keyof ObjectFilters
   ): [number | null, (value: number) => void] => {
+    const defaultValue = name === "Opacity" ? 1 : 0;
     let applyObjects = selectedObjects;
     if (layerMode === "AllLayers") {
       applyObjects = canvas?._objects ?? [];
@@ -182,7 +184,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     );
     if (applyObjects.length) {
       const getValue = (i: number) =>
-        (filterMap.get(applyObjects[i]) ?? {})[name] ?? 0;
+        (filterMap.get(applyObjects[i]) ?? {})[name] ?? defaultValue;
       const firstValue = getValue(0);
       if (
         applyObjects
@@ -193,7 +195,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       }
       return [null, (value: number) => setFilter(name, value)];
     } else {
-      return [0, (value: number) => setFilter(name, value)];
+      return [defaultValue, (value: number) => setFilter(name, value)];
     }
   };
 
@@ -201,6 +203,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const [saturation, setSaturation] = getFilter("Saturation");
   const [brightness, setBrightness] = getFilter("Brightness");
   const [contrast, setContrast] = getFilter("Contrast");
+  const [opacity, setOpacity] = getFilter("Opacity");
 
   useEffect(() => {
     if (!filterChanges.length) {
@@ -244,6 +247,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
                     contrast: filterValue,
                   })
                 );
+                break;
+              case "Opacity":
+                selectedObject.opacity = filterValue;
                 break;
             }
           }
@@ -575,6 +581,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setBrightness,
       contrast,
       setContrast,
+      opacity,
+      setOpacity,
       layerMode,
       setLayerMode,
       selectedObjects,
@@ -619,6 +627,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       setBrightness,
       contrast,
       setContrast,
+      opacity,
+      setOpacity,
       layerMode,
       selectedObjects,
       lockSelection,
@@ -641,7 +651,6 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       hasAnimation,
       frameCount,
       sizeMultiplier,
-      setSizeMultiplier,
       selectedExportMaterials,
     ]
   );

@@ -67,6 +67,8 @@ export default function CanvasTools() {
     setBrightness,
     contrast,
     setContrast,
+    opacity,
+    setOpacity,
     layerMode,
     setLayerMode,
     activeCanvasType,
@@ -550,6 +552,31 @@ export default function CanvasTools() {
                             value = value[0];
                           }
                           setContrast(value / 100);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="Field">
+                    <label>
+                      Opacity:{" "}
+                      <strong>
+                        {contrast == null
+                          ? "MULTIPLE VALUES"
+                          : `${Math.round((opacity ?? 1) * 100)}%`}
+                      </strong>
+                    </label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={0}
+                        max={100}
+                        startPoint={0}
+                        value={Math.round((opacity ?? 1) * 100)}
+                        onChange={(value: number | number[]) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setOpacity(value / 100);
                         }}
                       />
                     </div>
