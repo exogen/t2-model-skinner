@@ -1,11 +1,9 @@
 import { useMemo } from "react";
-import getConfig from "next/config";
 import { IoMdPlay, IoMdPause } from "react-icons/io";
 import useWarrior from "./useWarrior";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-const { animations, animationLabels, animationLabelOverrides } =
-  publicRuntimeConfig;
+const { animations, animationLabels, animationLabelOverrides } = modelConfig;
 
 export default function AnimationSelector() {
   const {

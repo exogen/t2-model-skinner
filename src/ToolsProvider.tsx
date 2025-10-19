@@ -1,18 +1,17 @@
+"use client";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import getConfig from "next/config";
 import { fabric } from "fabric";
 import { ToolsContext } from "./useTools";
 import useCanvas from "./useCanvas";
 import useWarrior from "./useWarrior";
 import { createFabricImage } from "./fabricUtils";
 import useImageWorker from "./useImageWorker";
-import { MaterialDefinition } from "./Material";
+import type { MaterialDefinition } from "./models";
 import useSettings from "./useSettings";
 import { imageUrlToArrayBuffer } from "./imageUtils";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-
-const { materials } = publicRuntimeConfig;
+const { materials } = modelConfig;
 
 const defaultTextureSize = [512, 512] as [number, number];
 
@@ -220,7 +219,6 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
             switch (key) {
               case "HueRotation":
                 selectedObject.filters.push(
-                  // @ts-expect-error @types/fabric does not include HueRotation.
                   new fabric.Image.filters.HueRotation({
                     rotation: filterValue,
                   })

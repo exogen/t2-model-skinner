@@ -1,11 +1,10 @@
-import getConfig from "next/config";
-import Material, { MaterialDefinition } from "./Material";
+import Material from "./Material";
 import useModelViewer from "./useModelViewer";
 import useWarrior from "./useWarrior";
+import modelConfig from "./models";
+import type { MaterialDefinition } from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-
-const { materials } = publicRuntimeConfig;
+const { materials } = modelConfig;
 
 export default function Materials() {
   const { actualModel } = useWarrior();

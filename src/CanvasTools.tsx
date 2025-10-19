@@ -1,10 +1,19 @@
+"use client";
 import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
 import { fabric } from "fabric";
-import getConfig from "next/config";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
-import { usePopper } from "react-popper";
-import Slider from "rc-slider";
+import {
+  autoUpdate,
+  flip,
+  FloatingFocusManager,
+  offset,
+  useClick,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+} from "@floating-ui/react";
 import { RiFileCopyFill } from "react-icons/ri";
 import { HiSparkles } from "react-icons/hi";
 import {
@@ -19,10 +28,11 @@ import { GiArrowCursor } from "react-icons/gi";
 import { IoMdBrush } from "react-icons/io";
 import { ImPlus, ImUndo2, ImRedo2, ImContrast } from "react-icons/im";
 import useWarrior from "./useWarrior";
-import { MaterialDefinition } from "./Material";
+import type { MaterialDefinition } from "./models";
+import Slider from "./Slider";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-const { materials } = publicRuntimeConfig;
+const { materials } = modelConfig;
 
 export default function CanvasTools() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -73,41 +83,81 @@ export default function CanvasTools() {
   const shiftKeySymbol = "⇧";
 
   // Brush popup
-  const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(
-    null
-  );
-  const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
   const [isBrushToolsOpen, setBrushToolsOpen] = useState(false);
-  const [isFilterToolsOpen, setFilterToolsOpen] = useState(false);
-  const { styles, attributes } = usePopper(referenceElement, popperElement, {
-    modifiers: [
-      {
-        name: "offset",
-        options: {
-          offset: [0, 10],
-        },
-      },
-    ],
+
+  const {
+    refs: brushRefs,
+    floatingStyles: brushFloatingStyles,
+    context: brushContext,
+  } = useFloating({
+    open: isBrushToolsOpen,
+    onOpenChange: setBrushToolsOpen,
+    placement: "bottom-end",
+    middleware: [flip(), offset(10)],
+    whileElementsMounted: autoUpdate,
   });
+
+  const brushClick = useClick(brushContext);
+  const brushDismiss = useDismiss(brushContext);
+  const brushRole = useRole(brushContext);
+
+  useEffect(() => {
+    if (isBrushToolsOpen) {
+      setDrawingMode(true);
+    }
+  }, [isBrushToolsOpen, setDrawingMode]);
+
+  const {
+    getReferenceProps: getBrushReferenceProps,
+    getFloatingProps: getBrushFloatingProps,
+  } = useInteractions([brushClick, brushDismiss, brushRole]);
+
+  // Filter popup
+  const [isFilterToolsOpen, setFilterToolsOpen] = useState(false);
+
+  const {
+    refs: filterRefs,
+    floatingStyles: filterFloatingStyles,
+    context: filterContext,
+  } = useFloating({
+    open: isFilterToolsOpen,
+    onOpenChange: setFilterToolsOpen,
+    placement: "bottom-end",
+    middleware: [flip(), offset(10)],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const filterClick = useClick(filterContext);
+  const filterDismiss = useDismiss(filterContext);
+  const filterRole = useRole(filterContext);
+
+  const {
+    getReferenceProps: getFilterReferenceProps,
+    getFloatingProps: getFilterFloatingProps,
+  } = useInteractions([filterClick, filterDismiss, filterRole]);
 
   // Export popup
   const [isExportOptionsOpen, setExportOptionsOpen] = useState(false);
-  const [exportReferenceElement, setExportReferenceElement] =
-    useState<HTMLElement | null>(null);
-  const { styles: exportStyles, attributes: exportAttributes } = usePopper(
-    exportReferenceElement,
-    popperElement,
-    {
-      modifiers: [
-        {
-          name: "offset",
-          options: {
-            offset: [0, 10],
-          },
-        },
-      ],
-    }
-  );
+  const {
+    refs: exportRefs,
+    floatingStyles: exportFloatingStyles,
+    context: exportContext,
+  } = useFloating({
+    open: isExportOptionsOpen,
+    onOpenChange: setExportOptionsOpen,
+    placement: "bottom-end",
+    middleware: [flip(), offset(10)],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const exportClick = useClick(exportContext);
+  const exportDismiss = useDismiss(exportContext);
+  const exportRole = useRole(exportContext);
+
+  const {
+    getReferenceProps: getExportReferenceProps,
+    getFloatingProps: getExportFloatingProps,
+  } = useInteractions([exportClick, exportDismiss, exportRole]);
 
   const isSelectionLocked = selectedObjects.length
     ? selectedObjects.every((object) => lockedObjects.has(object))
@@ -145,12 +195,6 @@ export default function CanvasTools() {
       setIsMac(true);
     }
   }, []);
-
-  useEffect(() => {
-    if (popperElement) {
-      popperElement.focus();
-    }
-  }, [popperElement]);
 
   return (
     <div className="CanvasTools">
@@ -211,107 +255,80 @@ export default function CanvasTools() {
               <button
                 className="ButtonGroup"
                 type="button"
-                ref={setReferenceElement}
                 data-active={isDrawingMode ? "" : undefined}
                 aria-label="Paint Mode"
                 title="Paint Mode (P)"
-                onClick={() => {
-                  setDrawingMode(true);
-                  setBrushToolsOpen((isOpen) => !isOpen);
-                }}
+                {...getBrushReferenceProps()}
               >
                 <IoMdBrush />
               </button>
             </div>
 
             {isBrushToolsOpen ? (
-              <div
-                className="BrushToolsPopup"
-                ref={setPopperElement}
-                style={styles.popper}
-                tabIndex={-1}
-                onBlur={(event) => {
-                  const newFocusElement = event.relatedTarget;
-                  const isFocusLeaving =
-                    !newFocusElement ||
-                    !event.currentTarget.contains(newFocusElement);
-                  if (isFocusLeaving) {
-                    setBrushToolsOpen(false);
-                  }
-                }}
-                {...attributes.popper}
-              >
-                <div className="Fields">
-                  <div className="Field">
-                    <label>Metallic Amount</label>
-                    <div className="SliderContainer">
-                      <Slider
-                        min={0}
-                        max={255}
-                        trackStyle={{
-                          display: "none",
-                        }}
-                        value={brushColor}
-                        onChange={(value) => {
-                          if (Array.isArray(value)) {
-                            value = value[0];
-                          }
-                          setBrushColor(value);
-                        }}
-                        handleStyle={{
-                          width: 20,
-                          height: 20,
-                          marginTop: -6,
-                          borderColor: "rgb(20, 105, 241)",
-                          background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
-                          opacity: 1,
-                        }}
-                        railStyle={{
-                          height: 8,
-                          border: "1px solid #555",
-                          background:
-                            "linear-gradient(to right, black 0%, white 100%)",
-                        }}
-                      />
+              <FloatingFocusManager context={brushContext} modal={false}>
+                <div
+                  className="BrushToolsPopup"
+                  // eslint-disable-next-line react-hooks/refs
+                  ref={brushRefs.setFloating}
+                  style={brushFloatingStyles}
+                  {...getBrushFloatingProps()}
+                >
+                  <div className="Fields">
+                    <div className="Field">
+                      <label>Metallic Amount</label>
+                      <div className="SliderContainer">
+                        <Slider
+                          min={0}
+                          max={255}
+                          value={brushColor}
+                          onChange={(value: number | number[]) => {
+                            if (Array.isArray(value)) {
+                              value = value[0];
+                            }
+                            setBrushColor(value);
+                          }}
+                          styles={{
+                            track: {
+                              display: "none",
+                            },
+                            handle: {
+                              width: 20,
+                              height: 20,
+                              marginTop: -6,
+                              borderColor: "rgb(20, 105, 241)",
+                              background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
+                              opacity: 1,
+                            },
+                            rail: {
+                              height: 8,
+                              border: "1px solid #555",
+                              background:
+                                "linear-gradient(to right, black 0%, white 100%)",
+                            },
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="Field">
-                    <label>Brush Size</label>
-                    <div className="SliderContainer">
-                      <Slider
-                        min={1}
-                        max={50}
-                        trackStyle={{
-                          height: 8,
-                          background: "#03fccf",
-                        }}
-                        value={brushSize}
-                        onChange={(value) => {
-                          if (Array.isArray(value)) {
-                            value = value[0];
-                          }
-                          setBrushSize(value);
-                        }}
-                        handleStyle={{
-                          width: 20,
-                          height: 20,
-                          marginTop: -6,
-                          borderColor: "#03fccf",
-                          background: "rgb(5, 69, 76)",
-                          // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
-                          opacity: 1,
-                        }}
-                        railStyle={{
-                          height: 8,
-                          border: "1px solid #555",
-                          background: "rgba(255, 255, 255, 0.3)",
-                        }}
-                      />
+                    <div className="Field">
+                      <label>Brush Size</label>
+                      <div className="SliderContainer">
+                        <Slider
+                          min={1}
+                          max={50}
+                          value={brushSize}
+                          onChange={(value: number | number[]) => {
+                            if (Array.isArray(value)) {
+                              value = value[0];
+                            }
+                            setBrushSize(value);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </FloatingFocusManager>
             ) : null}
           </>
         ) : null}
@@ -352,274 +369,192 @@ export default function CanvasTools() {
 
           <button
             type="button"
-            ref={setReferenceElement}
             data-active={isFilterToolsOpen ? "" : undefined}
             aria-label="Filters"
             title="Filters"
             disabled={hasSelection && !selectionHasImages}
-            onClick={() => {
-              setFilterToolsOpen((isOpen) => !isOpen);
-            }}
+            {...getFilterReferenceProps()}
           >
             <ImContrast />
           </button>
 
           {isFilterToolsOpen ? (
-            <div
-              className="BrushToolsPopup"
-              ref={setPopperElement}
-              style={styles.popper}
-              tabIndex={-1}
-              onBlur={(event) => {
-                const newFocusElement = event.relatedTarget;
-                const isFocusLeaving =
-                  !newFocusElement ||
-                  !event.currentTarget.contains(newFocusElement);
-                if (isFocusLeaving) {
-                  setFilterToolsOpen(false);
-                }
-              }}
-              {...attributes.popper}
-            >
-              <div className="Fields">
-                <div className="Field ApplyTo">
-                  <label>Layer:</label>
-                  <ul>
-                    {selectedObjects.length ? (
-                      <li>
-                        <input
-                          type="radio"
-                          name="FilterLayer"
-                          value="SelectedLayer"
-                          id="FilterLayer-SelectedLayer"
-                          checked={layerMode === "SelectedLayer"}
-                          onChange={() => {
-                            setLayerMode("SelectedLayer");
-                          }}
-                        />
-                        <label htmlFor="FilterLayer-SelectedLayer">
-                          selected ({selectedObjects.length.toLocaleString()})
-                        </label>
-                      </li>
-                    ) : (
-                      <>
+            <FloatingFocusManager context={filterContext} modal={false}>
+              <div
+                className="BrushToolsPopup"
+                // eslint-disable-next-line react-hooks/refs
+                ref={filterRefs.setFloating}
+                style={filterFloatingStyles}
+                {...getFilterFloatingProps()}
+              >
+                <div className="Fields">
+                  <div className="Field ApplyTo">
+                    <label>Layer:</label>
+                    <ul>
+                      {selectedObjects.length ? (
                         <li>
                           <input
                             type="radio"
                             name="FilterLayer"
-                            value="BaseLayer"
-                            id="FilterLayer-BaseLayer"
-                            checked={layerMode === "BaseLayer"}
+                            value="SelectedLayer"
+                            id="FilterLayer-SelectedLayer"
+                            checked={layerMode === "SelectedLayer"}
                             onChange={() => {
-                              setLayerMode("BaseLayer");
-                            }}
-                          />{" "}
-                          <label htmlFor="FilterLayer-BaseLayer">base</label>
-                        </li>
-                        <li>
-                          <input
-                            type="radio"
-                            name="FilterLayer"
-                            value="AllLayers"
-                            id="FilterLayer-AllLayers"
-                            checked={layerMode === "AllLayers"}
-                            onChange={() => {
-                              setLayerMode("AllLayers");
+                              setLayerMode("SelectedLayer");
                             }}
                           />
-                          <label htmlFor="FilterLayer-AllLayers">
-                            all (
-                            {canvas?._objects
-                              .filter(
-                                (object) => object instanceof fabric.Image
-                              )
-                              .length.toLocaleString() ?? 0}
-                            )
+                          <label htmlFor="FilterLayer-SelectedLayer">
+                            selected ({selectedObjects.length.toLocaleString()})
                           </label>
                         </li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-                {activeCanvasType === "color" ? (
-                  <>
-                    <div className="Field">
-                      <label>
-                        Hue:{" "}
-                        <strong>
-                          {hueRotate == null ? (
-                            "MULTIPLE VALUES"
-                          ) : (
-                            <>{Math.round(hueRotate * 180)}&deg;</>
-                          )}
-                        </strong>
-                      </label>
-                      <div className="SliderContainer">
-                        <Slider
-                          min={-180}
-                          max={180}
-                          startPoint={0}
-                          value={Math.round((hueRotate ?? 0) * 180)}
-                          onChange={(value) => {
-                            if (Array.isArray(value)) {
-                              value = value[0];
-                            }
-                            setHueRotate(value / 180);
-                          }}
-                          trackStyle={{
-                            height: 8,
-                            background: "#03fccf",
-                          }}
-                          handleStyle={{
-                            width: 20,
-                            height: 20,
-                            marginTop: -6,
-                            borderColor: "#03fccf",
-                            background: "rgb(5, 69, 76)",
-                            // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
-                            opacity: 1,
-                          }}
-                          railStyle={{
-                            height: 8,
-                            border: "1px solid #555",
-                            background: "rgba(255, 255, 255, 0.3)",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="Field">
-                      <label>
-                        Saturation:{" "}
-                        <strong>
-                          {saturation == null
-                            ? "MULTIPLE VALUES"
-                            : `${Math.round(saturation * 100 + 100)}%`}
-                        </strong>
-                      </label>
-                      <div className="SliderContainer">
-                        <Slider
-                          min={-100}
-                          max={100}
-                          startPoint={0}
-                          value={Math.round((saturation ?? 0) * 100)}
-                          onChange={(value) => {
-                            if (Array.isArray(value)) {
-                              value = value[0];
-                            }
-                            setSaturation(value / 100);
-                          }}
-                          trackStyle={{
-                            height: 8,
-                            background: "#03fccf",
-                          }}
-                          handleStyle={{
-                            width: 20,
-                            height: 20,
-                            marginTop: -6,
-                            borderColor: "#03fccf",
-                            background: "rgb(5, 69, 76)",
-                            // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
-                            opacity: 1,
-                          }}
-                          railStyle={{
-                            height: 8,
-                            border: "1px solid #555",
-                            background: "rgba(255, 255, 255, 0.3)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-
-                <div className="Field">
-                  <label>
-                    Brightness:{" "}
-                    <strong>
-                      {brightness == null
-                        ? "MULTIPLE VALUES"
-                        : `${Math.round(brightness * 100 + 100)}%`}
-                    </strong>
-                  </label>
-                  <div className="SliderContainer">
-                    <Slider
-                      min={-100}
-                      max={100}
-                      startPoint={0}
-                      value={Math.round((brightness ?? 0) * 100)}
-                      onChange={(value) => {
-                        if (Array.isArray(value)) {
-                          value = value[0];
-                        }
-                        setBrightness(value / 100);
-                      }}
-                      trackStyle={{
-                        height: 8,
-                        background: "#03fccf",
-                      }}
-                      handleStyle={{
-                        width: 20,
-                        height: 20,
-                        marginTop: -6,
-                        borderColor: "#03fccf",
-                        background: "rgb(5, 69, 76)",
-                        // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
-                        opacity: 1,
-                      }}
-                      railStyle={{
-                        height: 8,
-                        border: "1px solid #555",
-                        background: "rgba(255, 255, 255, 0.3)",
-                      }}
-                    />
+                      ) : (
+                        <>
+                          <li>
+                            <input
+                              type="radio"
+                              name="FilterLayer"
+                              value="BaseLayer"
+                              id="FilterLayer-BaseLayer"
+                              checked={layerMode === "BaseLayer"}
+                              onChange={() => {
+                                setLayerMode("BaseLayer");
+                              }}
+                            />{" "}
+                            <label htmlFor="FilterLayer-BaseLayer">base</label>
+                          </li>
+                          <li>
+                            <input
+                              type="radio"
+                              name="FilterLayer"
+                              value="AllLayers"
+                              id="FilterLayer-AllLayers"
+                              checked={layerMode === "AllLayers"}
+                              onChange={() => {
+                                setLayerMode("AllLayers");
+                              }}
+                            />
+                            <label htmlFor="FilterLayer-AllLayers">
+                              all (
+                              {canvas?._objects
+                                .filter(
+                                  (object) => object instanceof fabric.Image
+                                )
+                                .length.toLocaleString() ?? 0}
+                              )
+                            </label>
+                          </li>
+                        </>
+                      )}
+                    </ul>
                   </div>
-                </div>
+                  {activeCanvasType === "color" ? (
+                    <>
+                      <div className="Field">
+                        <label>
+                          Hue:{" "}
+                          <strong>
+                            {hueRotate == null ? (
+                              "MULTIPLE VALUES"
+                            ) : (
+                              <>{Math.round(hueRotate * 180)}&deg;</>
+                            )}
+                          </strong>
+                        </label>
+                        <div className="SliderContainer">
+                          <Slider
+                            min={-180}
+                            max={180}
+                            startPoint={0}
+                            value={Math.round((hueRotate ?? 0) * 180)}
+                            onChange={(value: number | number[]) => {
+                              if (Array.isArray(value)) {
+                                value = value[0];
+                              }
+                              setHueRotate(value / 180);
+                            }}
+                          />
+                        </div>
+                      </div>
 
-                <div className="Field">
-                  <label>
-                    Contrast:{" "}
-                    <strong>
-                      {contrast == null
-                        ? "MULTIPLE VALUES"
-                        : `${Math.round(contrast * 100 + 100)}%`}
-                    </strong>
-                  </label>
-                  <div className="SliderContainer">
-                    <Slider
-                      min={-100}
-                      max={100}
-                      startPoint={0}
-                      value={Math.round((contrast ?? 0) * 100)}
-                      onChange={(value) => {
-                        if (Array.isArray(value)) {
-                          value = value[0];
-                        }
-                        setContrast(value / 100);
-                      }}
-                      trackStyle={{
-                        height: 8,
-                        background: "#03fccf",
-                      }}
-                      handleStyle={{
-                        width: 20,
-                        height: 20,
-                        marginTop: -6,
-                        borderColor: "#03fccf",
-                        background: "rgb(5, 69, 76)",
-                        // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
-                        opacity: 1,
-                      }}
-                      railStyle={{
-                        height: 8,
-                        border: "1px solid #555",
-                        background: "rgba(255, 255, 255, 0.3)",
-                      }}
-                    />
+                      <div className="Field">
+                        <label>
+                          Saturation:{" "}
+                          <strong>
+                            {saturation == null
+                              ? "MULTIPLE VALUES"
+                              : `${Math.round(saturation * 100 + 100)}%`}
+                          </strong>
+                        </label>
+                        <div className="SliderContainer">
+                          <Slider
+                            min={-100}
+                            max={100}
+                            startPoint={0}
+                            value={Math.round((saturation ?? 0) * 100)}
+                            onChange={(value: number | number[]) => {
+                              if (Array.isArray(value)) {
+                                value = value[0];
+                              }
+                              setSaturation(value / 100);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
+
+                  <div className="Field">
+                    <label>
+                      Brightness:{" "}
+                      <strong>
+                        {brightness == null
+                          ? "MULTIPLE VALUES"
+                          : `${Math.round(brightness * 100 + 100)}%`}
+                      </strong>
+                    </label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={-100}
+                        max={100}
+                        startPoint={0}
+                        value={Math.round((brightness ?? 0) * 100)}
+                        onChange={(value: number | number[]) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setBrightness(value / 100);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="Field">
+                    <label>
+                      Contrast:{" "}
+                      <strong>
+                        {contrast == null
+                          ? "MULTIPLE VALUES"
+                          : `${Math.round(contrast * 100 + 100)}%`}
+                      </strong>
+                    </label>
+                    <div className="SliderContainer">
+                      <Slider
+                        min={-100}
+                        max={100}
+                        startPoint={0}
+                        value={Math.round((contrast ?? 0) * 100)}
+                        onChange={(value: number | number[]) => {
+                          if (Array.isArray(value)) {
+                            value = value[0];
+                          }
+                          setContrast(value / 100);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </FloatingFocusManager>
           ) : null}
           <button
             type="button"
@@ -721,98 +656,88 @@ export default function CanvasTools() {
         <button
           className="ExportOptionsButton"
           type="button"
-          ref={setExportReferenceElement}
           data-active={isExportOptionsOpen ? "" : undefined}
           aria-label="Export Options"
           title="Export Options"
-          onClick={() => {
-            setExportOptionsOpen((isOpen) => !isOpen);
-          }}
+          {...getExportReferenceProps()}
         >
           .{exportFileType}
           <FaAngleDown />
         </button>
 
         {isExportOptionsOpen ? (
-          <div
-            className="ExportOptionsPopup"
-            ref={setPopperElement}
-            style={exportStyles.popper}
-            tabIndex={-1}
-            onBlur={(event) => {
-              const newFocusElement = event.relatedTarget;
-              const isFocusLeaving =
-                !newFocusElement ||
-                !event.currentTarget.contains(newFocusElement);
-              if (isFocusLeaving) {
-                setExportOptionsOpen(false);
-              }
-            }}
-            {...exportAttributes.popper}
-          >
-            <div className="Fields">
-              <div className="Field">
-                <label>Export Materials</label>
-                <ul className="ExportOptionsList">
-                  {materialDefs.map((material, i) => {
-                    if (
-                      material &&
-                      material.selectable !== false &&
-                      !material.hidden
-                    ) {
-                      return (
-                        <li key={material.name}>
-                          <input
-                            id={`MaterialSelect-${material.name}`}
-                            type="checkbox"
-                            checked={selectedExportMaterials[i] !== false}
-                            onChange={(event) => {
-                              setSelectedExportMaterials(
-                                (selectedExportMaterials) => {
-                                  const newSelectedExportMaterials =
-                                    selectedExportMaterials.slice();
-                                  newSelectedExportMaterials[i] =
-                                    event.target.checked;
-                                  return newSelectedExportMaterials;
-                                }
-                              );
-                            }}
-                          />
-                          <label htmlFor={`MaterialSelect-${material.name}`}>
-                            {material.label}
-                          </label>
-                        </li>
-                      );
-                    } else {
-                      return null;
-                    }
-                  })}
-                </ul>
-              </div>
+          <FloatingFocusManager context={exportContext} modal={false}>
+            <div
+              className="ExportOptionsPopup"
+              // eslint-disable-next-line react-hooks/refs
+              ref={exportRefs.setFloating}
+              style={exportFloatingStyles}
+              {...getExportFloatingProps()}
+            >
+              <div className="Fields">
+                <div className="Field">
+                  <label>Export Materials</label>
+                  <ul className="ExportOptionsList">
+                    {materialDefs.map((material, i) => {
+                      if (
+                        material &&
+                        material.selectable !== false &&
+                        !material.hidden
+                      ) {
+                        return (
+                          <li key={material.name}>
+                            <input
+                              id={`MaterialSelect-${material.name}`}
+                              type="checkbox"
+                              checked={selectedExportMaterials[i] !== false}
+                              onChange={(event) => {
+                                setSelectedExportMaterials(
+                                  (selectedExportMaterials) => {
+                                    const newSelectedExportMaterials =
+                                      selectedExportMaterials.slice();
+                                    newSelectedExportMaterials[i] =
+                                      event.target.checked;
+                                    return newSelectedExportMaterials;
+                                  }
+                                );
+                              }}
+                            />
+                            <label htmlFor={`MaterialSelect-${material.name}`}>
+                              {material.label}
+                            </label>
+                          </li>
+                        );
+                      } else {
+                        return null;
+                      }
+                    })}
+                  </ul>
+                </div>
 
-              <div className="Field">
-                <label htmlFor="ExportFormat">Export Format</label>
-                <select
-                  id="ExportFormat"
-                  value={exportFileType}
-                  onChange={(event) => {
-                    setExportFileType(event.target.value);
-                    try {
-                      localStorage.setItem(
-                        "exportFileType",
-                        event.target.value
-                      );
-                    } catch (err) {
-                      // Probably blocked. That's okay.
-                    }
-                  }}
-                >
-                  <option value="png">.png</option>
-                  <option value="vl2">.vl2</option>
-                </select>
+                <div className="Field">
+                  <label htmlFor="ExportFormat">Export Format</label>
+                  <select
+                    id="ExportFormat"
+                    value={exportFileType}
+                    onChange={(event) => {
+                      setExportFileType(event.target.value);
+                      try {
+                        localStorage.setItem(
+                          "exportFileType",
+                          event.target.value
+                        );
+                      } catch (err) {
+                        // Probably blocked. That's okay.
+                      }
+                    }}
+                  >
+                    <option value="png">.png</option>
+                    <option value="vl2">.vl2</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
+          </FloatingFocusManager>
         ) : null}
 
         <button

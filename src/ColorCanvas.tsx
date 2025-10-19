@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Canvas, { CanvasProps } from "./Canvas";
 import useSettings from "./useSettings";
 import useSkin from "./useSkin";
-import type { MaterialDefinition } from "./Material";
+import type { MaterialDefinition } from "./models";
 import useWarrior from "./useWarrior";
 import useImageWorker from "./useImageWorker";
 import useImageLoader from "./useImageLoader";

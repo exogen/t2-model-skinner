@@ -1,11 +1,9 @@
-import getConfig from "next/config";
 import useTools from "./useTools";
 import useWarrior from "./useWarrior";
-import { MaterialDefinition } from "./Material";
+import type { MaterialDefinition } from "./models";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-
-const { materials } = publicRuntimeConfig;
+const { materials } = modelConfig;
 
 export default function MaterialSelector() {
   const { actualModel } = useWarrior();

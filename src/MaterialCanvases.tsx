@@ -1,13 +1,11 @@
 import React from "react";
-import getConfig from "next/config";
 import ColorCanvas from "./ColorCanvas";
 import MetallicCanvas from "./MetallicCanvas";
 import useWarrior from "./useWarrior";
-import { MaterialDefinition } from "./Material";
+import type { MaterialDefinition } from "./models";
+import modelConfig from "./models";
 
-const { publicRuntimeConfig } = getConfig();
-
-const { materials } = publicRuntimeConfig;
+const { materials } = modelConfig;
 
 export default function MaterialCanvases() {
   const { actualModel } = useWarrior();
