@@ -35,6 +35,9 @@ export default function CanvasInteractions({
       className="CanvasInteractions"
       tabIndex={0}
       ref={ref}
+      onDragOver={(event) => {
+        event.preventDefault();
+      }}
       onDrop={async (event) => {
         event.preventDefault();
         if (ref.current) {

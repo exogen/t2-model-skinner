@@ -37,6 +37,8 @@ export default function ColorCanvas({
   const handleChange = useCallback<CanvasProps["onChange"]>(
     async (canvas) => {
       const imageUrl = canvas.toDataURL({
+        format: "png",
+        multiplier: 1,
         top: canvasPadding,
         left: canvasPadding,
         width: textureSize[0],

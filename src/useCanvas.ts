@@ -1,9 +1,9 @@
 "use client";
 import React, { useContext } from "react";
-import { fabric } from "fabric";
+import { Canvas as FabricCanvas } from "fabric";
 
 export interface CanvasInfo {
-  canvas: fabric.Canvas;
+  canvas: FabricCanvas;
   notifyChange: () => void;
   isDrawingMode: boolean;
   setDrawingMode: (isDrawingMode: boolean) => void;

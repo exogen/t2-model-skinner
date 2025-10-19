@@ -1,6 +1,6 @@
 "use client";
 import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
-import { fabric } from "fabric";
+import { FabricImage } from "fabric";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
 import {
@@ -168,7 +168,7 @@ export default function CanvasTools() {
   const hasSelection = selectedObjects.length > 0;
 
   const selectionHasImages =
-    selectedObjects.filter((object) => object instanceof fabric.Image).length >
+    selectedObjects.filter((object) => object instanceof FabricImage).length >
     0;
 
   const handleBackgroundColorChange: InputHTMLAttributes<HTMLInputElement>["onChange"] =
@@ -441,7 +441,7 @@ export default function CanvasTools() {
                               all (
                               {canvas?._objects
                                 .filter(
-                                  (object) => object instanceof fabric.Image
+                                  (object) => object instanceof FabricImage
                                 )
                                 .length.toLocaleString() ?? 0}
                               )
@@ -561,7 +561,7 @@ export default function CanvasTools() {
                     <label>
                       Opacity:{" "}
                       <strong>
-                        {contrast == null
+                        {opacity == null
                           ? "MULTIPLE VALUES"
                           : `${Math.round((opacity ?? 1) * 100)}%`}
                       </strong>

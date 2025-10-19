@@ -1,12 +1,12 @@
 "use client";
 import React, { useContext } from "react";
-import { fabric } from "fabric";
+import { FabricObject } from "fabric";
 
 interface ToolsContextValue {
   activeCanvas: string | null;
   activeCanvasType: string;
   setActiveCanvasType: (canvasType: string) => void;
-  selectedObjects: Array<fabric.Object>;
+  selectedObjects: Array<FabricObject>;
   brushSize: number;
   setBrushSize: (brushSize: number) => void;
   brushColor: number;
@@ -42,7 +42,7 @@ interface ToolsContextValue {
     name: string;
     format: string;
   }) => Promise<void>;
-  lockedObjects: Set<fabric.Object>;
+  lockedObjects: Set<FabricObject>;
   backgroundColor: string;
   setBackgroundColor: (backgroundColor: string) => void;
   selectedMaterialIndex: number;

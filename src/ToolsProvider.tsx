@@ -1,6 +1,12 @@
 "use client";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { fabric } from "fabric";
+import {
+  FabricImage,
+  FabricObject,
+  ActiveSelection,
+  filters,
+  PencilBrush,
+} from "fabric";
 import { ToolsContext } from "./useTools";
 import useCanvas from "./useCanvas";
 import useWarrior from "./useWarrior";
@@ -15,7 +21,7 @@ const { materials } = modelConfig;
 
 const defaultTextureSize = [512, 512] as [number, number];
 
-function lockObject(object: fabric.Object) {
+function lockObject(object: FabricObject) {
   object.lockMovementX = true;
   object.lockMovementY = true;
   object.lockScalingX = true;
@@ -23,7 +29,7 @@ function lockObject(object: fabric.Object) {
   object.lockRotation = true;
 }
 
-function unlockObject(object: fabric.Object) {
+function unlockObject(object: FabricObject) {
   object.lockMovementX = false;
   object.lockMovementY = false;
   object.lockScalingX = false;
@@ -31,9 +37,7 @@ function unlockObject(object: fabric.Object) {
   object.lockRotation = false;
 }
 
-function isActiveSelection(
-  object: fabric.Object
-): object is fabric.ActiveSelection {
+function isActiveSelection(object: FabricObject): object is ActiveSelection {
   return object.type === "activeSelection";
 }
 
@@ -106,14 +110,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   const [backgroundColor, setBackgroundColor] = useState("magenta");
   const [lockedObjects, setLockedObjects] = useState(
-    () => new Set<fabric.Object>()
+    () => new Set<FabricObject>()
   );
   const [brushColor, setBrushColor] = useState(200);
   const [brushSize, setBrushSize] = useState(10);
   const [filterMap, setFilterMap] = useState(
-    () => new Map<fabric.Object, ObjectFilters>()
+    () => new Map<FabricObject, ObjectFilters>()
   );
-  const [selectedObjects, setSelectedObjects] = useState<fabric.Object[]>(
+  const [selectedObjects, setSelectedObjects] = useState<FabricObject[]>(
     () => []
   );
 
@@ -131,7 +135,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { combineColorAndAlphaImageUrls } = useImageWorker();
   const { canvasPadding } = useSettings();
   const [filterChanges, setFilterChanges] = useState<
-    Array<[fabric.Object, ObjectFilters]>
+    Array<[FabricObject, ObjectFilters]>
   >(() => []);
   const [layerMode, setLayerMode] = useState("BaseLayer");
 
@@ -147,7 +151,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   const setFilter = useCallback(
     (name: keyof ObjectFilters, value: number) => {
-      const filterChanges: Array<[fabric.Object, ObjectFilters]> = [];
+      const filterChanges: Array<[FabricObject, ObjectFilters]> = [];
       const newFilterMap = new Map(filterMap);
       let applyObjects = selectedObjects;
       if (layerMode === "AllLayers") {
@@ -156,7 +160,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         applyObjects = canvas?._objects.slice(0, 1) ?? [];
       }
       for (const applyObject of applyObjects) {
-        if (applyObject instanceof fabric.Image) {
+        if (applyObject instanceof FabricImage) {
           const existingFilters = filterMap.get(applyObject) ?? {};
           const newFilters = { ...existingFilters, [name]: value };
           newFilterMap.set(applyObject, newFilters);
@@ -180,7 +184,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       applyObjects = canvas?._objects.slice(0, 1) ?? [];
     }
     applyObjects = applyObjects.filter(
-      (object) => object instanceof fabric.Image
+      (object) => object instanceof FabricImage
     );
     if (applyObjects.length) {
       const getValue = (i: number) =>
@@ -210,10 +214,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       return;
     }
     for (const [selectedObject, newFilters] of filterChanges) {
-      if (selectedObject instanceof fabric.Image) {
+      if (selectedObject instanceof FabricImage) {
         selectedObject.filters = [];
         if (activeCanvasType === "metallic") {
-          const grayscaleFilter = new fabric.Image.filters.Grayscale();
+          const grayscaleFilter = new filters.Grayscale();
           selectedObject.filters.push(grayscaleFilter);
         }
         for (const key in newFilters) {
@@ -222,28 +226,28 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
             switch (key) {
               case "HueRotation":
                 selectedObject.filters.push(
-                  new fabric.Image.filters.HueRotation({
+                  new filters.HueRotation({
                     rotation: filterValue,
                   })
                 );
                 break;
               case "Saturation":
                 selectedObject.filters.push(
-                  new fabric.Image.filters.Saturation({
+                  new filters.Saturation({
                     saturation: filterValue,
                   })
                 );
                 break;
               case "Brightness":
                 selectedObject.filters.push(
-                  new fabric.Image.filters.Brightness({
+                  new filters.Brightness({
                     brightness: filterValue,
                   })
                 );
                 break;
               case "Contrast":
                 selectedObject.filters.push(
-                  new fabric.Image.filters.Contrast({
+                  new filters.Contrast({
                     contrast: filterValue,
                   })
                 );
@@ -292,7 +296,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const bringForward = useCallback(async () => {
     const object = canvas.getActiveObject();
     if (object) {
-      canvas.bringForward(object, true);
+      canvas.bringObjectForward(object, true);
       notifyChange();
     }
   }, [canvas, notifyChange]);
@@ -304,7 +308,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       if (canvas._objects[0] === object || canvas._objects[1] === object) {
         return;
       }
-      canvas.sendBackwards(object, true);
+      canvas.sendObjectBackwards(object, true);
       notifyChange();
     }
   }, [canvas, notifyChange]);
@@ -333,7 +337,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
           if (!image.filters) {
             image.filters = [];
           }
-          const grayscaleFilter = new fabric.Image.filters.Grayscale();
+          const grayscaleFilter = new filters.Grayscale();
           image.filters.push(grayscaleFilter);
           image.applyFilters();
         }
@@ -346,6 +350,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       }
       if (lastAddedImage) {
         canvas.setActiveObject(lastAddedImage);
+        canvas.requestRenderAll();
       }
     },
     [textureSize, activeCanvasType, metallicCanvas, canvas, setDrawingMode]
@@ -354,9 +359,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const duplicate = useCallback(async () => {
     const object = canvas.getActiveObject();
     if (object) {
-      const copy = await new Promise<fabric.Object>((resolve) =>
-        object.clone(resolve)
-      );
+      const copy = await object.clone();
       copy.set({
         top: (copy.top ?? 0) + 20,
         left: (copy.left ?? 0) + 20,
@@ -388,6 +391,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const copyToMetallic = useCallback(async () => {
     if (activeCanvasType === "color" && metallicCanvas) {
       const colorImageUrl = canvas.toDataURL({
+        format: "png",
+        multiplier: 1,
         top: canvasPadding,
         left: canvasPadding,
         width: textureSize[0],
@@ -397,7 +402,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       if (!image.filters) {
         image.filters = [];
       }
-      const grayscaleFilter = new fabric.Image.filters.Grayscale();
+      const grayscaleFilter = new filters.Grayscale();
       image.filters.push(grayscaleFilter);
       image.applyFilters();
       metallicCanvas.centerObject(image);
@@ -450,6 +455,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
               let outputImageUrl;
 
               const colorImageUrl = colorCanvas.toDataURL({
+                format: "png",
+                multiplier: 1,
                 top: canvasPadding,
                 left: canvasPadding,
                 width: textureSize[0],
@@ -458,6 +465,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
               if (metallicCanvas) {
                 const metallicImageUrl = metallicCanvas.toDataURL({
+                  format: "png",
+                  multiplier: 1,
                   top: canvasPadding,
                   left: canvasPadding,
                   width: textureSize[0],
@@ -676,12 +685,18 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (metallicCanvas) {
+      if (!metallicCanvas.freeDrawingBrush) {
+        metallicCanvas.freeDrawingBrush = new PencilBrush(metallicCanvas);
+      }
       metallicCanvas.freeDrawingBrush.width = brushSize;
     }
   }, [metallicCanvas, brushSize]);
 
   useEffect(() => {
     if (metallicCanvas) {
+      if (!metallicCanvas.freeDrawingBrush) {
+        metallicCanvas.freeDrawingBrush = new PencilBrush(metallicCanvas);
+      }
       metallicCanvas.freeDrawingBrush.color = `rgb(${brushColor}, ${brushColor}, ${brushColor})`;
     }
   }, [metallicCanvas, brushColor]);

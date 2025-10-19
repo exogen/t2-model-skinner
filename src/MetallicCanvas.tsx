@@ -42,6 +42,8 @@ export default function MetallicCanvas({
     async (canvas) => {
       runningChangeHandlers.current += 1;
       const imageUrl = canvas.toDataURL({
+        format: "png",
+        multiplier: 1,
         top: canvasPadding,
         left: canvasPadding,
         width: textureSize[0],

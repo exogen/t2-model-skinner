@@ -3,13 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useCanvas from "./useCanvas";
 import useSettings from "./useSettings";
 import useTools from "./useTools";
-import { fabric } from "fabric";
+import { Canvas as FabricCanvas, InteractiveFabricObject } from "fabric";
 import { createFabricImage } from "./fabricUtils";
 
 type JSONSnapshot = ReturnType<(typeof Canvas.prototype)["toDatalessJSON"]>;
 
 function updateObjectControlOptions() {
-  fabric.Object.prototype.set({
+  InteractiveFabricObject.ownDefaults = {
+    ...InteractiveFabricObject.ownDefaults,
     transparentCorners: false,
     borderColor: "#8afff1",
     cornerSize: 9,
@@ -18,13 +19,13 @@ function updateObjectControlOptions() {
     cornerStrokeColor: "#1c9f7c",
     strokeWidth: 10,
     perPixelTargetFind: true,
-  });
+  };
 }
 
 export interface CanvasProps {
   canvasId: string;
   canvasType: "color" | "metallic";
-  onChange: (canvas: fabric.Canvas) => void;
+  onChange: (canvas: FabricCanvas) => void;
   baseImageUrl: string | null;
   textureSize: [number, number];
   defaultDrawingMode?: boolean;
@@ -38,7 +39,7 @@ export default function Canvas({
   defaultDrawingMode = false,
 }: CanvasProps) {
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
-  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
+  const [canvas, setCanvas] = useState<FabricCanvas | null>(null);
   const { activeCanvas } = useTools();
   const { canvasPadding } = useSettings();
   const { registerCanvas, unregisterCanvas } = useCanvas();
@@ -105,13 +106,18 @@ export default function Canvas({
   const isActive = activeCanvas === canvasId;
 
   useEffect(() => {
+    if (!canvasElementRef.current) {
+      return;
+    }
+
     const options = {
       preserveObjectStacking: true,
       targetFindTolerance: 2,
     };
+
     updateObjectControlOptions();
 
-    const canvas = new fabric.Canvas(canvasElementRef.current, options);
+    const canvas = new FabricCanvas(canvasElementRef.current, options);
 
     let isSnapshotting = false;
     let changeTimer: ReturnType<typeof setTimeout>;
@@ -138,7 +144,7 @@ export default function Canvas({
           if (JSON.stringify(snapshot) === JSON.stringify(lastSnapshot)) {
             return history;
           } else {
-            return [...history.slice(-5), snapshot];
+            return [...history.slice(-10), snapshot];
           }
         });
         setRedoHistory([]);
@@ -224,6 +230,11 @@ export default function Canvas({
     canUndo,
     canRedo,
   ]);
+
+  useEffect(() => {
+    setUndoHistory([]);
+    setRedoHistory([]);
+  }, [canvas, baseImageUrl, textureSize]);
 
   useEffect(() => {
     if (canvas && textureSize) {
