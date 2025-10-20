@@ -108,7 +108,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     setSelectedFrameIndex(0);
   }, [materialDef]);
 
-  const [backgroundColor, setBackgroundColor] = useState("magenta");
+  const [backgroundColor, setBackgroundColor] = useState("black");
   const [lockedObjects, setLockedObjects] = useState(
     () => new Set<FabricObject>()
   );
