@@ -8,6 +8,7 @@ import useManifest from "../../useManifest";
 import styles from "./gallery.module.css";
 import Head from "next/head";
 import Link from "next/link";
+import { collectFiles, createZipFile, saveZipFile } from "../../exportUtils";
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const emptySkins: string[] = [];
@@ -64,11 +65,45 @@ function Gallery() {
   const searchParams = useSearchParams();
   const [manifest, isLoaded] = useManifest();
   const [selectedModel, setSelectedModel] = useState("lmale");
+  const [isPreparingDownload, setPreparingDownload] = useState(false);
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
   const customSkins = manifest.customSkins?.[actualModel] ?? emptySkins;
 
   const isNew = selectedModel === "new";
-  const isPack = manifest?.packs?.[selectedModel] != null;
+  const pack = manifest?.packs?.[selectedModel];
+  const isPack = pack != null;
+
+  useEffect(() => {
+    if (pack && isPreparingDownload) {
+      let ignore = false;
+
+      const download = async () => {
+        const files = await collectFiles(pack.files);
+        if (!ignore) {
+          const zip = createZipFile(files);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          if (!ignore) {
+            await saveZipFile(
+              zip,
+              `zSkinPack-${selectedModel.replace(/ /g, "_")}-v${
+                pack.version
+              }.vl2`
+            );
+          }
+          if (!ignore) {
+            setPreparingDownload(false);
+          }
+        }
+      };
+
+      download();
+
+      return () => {
+        ignore = true;
+        setPreparingDownload(false);
+      };
+    }
+  }, [isPreparingDownload, pack, selectedModel]);
 
   const packList = useMemo(() => {
     return orderBy(
@@ -82,7 +117,7 @@ function Gallery() {
     const skinData = isNew
       ? manifest?.newSkins
       : isPack
-      ? manifest?.packs?.[selectedModel]
+      ? manifest?.packs?.[selectedModel]?.skins
       : null;
     if (skinData) {
       return skinDataToList(skinData);
@@ -96,6 +131,7 @@ function Gallery() {
   const filter = searchParams.get("filter") || "lmale";
 
   useEffect(() => {
+    setPreparingDownload(false);
     setSelectedModel(filter);
   }, [filter]);
 
@@ -163,12 +199,35 @@ function Gallery() {
               <option value="vehicle_air_hapc">HAVOC Gunship Transport</option>
             </optgroup>
           </select>
-          <a
-            href="https://github.com/exogen/t2-model-skinner"
-            className={styles.IconLink}
-          >
-            <FaGithub size={32} />
-          </a>
+          <div className={styles.HeaderEnd}>
+            {isPack ? (
+              <div className={styles.DownloadSection}>
+                <button
+                  type="button"
+                  className={styles.DownloadButton}
+                  onClick={async () => {
+                    setPreparingDownload(true);
+                  }}
+                >
+                  Download
+                </button>{" "}
+                {isPreparingDownload ? (
+                  <CgSpinnerTwo className={styles.DownloadSpinner} />
+                ) : (
+                  <span className={styles.PackVersion}>
+                    v{pack.version} &bull; {pack.files.length.toLocaleString()}{" "}
+                    {pack.files.length === 1 ? "file" : "files"}
+                  </span>
+                )}
+              </div>
+            ) : null}
+            <a
+              href="https://github.com/exogen/t2-model-skinner"
+              className={styles.IconLink}
+            >
+              <FaGithub size={32} />
+            </a>
+          </div>
         </div>
         {isLoaded ? (
           <div className={styles.Gallery}>

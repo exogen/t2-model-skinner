@@ -3,7 +3,14 @@ import { useState, useEffect } from "react";
 export type Manifest = {
   customSkins: Record<string, string[]>;
   newSkins: Record<string, string[]>;
-  packs: Record<string, Record<string, string[]>>;
+  packs: Record<
+    string,
+    {
+      version: string;
+      skins: Record<string, string[]>;
+      files: string[];
+    }
+  >;
 };
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
