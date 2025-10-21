@@ -42,6 +42,22 @@ const modelOrder: Record<string, number> = {
   vehicle_air_hapc: 26,
 };
 
+function skinDataToList(
+  skinData: Record<string, string[]>
+): Array<{ name: string; model: string }> {
+  const allSkins: Array<{ name: string; model: string }> = [];
+
+  Object.entries(skinData).forEach(([model, names]) => {
+    allSkins.push(...names.map((name) => ({ name, model })));
+  });
+
+  return orderBy(
+    allSkins,
+    [(skin) => skin.name.toLowerCase(), (skin) => modelOrder[skin.model]],
+    ["asc", "asc"]
+  );
+}
+
 function Gallery() {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,25 +67,31 @@ function Gallery() {
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
   const customSkins = manifest.customSkins?.[actualModel] ?? emptySkins;
 
-  const newSkinList = useMemo(() => {
-    if (manifest?.newSkins && selectedModel === "new") {
-      const allNewSkins: Array<{ name: string; model: string }> = [];
+  const isNew = selectedModel === "new";
+  const isPack = manifest?.packs?.[selectedModel] != null;
 
-      Object.entries(manifest.newSkins).forEach(([model, names]) => {
-        allNewSkins.push(...names.map((name) => ({ name, model })));
-      });
+  const packList = useMemo(() => {
+    return orderBy(
+      Object.keys(manifest?.packs ?? {}),
+      (name) => name.toLowerCase(),
+      ["asc"]
+    );
+  }, [manifest]);
 
-      return orderBy(
-        allNewSkins,
-        [(skin) => skin.name.toLowerCase(), (skin) => modelOrder[skin.model]],
-        ["asc", "asc"]
-      );
+  const selectedSkinList = useMemo(() => {
+    const skinData = isNew
+      ? manifest?.newSkins
+      : isPack
+      ? manifest?.packs?.[selectedModel]
+      : null;
+    if (skinData) {
+      return skinDataToList(skinData);
     } else {
       return [];
     }
-  }, [selectedModel, manifest]);
+  }, [isNew, isPack, selectedModel, manifest]);
 
-  const filteredSkins = selectedModel === "new" ? newSkinList : customSkins;
+  const filteredSkins = isNew || isPack ? selectedSkinList : customSkins;
 
   const filter = searchParams.get("filter") || "lmale";
 
@@ -98,6 +120,13 @@ function Gallery() {
             value={selectedModel}
           >
             <option value="new">All new skins ✨</option>
+            <optgroup label="Packs">
+              {packList.map((packName) => (
+                <option value={packName} key={packName}>
+                  {packName}
+                </option>
+              ))}
+            </optgroup>
             <optgroup label="Players" data-model-type="player">
               <option value="lmale">Human Male &bull; Light</option>
               <option value="mmale">Human Male &bull; Medium</option>

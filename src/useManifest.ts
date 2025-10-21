@@ -3,12 +3,14 @@ import { useState, useEffect } from "react";
 export type Manifest = {
   customSkins: Record<string, string[]>;
   newSkins: Record<string, string[]>;
+  packs: Record<string, Record<string, string[]>>;
 };
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 export const defaultManifest: Manifest = {
   customSkins: {},
   newSkins: {},
+  packs: {},
 };
 
 export default function useManifest(): [Manifest, boolean] {
@@ -38,7 +40,9 @@ export default function useManifest(): [Manifest, boolean] {
 
     return () => {
       ignore = true;
-      controller.abort();
+      if (!controller.signal.aborted) {
+        controller.abort();
+      }
     };
   }, []);
 
