@@ -311,8 +311,8 @@ function Gallery() {
                     <button
                       type="button"
                       className={styles.DownloadSkin}
-                      title={`Download ${skinName} set`}
-                      aria-label={`Download ${skinName} set`}
+                      title={`Download ${skinName} skin`}
+                      aria-label={`Download ${skinName} skin`}
                       onClick={async () => {
                         const modelType = modelToModelType(skinModel);
                         const camelCaseModelName = skinModel.replace(
