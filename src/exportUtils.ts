@@ -31,7 +31,7 @@ export async function collectFiles(
       const url = `${basePath}/${fileName}`;
       const res = await fetch(url);
       if (!res.ok) {
-        if (skipNotFound) {
+        if (skipNotFound && res.status === 404) {
           return null;
         }
         throw new Error(`Response failed: ${res.status} ${res.statusText}`);
