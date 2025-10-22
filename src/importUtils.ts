@@ -15,6 +15,43 @@ const materialMap: Record<string, MaterialDefinition[]> = modelConfig.materials;
 
 const ignoreFilePattern = /^(\.|__MACOSX)/;
 
+export const modelTypes = {
+  player: [
+    "lmale",
+    "mmale",
+    "hmale",
+    "lfemale",
+    "mfemale",
+    "hfemale",
+    "lbioderm",
+    "mbioderm",
+    "hbioderm",
+  ],
+  weapon: [
+    "disc",
+    "chaingun",
+    "grenade_launcher",
+    "sniper",
+    "plasmathrower",
+    "energy",
+    "shocklance",
+    "elf",
+    "missile",
+    "mortar",
+    "repair",
+    "targeting",
+    "mine",
+  ],
+  vehicle: [
+    "vehicle_grav_scout",
+    "vehicle_grav_tank",
+    "vehicle_land_mpbbase",
+    "vehicle_air_scout",
+    "vehicle_air_bomber",
+    "vehicle_air_hapc",
+  ],
+};
+
 export function modelToModelType(modelName: string) {
   switch (modelName) {
     case "lmale":
@@ -39,6 +76,7 @@ export function modelToModelType(modelName: string) {
     case "mortar":
     case "repair":
     case "targeting":
+    case "mine":
       return "weapon";
     case "vehicle_grav_scout":
     case "vehicle_grav_tank":

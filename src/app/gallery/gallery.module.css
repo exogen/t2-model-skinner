@@ -103,22 +103,53 @@
   height: auto;
 }
 
-.Name {
+.Detail {
   position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translate(-50%, 0);
-  display: inline-block;
-  white-space: nowrap;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 3px 10px;
-  border-radius: 9999px;
-  opacity: 0.5;
+  bottom: 8px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 5px 9px;
+  box-shadow: inset 0 1px 10px rgba(0, 0, 0, 0.3);
 }
 
-.Skin:hover .Name {
-  opacity: 1;
+.LoadInEditor,
+.DownloadSkin {
+  display: grid;
+  place-content: center;
+  font-size: 24px;
+  color: rgb(40, 217, 178);
+  visibility: hidden;
+}
+
+.DownloadSkin {
+  border: 0;
+  background: transparent;
+  font-size: 17px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.Detail:hover .LoadInEditor,
+.Detail:hover .DownloadSkin {
+  visibility: visible;
+}
+
+.Name {
+  padding: 3px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  color: rgba(158, 192, 209, 0.9);
+}
+
+.Detail:hover .Name {
+  color: #fff;
 }
 
 @keyframes spin {

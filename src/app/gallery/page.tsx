@@ -1,6 +1,8 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { CgSpinnerTwo } from "react-icons/cg";
+import { BsBadge3dFill } from "react-icons/bs";
+import { FaDownload } from "react-icons/fa";
 import { FaChevronLeft, FaGithub } from "react-icons/fa";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import orderBy from "lodash.orderby";
@@ -9,9 +11,49 @@ import styles from "./gallery.module.css";
 import Head from "next/head";
 import Link from "next/link";
 import { collectFiles, createZipFile, saveZipFile } from "../../exportUtils";
+import { modelToModelType, modelTypes } from "../../importUtils";
+import modelConfig from "../../models";
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const emptySkins: string[] = [];
+
+function modelToFileList(modelName: string) {
+  return modelConfig.materials[modelName]
+    .map((material) => {
+      if (material.hidden || material.selectable === false) {
+        return null;
+      }
+      const file = material.file ?? material.name;
+      if (file) {
+        if (
+          typeof material.frameCount === "number" &&
+          material.frameCount > 1
+        ) {
+          return new Array(material.frameCount)
+            .fill(file)
+            .map((fileName, i) => {
+              if (i > 0) {
+                const match = /^(.+[^\d])(\d{2,})$/.exec(fileName);
+                if (match) {
+                  const head = match[1];
+                  const tail = match[2];
+                  return `${head}${i.toString().padStart(tail.length, "0")}`;
+                } else {
+                  throw new Error("frameCount > 0, but could not parse index");
+                }
+              } else {
+                return fileName;
+              }
+            });
+        } else {
+          return file;
+        }
+      }
+    })
+    .flat()
+    .filter((fileName) => fileName != null)
+    .map((fileName) => `${fileName}.png`);
+}
 
 const modelOrder: Record<string, number> = {
   lmale: 0,
@@ -85,9 +127,7 @@ function Gallery() {
           if (!ignore) {
             await saveZipFile(
               zip,
-              `zSkinPack-${selectedModel.replace(/ /g, "_")}-v${
-                pack.version
-              }.vl2`
+              `zSkinPack-${selectedModel}-v${pack.version}.vl2`
             );
           }
           if (!ignore) {
@@ -246,11 +286,7 @@ function Gallery() {
               )}.${skinModel}.webp`;
 
               return (
-                <Link
-                  key={`${skinName}:${skinModel}`}
-                  className={styles.Skin}
-                  href={`/?m=${skinModel}&s=${encodeURIComponent(skinName)}`}
-                >
+                <div key={`${skinName}:${skinModel}`} className={styles.Skin}>
                   <img
                     className={styles.Preview}
                     loading="lazy"
@@ -259,8 +295,72 @@ function Gallery() {
                     height={800}
                     alt={skinName}
                   />
-                  <div className={styles.Name}>{skinName}</div>
-                </Link>
+                  <div className={styles.Detail}>
+                    <Link
+                      className={styles.LoadInEditor}
+                      href={`/?m=${skinModel}&s=${encodeURIComponent(
+                        skinName
+                      )}`}
+                    >
+                      <BsBadge3dFill
+                        title="Load in Editor"
+                        aria-label="Load in Editor"
+                      />
+                    </Link>
+                    <span className={styles.Name}>{skinName}</span>
+                    <button
+                      type="button"
+                      className={styles.DownloadSkin}
+                      title={`Download ${skinName} set`}
+                      aria-label={`Download ${skinName} set`}
+                      onClick={async () => {
+                        const modelType = modelToModelType(skinModel);
+                        const camelCaseModelName = skinModel.replace(
+                          /(?:^([a-z])|_([a-z]))/g,
+                          (match, a, b) => (a || b).toUpperCase()
+                        );
+                        let zipFileName = "";
+                        let fileNames: string[] = [];
+
+                        switch (modelType) {
+                          case "player":
+                            zipFileName = `zPlayerSkin-${skinName}.vl2`;
+                            fileNames = modelTypes.player
+                              .filter((modelName) =>
+                                manifest.customSkins[modelName].includes(
+                                  skinName
+                                )
+                              )
+                              .map(
+                                (modelName) => `${skinName}.${modelName}.png`
+                              );
+                            break;
+                          case "weapon":
+                            zipFileName = `zWeapon${camelCaseModelName}-${skinName}.vl2`;
+                            fileNames = modelToFileList(skinModel).map(
+                              (fileName) => `${skinName}/${fileName}`
+                            );
+                            break;
+                          case "vehicle":
+                            zipFileName = `z${camelCaseModelName}-${skinName}.vl2`;
+                            fileNames = modelToFileList(skinModel).map(
+                              (fileName) => `${skinName}/${fileName}`
+                            );
+                            break;
+                        }
+                        if (fileNames.length) {
+                          const files = await collectFiles(fileNames, {
+                            skipNotFound: true,
+                          });
+                          const zip = createZipFile(files);
+                          await saveZipFile(zip, zipFileName);
+                        }
+                      }}
+                    >
+                      <FaDownload />
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>

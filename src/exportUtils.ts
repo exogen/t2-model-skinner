@@ -22,13 +22,23 @@ export function savePngFile(imageUrl: string, name: string) {
   saveAs(imageUrl, name);
 }
 
-export async function collectFiles(files: string[]) {
-  return await Promise.all(
+export async function collectFiles(
+  files: string[],
+  { skipNotFound = false }: { skipNotFound?: boolean } = {}
+) {
+  const results = await Promise.all(
     files.map(async (fileName) => {
       const url = `${basePath}/${fileName}`;
       const res = await fetch(url);
+      if (!res.ok) {
+        if (skipNotFound) {
+          return null;
+        }
+        throw new Error(`Response failed: ${res.status} ${res.statusText}`);
+      }
       const arrayBuffer = await res.arrayBuffer();
       return { name: fileName, data: arrayBuffer };
     })
   );
+  return results.filter((fileInfo) => fileInfo != null);
 }
