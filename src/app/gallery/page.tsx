@@ -352,7 +352,14 @@ function Gallery() {
                           const files = await collectFiles(fileNames, {
                             skipNotFound: true,
                           });
-                          const zip = createZipFile(files);
+                          const zip = createZipFile(
+                            files.map(({ name, data }) => {
+                              return {
+                                name: name.split("/").slice(-1)[0],
+                                data,
+                              };
+                            })
+                          );
                           await saveZipFile(zip, zipFileName);
                         }
                       }}
