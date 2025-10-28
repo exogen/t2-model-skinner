@@ -4,7 +4,7 @@ import { saveAs } from "file-saver";
 const basePath = `https://exogen.github.io/t2-skins/skins`;
 
 export function createZipFile(
-  files: Array<{ name: string; data: ArrayBuffer }>
+  files: Array<{ name: string; data: ArrayBuffer | Blob }>
 ) {
   const zip = new JSZip();
   for (const file of files) {
@@ -37,7 +37,10 @@ export async function collectFiles(
         throw new Error(`Response failed: ${res.status} ${res.statusText}`);
       }
       const arrayBuffer = await res.arrayBuffer();
-      return { name: fileName, data: arrayBuffer };
+      return {
+        name: fileName.replace(/@1x\.png$/, ".png"),
+        data: arrayBuffer,
+      };
     })
   );
   return results.filter((fileInfo) => fileInfo != null);

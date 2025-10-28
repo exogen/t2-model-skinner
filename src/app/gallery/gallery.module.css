@@ -10,6 +10,8 @@
   text-align: center;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  justify-content: space-between;
   align-items: center;
   background: rgba(0, 0, 0, 0.7);
   z-index: 2;
@@ -24,7 +26,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-left: 10px;
+  gap: 20px;
 }
 
 .DownloadSection {
@@ -103,6 +105,18 @@
   height: auto;
 }
 
+.DownloadHiRes {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.HiResSelect {
+  font-size: 11px;
+}
+
 .Detail {
   position: absolute;
   bottom: 8px;
@@ -176,18 +190,30 @@
   animation: spin 2s linear infinite;
 }
 
-@media (max-width: 479px) {
-  .Back .Label {
-    display: none;
-  }
-
-  .DownloadButton {
-    display: none;
+@media (max-width: 1023px) {
+  .Tools {
+    grid-template-columns: auto auto 1fr;
+    justify-content: space-between;
   }
 }
 
 @media (max-width: 719px) {
   .PackVersion {
     display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .Back .Label {
+    display: none;
+  }
+
+  .DownloadButton,
+  .DownloadHiRes {
+    display: none;
+  }
+
+  .Tools {
+    grid-template-columns: 1fr auto 1fr;
   }
 }

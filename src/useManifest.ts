@@ -11,6 +11,7 @@ export type Manifest = {
       files: string[];
     }
   >;
+  sizeMultiplier: Record<string, number>;
 };
 
 const baseManifestPath = `https://exogen.github.io/t2-skins`;
@@ -18,6 +19,7 @@ export const defaultManifest: Manifest = {
   customSkins: {},
   newSkins: {},
   packs: {},
+  sizeMultiplier: {},
 };
 
 export default function useManifest(): [Manifest, boolean] {

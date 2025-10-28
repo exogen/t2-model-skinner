@@ -1,9 +1,9 @@
 "use client";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { CgSpinnerTwo } from "react-icons/cg";
 import { BsBadge3dFill } from "react-icons/bs";
 import { FaDownload } from "react-icons/fa";
-import { FaChevronLeft, FaGithub } from "react-icons/fa";
+import { FaChevronLeft } from "react-icons/fa";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import orderBy from "lodash.orderby";
 import useManifest from "../../useManifest";
@@ -105,9 +105,13 @@ function Gallery() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const hiResSelectRef = useRef<HTMLSelectElement>(null);
   const [manifest, isLoaded] = useManifest();
   const [selectedModel, setSelectedModel] = useState("lmale");
   const [isPreparingDownload, setPreparingDownload] = useState(false);
+  const [hiResDownload, setHiResDownload] = useState<"prompt" | "yes" | "no">(
+    "prompt"
+  );
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
   const customSkins = manifest.customSkins?.[actualModel] ?? emptySkins;
 
@@ -116,19 +120,58 @@ function Gallery() {
   const isPack = pack != null;
 
   useEffect(() => {
+    const savedHiResDownload = localStorage.getItem("hiResDownload");
+    switch (savedHiResDownload) {
+      case "yes":
+      case "no":
+        setHiResDownload(savedHiResDownload);
+        break;
+    }
+  }, []);
+
+  useEffect(() => {
     if (pack && isPreparingDownload) {
       let ignore = false;
 
       const download = async () => {
-        const files = await collectFiles(pack.files);
+        const fileNames = pack.files;
+
+        const hasHiRes = fileNames.some(
+          (fileName) => manifest.sizeMultiplier[fileName] > 1
+        );
+
+        if (hasHiRes && hiResDownload === "prompt") {
+          window.alert(
+            "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again."
+          );
+          if (hiResSelectRef.current) {
+            hiResSelectRef.current.focus();
+          }
+          setPreparingDownload(false);
+          return;
+        }
+
+        const collectFileNames =
+          hiResDownload === "yes"
+            ? fileNames
+            : fileNames.map((fileName) => {
+                return manifest.sizeMultiplier[fileName] > 1
+                  ? fileName.replace(/\.png$/, "@1x.png")
+                  : fileName;
+              });
+
+        let zipFileName = `zSkinPack-${selectedModel}-v${pack.version}.vl2`;
+
+        if (hasHiRes && hiResDownload === "no") {
+          zipFileName = zipFileName.replace(/\.vl2$/, "@1x.vl2");
+        }
+
+        const files = await collectFiles(collectFileNames);
         if (!ignore) {
           const zip = createZipFile(files);
           await new Promise((resolve) => setTimeout(resolve, 500));
           if (!ignore) {
-            await saveZipFile(
-              zip,
-              `zSkinPack-${selectedModel}-v${pack.version}.vl2`
-            );
+            await saveZipFile(zip, zipFileName);
           }
           if (!ignore) {
             setPreparingDownload(false);
@@ -143,7 +186,13 @@ function Gallery() {
         setPreparingDownload(false);
       };
     }
-  }, [isPreparingDownload, pack, selectedModel]);
+  }, [
+    hiResDownload,
+    isPreparingDownload,
+    manifest.sizeMultiplier,
+    pack,
+    selectedModel,
+  ]);
 
   const packList = useMemo(() => {
     return orderBy(
@@ -261,12 +310,33 @@ function Gallery() {
                 )}
               </div>
             ) : null}
-            <a
-              href="https://github.com/exogen/t2-model-skinner"
-              className={styles.IconLink}
-            >
-              <FaGithub size={32} />
-            </a>
+            <div className={styles.DownloadHiRes}>
+              <label htmlFor="hiResSelect">HD support?</label>
+              <select
+                id="hiResSelect"
+                className={styles.HiResSelect}
+                ref={hiResSelectRef}
+                value={hiResDownload}
+                disabled={isPreparingDownload}
+                onChange={(event) => {
+                  switch (event.target.value) {
+                    case "prompt":
+                      setHiResDownload(event.target.value);
+                      localStorage.removeItem("hiResDownload");
+                      break;
+                    case "yes":
+                    case "no":
+                      setHiResDownload(event.target.value);
+                      localStorage.setItem("hiResDownload", event.target.value);
+                      break;
+                  }
+                }}
+              >
+                <option value="prompt">Ask</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
           </div>
         </div>
         {isLoaded ? (
@@ -349,7 +419,37 @@ function Gallery() {
                             break;
                         }
                         if (fileNames.length) {
-                          const files = await collectFiles(fileNames, {
+                          const hasHiRes = fileNames.some(
+                            (fileName) => manifest.sizeMultiplier[fileName] > 1
+                          );
+
+                          if (hasHiRes && hiResDownload === "prompt") {
+                            window.alert(
+                              "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again."
+                            );
+                            if (hiResSelectRef.current) {
+                              hiResSelectRef.current.focus();
+                            }
+                            return;
+                          }
+
+                          const collectFileNames =
+                            hiResDownload === "yes"
+                              ? fileNames
+                              : fileNames.map((fileName) => {
+                                  return manifest.sizeMultiplier[fileName] > 1
+                                    ? fileName.replace(/\.png$/, "@1x.png")
+                                    : fileName;
+                                });
+
+                          if (hasHiRes && hiResDownload === "no") {
+                            zipFileName = zipFileName.replace(
+                              /\.vl2$/,
+                              "@1x.vl2"
+                            );
+                          }
+
+                          const files = await collectFiles(collectFileNames, {
                             skipNotFound: true,
                           });
                           const zip = createZipFile(
