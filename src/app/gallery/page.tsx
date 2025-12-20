@@ -1,15 +1,22 @@
 "use client";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { CgSpinnerTwo } from "react-icons/cg";
-import { BsBadge3dFill } from "react-icons/bs";
-import { FaDownload } from "react-icons/fa";
-import { FaChevronLeft } from "react-icons/fa";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import orderBy from "lodash.orderby";
-import useManifest from "../../useManifest";
-import styles from "./gallery.module.css";
+import {
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { CgSpinnerTwo } from "react-icons/cg";
+import { BsBadge3dFill } from "react-icons/bs";
+import { FaDownload, FaChevronLeft, FaSearch, FaTimes } from "react-icons/fa";
+import { useQueryState } from "nuqs";
+import orderBy from "lodash.orderby";
+import { matchSorter } from "match-sorter";
+import useManifest from "../../useManifest";
+import styles from "./gallery.module.css";
 import { collectFiles, createZipFile, saveZipFile } from "../../exportUtils";
 import { modelToModelType, modelTypes } from "../../importUtils";
 import modelConfig from "../../models";
@@ -102,12 +109,20 @@ function skinDataToList(
 }
 
 function Gallery() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const hiResSelectRef = useRef<HTMLSelectElement>(null);
+  const [searchQuery, setSearchQuery] = useQueryState("q", {
+    defaultValue: "",
+    clearOnDefault: true,
+  });
+  const [browseMode, setBrowseMode] = useState<"select" | "search">(
+    searchQuery.trim() ? "search" : "select"
+  );
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [manifest, isLoaded] = useManifest();
-  const [selectedModel, setSelectedModel] = useState("lmale");
+  const [selectedModel, setSelectedModel] = useQueryState("filter", {
+    defaultValue: "lmale",
+    clearOnDefault: false,
+  });
   const [isPreparingDownload, setPreparingDownload] = useState(false);
   const [hiResDownload, setHiResDownload] = useState<"prompt" | "yes" | "no">(
     "prompt"
@@ -215,14 +230,46 @@ function Gallery() {
     }
   }, [isNew, isPack, selectedModel, manifest]);
 
-  const filteredSkins = isNew || isPack ? selectedSkinList : customSkins;
+  const allSkins = useMemo(() => {
+    if (!manifest.customSkins) return [];
+    return skinDataToList(manifest.customSkins);
+  }, [manifest.customSkins]);
 
-  const filter = searchParams.get("filter") || "lmale";
+  const hasSearchInput = deferredSearchQuery.trim().length > 0;
+
+  const searchResults = useMemo(() => {
+    if (!hasSearchInput) {
+      return [];
+    }
+    return matchSorter(allSkins, deferredSearchQuery, {
+      keys: ["name"],
+    });
+  }, [allSkins, deferredSearchQuery, hasSearchInput]);
+
+  const filteredSkins =
+    browseMode === "search" && hasSearchInput
+      ? searchResults
+      : isNew || isPack
+      ? selectedSkinList
+      : customSkins;
 
   useEffect(() => {
     setPreparingDownload(false);
-    setSelectedModel(filter);
-  }, [filter]);
+  }, [selectedModel]);
+
+  const searchRef = useRef<HTMLInputElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => {
+    switch (browseMode) {
+      case "search":
+        searchRef.current?.focus();
+        break;
+      case "select":
+        selectRef.current?.focus();
+        break;
+    }
+  }, [browseMode]);
 
   return (
     <>
@@ -230,66 +277,108 @@ function Gallery() {
         <title>Tribes 2 Skin Gallery</title>
       </Head>
       <main className={styles.GalleryPage}>
-        <div className={styles.Tools}>
+        <header className={styles.Tools}>
           <Link className={styles.Back} href="../">
             <FaChevronLeft size={12} className={styles.Icon} />{" "}
             <span className={styles.Label}>Back to Editor</span>
           </Link>
-          <select
-            tabIndex={0}
-            id="ModelSelect"
-            aria-label="Player model"
-            onChange={(event) => {
-              router.push(`${pathname}?filter=${event.target.value}`);
-            }}
-            value={selectedModel}
-          >
-            <option value="new">All new skins ✨</option>
-            <optgroup label="Packs">
-              {packList.map((packName) => (
-                <option value={packName} key={packName}>
-                  {packName}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Players" data-model-type="player">
-              <option value="lmale">Human Male &bull; Light</option>
-              <option value="mmale">Human Male &bull; Medium</option>
-              <option value="hmale">Human Male &bull; Heavy</option>
-              <option value="lfemale">Human Female &bull; Light</option>
-              <option value="mfemale">Human Female &bull; Medium</option>
-              <option value="hfemale">Human Female &bull; Heavy</option>
-              <option value="lbioderm">Bioderm &bull; Light</option>
-              <option value="mbioderm">Bioderm &bull; Medium</option>
-              <option value="hbioderm">Bioderm &bull; Heavy</option>
-            </optgroup>
-            <optgroup label="Weapons" data-model-type="weapon">
-              <option value="disc">Disc Launcher</option>
-              <option value="chaingun">Chaingun</option>
-              <option value="grenade_launcher">Grenade Launcher</option>
-              <option value="sniper">Laser Rifle</option>
-              <option value="plasmathrower">Plasma Cannon</option>
-              <option value="energy">Blaster</option>
-              <option value="shocklance">Shocklance</option>
-              <option value="elf">ELF Projector</option>
-              <option value="missile">Missile Launcher</option>
-              <option value="mortar">Mortar</option>
-              <option value="repair">Repair Pack</option>
-              <option value="targeting">Targeting Laser</option>
-            </optgroup>
-            <optgroup label="Vehicles" data-model-type="vehicle">
-              <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
-              <option value="vehicle_grav_tank">Beowulf Assault Tank</option>
-              <option value="vehicle_land_mpbbase">
-                Jericho Mobile Point Base
-              </option>
-              <option value="vehicle_air_scout">Shrike Scout Fighter</option>
-              <option value="vehicle_air_bomber">Thundersword Bomber</option>
-              <option value="vehicle_air_hapc">HAVOC Gunship Transport</option>
-            </optgroup>
-          </select>
+          <div className={styles.HeaderMain}>
+            <button
+              className={styles.SearchButton}
+              title={browseMode === "select" ? "Search" : "Close search mode"}
+              onClick={() => {
+                setBrowseMode((mode) =>
+                  mode === "select" ? "search" : "select"
+                );
+                setSearchQuery("");
+              }}
+            >
+              {browseMode === "select" ? <FaSearch /> : <FaTimes />}
+            </button>
+            <div className={styles.InputContainer}>
+              <input
+                type="text"
+                ref={searchRef}
+                className={styles.SearchInput}
+                hidden={browseMode === "select"}
+                placeholder={`Search ${allSkins.length.toLocaleString()} skins…`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setBrowseMode("select");
+                    setSearchQuery("");
+                  }
+                }}
+              />
+              <select
+                ref={selectRef}
+                id="ModelSelect"
+                aria-label="Player model"
+                onChange={(event) => {
+                  setSelectedModel(event.target.value);
+                }}
+                value={selectedModel}
+                style={{
+                  visibility: browseMode === "search" ? "hidden" : "visible",
+                }}
+              >
+                <option value="new">All new skins ✨</option>
+                <optgroup label="Packs">
+                  {packList.map((packName) => (
+                    <option value={packName} key={packName}>
+                      {packName}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Players" data-model-type="player">
+                  <option value="lmale">Human Male &bull; Light</option>
+                  <option value="mmale">Human Male &bull; Medium</option>
+                  <option value="hmale">Human Male &bull; Heavy</option>
+                  <option value="lfemale">Human Female &bull; Light</option>
+                  <option value="mfemale">Human Female &bull; Medium</option>
+                  <option value="hfemale">Human Female &bull; Heavy</option>
+                  <option value="lbioderm">Bioderm &bull; Light</option>
+                  <option value="mbioderm">Bioderm &bull; Medium</option>
+                  <option value="hbioderm">Bioderm &bull; Heavy</option>
+                </optgroup>
+                <optgroup label="Weapons" data-model-type="weapon">
+                  <option value="disc">Disc Launcher</option>
+                  <option value="chaingun">Chaingun</option>
+                  <option value="grenade_launcher">Grenade Launcher</option>
+                  <option value="sniper">Laser Rifle</option>
+                  <option value="plasmathrower">Plasma Cannon</option>
+                  <option value="energy">Blaster</option>
+                  <option value="shocklance">Shocklance</option>
+                  <option value="elf">ELF Projector</option>
+                  <option value="missile">Missile Launcher</option>
+                  <option value="mortar">Mortar</option>
+                  <option value="repair">Repair Pack</option>
+                  <option value="targeting">Targeting Laser</option>
+                </optgroup>
+                <optgroup label="Vehicles" data-model-type="vehicle">
+                  <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
+                  <option value="vehicle_grav_tank">
+                    Beowulf Assault Tank
+                  </option>
+                  <option value="vehicle_land_mpbbase">
+                    Jericho Mobile Point Base
+                  </option>
+                  <option value="vehicle_air_scout">
+                    Shrike Scout Fighter
+                  </option>
+                  <option value="vehicle_air_bomber">
+                    Thundersword Bomber
+                  </option>
+                  <option value="vehicle_air_hapc">
+                    HAVOC Gunship Transport
+                  </option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
           <div className={styles.HeaderEnd}>
-            {isPack ? (
+            {browseMode === "select" && isPack ? (
               <div className={styles.DownloadSection}>
                 <button
                   type="button"
@@ -338,7 +427,7 @@ function Gallery() {
               </select>
             </div>
           </div>
-        </div>
+        </header>
         {isLoaded ? (
           <div className={styles.Gallery}>
             {filteredSkins.map((name) => {

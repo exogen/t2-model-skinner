@@ -17,9 +17,16 @@
   z-index: 2;
 }
 
-.Tools select:focus {
+.Tools a:link:focus-visible,
+.Tools button:focus-visible,
+.Tools select:focus-visible,
+.Tools input:focus-visible {
   outline: none;
   box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.5), 0 0 2px 3px rgb(152, 255, 212);
+}
+
+.InputContainer {
+  position: relative;
 }
 
 .HeaderEnd {
@@ -43,8 +50,8 @@
 .DownloadButton {
   display: inline-block;
   border: 0;
-  border-radius: 4px;
-  padding: 4px 8px 5px 8px;
+  border-radius: 3px;
+  padding: 4px 8px;
   background: rgb(14, 114, 98),
     linear-gradient(to bottom, rgb(67, 167, 130), rgb(15, 89, 87));
   color: rgb(247, 255, 220);
@@ -53,7 +60,7 @@
   letter-spacing: -0.03em;
   text-decoration: none;
   text-shadow: 0 -1px 0 rgba(25, 39, 34, 0.4);
-  margin-left: 3px;
+  margin: 0 0 0 3px;
   cursor: pointer;
 }
 
@@ -188,6 +195,34 @@
   margin: auto;
   font-size: 20px;
   animation: spin 2s linear infinite;
+}
+
+.HeaderMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.SearchButton {
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 3px 4px;
+  border: 0;
+  background: transparent;
+  font-size: 18px;
+  color: rgb(40, 217, 178);
+  cursor: pointer;
+}
+
+.SearchInput {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 6px 3px 6px;
+  border: 1px solid #666;
+  border-radius: 2px;
 }
 
 @media (max-width: 1023px) {
