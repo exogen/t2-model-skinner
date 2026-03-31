@@ -16,17 +16,17 @@ const models = [
 
 async function getSkinConfig() {
   const defaultSkins = await Promise.all(
-    models.map((name) => globby(`./public/textures/*.${name}.png`))
+    models.map((name) => globby(`./public/textures/*.${name}.png`)),
   );
 
   return {
     defaultSkins: models.reduce((skins, name, i) => {
       skins[name] = orderBy(
         defaultSkins[i].map((name) =>
-          name.replace(/(^.*\/|\.[lmh](male|female|bioderm)\.png$)/g, "")
+          name.replace(/(^.*\/|\.[lmh](male|female|bioderm)\.png$)/g, ""),
         ),
         [(name) => name.toLowerCase()],
-        ["asc"]
+        ["asc"],
       );
       return skins;
     }, {}),
@@ -260,14 +260,7 @@ async function getSkinConfig() {
           optional: true,
         },
       ],
-      elf: [
-        { label: "Weapon", name: "weapon_elf", file: "weapon_elf" },
-        {
-          label: "Glow",
-          name: "weapon_elf0",
-          file: "weapon_elf",
-        },
-      ],
+      elf: [{ label: "Weapon", name: "weapon_elf", file: "weapon_elf" }],
       missile: [{ label: "Weapon", name: "weapon_missile" }],
       mortar: [{ label: "Weapon", name: "weapon_mortar" }],
       repair: [{ label: "Weapon", name: "weapon_repair" }],
@@ -739,5 +732,5 @@ const config = await getSkinConfig();
 fs.writeFileSync(
   "./models.json",
   JSON.stringify(config, null, 2) + "\n",
-  "utf8"
+  "utf8",
 );
