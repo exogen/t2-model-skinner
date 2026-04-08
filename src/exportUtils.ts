@@ -1,10 +1,9 @@
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-
-const basePath = `https://exogen.github.io/t2-skins/skins`;
+import { SKIN_ASSET_BASE_URL } from "./deployPaths";
 
 export function createZipFile(
-  files: Array<{ name: string; data: ArrayBuffer | Blob }>
+  files: Array<{ name: string; data: ArrayBuffer | Blob }>,
 ) {
   const zip = new JSZip();
   for (const file of files) {
@@ -24,11 +23,11 @@ export function savePngFile(imageUrl: string, name: string) {
 
 export async function collectFiles(
   files: string[],
-  { skipNotFound = false }: { skipNotFound?: boolean } = {}
+  { skipNotFound = false }: { skipNotFound?: boolean } = {},
 ) {
   const results = await Promise.all(
     files.map(async (fileName) => {
-      const url = `${basePath}/${fileName}`;
+      const url = `${SKIN_ASSET_BASE_URL}/${fileName}`;
       const res = await fetch(url);
       if (!res.ok) {
         if (skipNotFound && res.status === 404) {
@@ -41,7 +40,7 @@ export async function collectFiles(
         name: fileName.replace(/@1x\.png$/, ".png"),
         data: arrayBuffer,
       };
-    })
+    }),
   );
   return results.filter((fileInfo) => fileInfo != null);
 }

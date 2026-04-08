@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SKIN_MANIFEST_URL } from "./deployPaths";
 
 export type Manifest = {
   customSkins: Record<string, string[]>;
@@ -14,7 +15,6 @@ export type Manifest = {
   sizeMultiplier: Record<string, number>;
 };
 
-const baseManifestPath = `https://exogen.github.io/t2-skins`;
 export const defaultManifest: Manifest = {
   customSkins: {},
   newSkins: {},
@@ -33,7 +33,7 @@ export default function useManifest(): [Manifest, boolean] {
     const loadCustomSkins = async () => {
       let res;
       try {
-        res = await fetch(`${baseManifestPath}/skins.json`, { signal });
+        res = await fetch(SKIN_MANIFEST_URL, { signal });
         if (!ignore) {
           const json = await res.json();
           if (!ignore) {

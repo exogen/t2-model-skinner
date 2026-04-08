@@ -20,8 +20,8 @@ import styles from "./gallery.module.css";
 import { collectFiles, createZipFile, saveZipFile } from "../../exportUtils";
 import { modelToModelType, modelTypes } from "../../importUtils";
 import modelConfig from "../../models";
+import { SKIN_GALLERY_BASE_URL } from "../../deployPaths";
 
-const baseManifestPath = `https://exogen.github.io/t2-skins`;
 const emptySkins: string[] = [];
 
 function modelToFileList(modelName: string) {
@@ -93,7 +93,7 @@ const modelOrder: Record<string, number> = {
 };
 
 function skinDataToList(
-  skinData: Record<string, string[]>
+  skinData: Record<string, string[]>,
 ): Array<{ name: string; model: string }> {
   const allSkins: Array<{ name: string; model: string }> = [];
 
@@ -104,7 +104,7 @@ function skinDataToList(
   return orderBy(
     allSkins,
     [(skin) => skin.name.toLowerCase(), (skin) => modelOrder[skin.model]],
-    ["asc", "asc"]
+    ["asc", "asc"],
   );
 }
 
@@ -115,7 +115,7 @@ function Gallery() {
     clearOnDefault: true,
   });
   const [browseMode, setBrowseMode] = useState<"select" | "search">(
-    searchQuery.trim() ? "search" : "select"
+    searchQuery.trim() ? "search" : "select",
   );
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [manifest, isLoaded] = useManifest();
@@ -125,7 +125,7 @@ function Gallery() {
   });
   const [isPreparingDownload, setPreparingDownload] = useState(false);
   const [hiResDownload, setHiResDownload] = useState<"prompt" | "yes" | "no">(
-    "prompt"
+    "prompt",
   );
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
   const customSkins = manifest.customSkins?.[actualModel] ?? emptySkins;
@@ -152,12 +152,12 @@ function Gallery() {
         const fileNames = pack.files;
 
         const hasHiRes = fileNames.some(
-          (fileName) => manifest.sizeMultiplier[fileName] > 1
+          (fileName) => manifest.sizeMultiplier[fileName] > 1,
         );
 
         if (hasHiRes && hiResDownload === "prompt") {
           window.alert(
-            "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again."
+            "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again.",
           );
           if (hiResSelectRef.current) {
             hiResSelectRef.current.focus();
@@ -213,7 +213,7 @@ function Gallery() {
     return orderBy(
       Object.keys(manifest?.packs ?? {}),
       (name) => name.toLowerCase(),
-      ["asc"]
+      ["asc"],
     );
   }, [manifest]);
 
@@ -221,8 +221,8 @@ function Gallery() {
     const skinData = isNew
       ? manifest?.newSkins
       : isPack
-      ? manifest?.packs?.[selectedModel]?.skins
-      : null;
+        ? manifest?.packs?.[selectedModel]?.skins
+        : null;
     if (skinData) {
       return skinDataToList(skinData);
     } else {
@@ -250,8 +250,8 @@ function Gallery() {
     browseMode === "search" && hasSearchInput
       ? searchResults
       : isNew || isPack
-      ? selectedSkinList
-      : customSkins;
+        ? selectedSkinList
+        : customSkins;
 
   useEffect(() => {
     setPreparingDownload(false);
@@ -288,7 +288,7 @@ function Gallery() {
               title={browseMode === "select" ? "Search" : "Close search mode"}
               onClick={() => {
                 setBrowseMode((mode) =>
-                  mode === "select" ? "search" : "select"
+                  mode === "select" ? "search" : "select",
                 );
                 setSearchQuery("");
               }}
@@ -440,8 +440,8 @@ function Gallery() {
                 skinName = name.name;
                 skinModel = name.model;
               }
-              const url = `${baseManifestPath}/gallery/${encodeURIComponent(
-                skinName
+              const url = `${SKIN_GALLERY_BASE_URL}/${encodeURIComponent(
+                skinName,
               )}.${skinModel}.webp`;
 
               return (
@@ -458,7 +458,7 @@ function Gallery() {
                     <Link
                       className={styles.LoadInEditor}
                       href={`/?m=${skinModel}&s=${encodeURIComponent(
-                        skinName
+                        skinName,
                       )}`}
                     >
                       <BsBadge3dFill
@@ -476,7 +476,7 @@ function Gallery() {
                         const modelType = modelToModelType(skinModel);
                         const camelCaseModelName = skinModel.replace(
                           /(?:^([a-z])|_([a-z]))/g,
-                          (match, a, b) => (a || b).toUpperCase()
+                          (match, a, b) => (a || b).toUpperCase(),
                         );
                         let zipFileName = "";
                         let fileNames: string[] = [];
@@ -487,34 +487,34 @@ function Gallery() {
                             fileNames = modelTypes.player
                               .filter((modelName) =>
                                 manifest.customSkins[modelName].includes(
-                                  skinName
-                                )
+                                  skinName,
+                                ),
                               )
                               .map(
-                                (modelName) => `${skinName}.${modelName}.png`
+                                (modelName) => `${skinName}.${modelName}.png`,
                               );
                             break;
                           case "weapon":
                             zipFileName = `zWeapon${camelCaseModelName}-${skinName}.vl2`;
                             fileNames = modelToFileList(skinModel).map(
-                              (fileName) => `${skinName}/${fileName}`
+                              (fileName) => `${skinName}/${fileName}`,
                             );
                             break;
                           case "vehicle":
                             zipFileName = `z${camelCaseModelName}-${skinName}.vl2`;
                             fileNames = modelToFileList(skinModel).map(
-                              (fileName) => `${skinName}/${fileName}`
+                              (fileName) => `${skinName}/${fileName}`,
                             );
                             break;
                         }
                         if (fileNames.length) {
                           const hasHiRes = fileNames.some(
-                            (fileName) => manifest.sizeMultiplier[fileName] > 1
+                            (fileName) => manifest.sizeMultiplier[fileName] > 1,
                           );
 
                           if (hasHiRes && hiResDownload === "prompt") {
                             window.alert(
-                              "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again."
+                              "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again.",
                             );
                             if (hiResSelectRef.current) {
                               hiResSelectRef.current.focus();
@@ -534,7 +534,7 @@ function Gallery() {
                           if (hasHiRes && hiResDownload === "no") {
                             zipFileName = zipFileName.replace(
                               /\.vl2$/,
-                              "@1x.vl2"
+                              "@1x.vl2",
                             );
                           }
 
@@ -547,7 +547,7 @@ function Gallery() {
                                 name: name.split("/").slice(-1)[0],
                                 data,
                               };
-                            })
+                            }),
                           );
                           await saveZipFile(zip, zipFileName);
                         }

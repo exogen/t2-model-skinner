@@ -5,9 +5,9 @@ import { WarriorContext } from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 import type { Skin } from "./importUtils";
 import modelConfig from "./models";
+import { SKIN_ASSET_BASE_URL } from "./deployPaths";
 
 const { materials, modelDefaults, defaultSkins } = modelConfig;
-const baseSkinPath = `https://exogen.github.io/t2-skins/skins`;
 
 let IMPORTED_SKINS: Map<string, Map<string | null, Skin>> = new Map();
 
@@ -121,7 +121,7 @@ export function getSkinImageUrls({
           };
         case "custom":
           return {
-            base: [`${baseSkinPath}/${selectedSkin}.${actualModel}.png`],
+            base: [`${SKIN_ASSET_BASE_URL}/${selectedSkin}.${actualModel}.png`],
           };
       }
       break;
@@ -130,7 +130,7 @@ export function getSkinImageUrls({
       return materialDefs.reduce(
         (
           skinImageUrls: Record<string, string[]>,
-          materialDef: MaterialDefinition
+          materialDef: MaterialDefinition,
         ) => {
           if (materialDef) {
             const frameCount = materialDef.frameCount ?? 1;
@@ -140,7 +140,7 @@ export function getSkinImageUrls({
                   skinImageUrls[materialDef.file ?? materialDef.name] =
                     getFrameNames(
                       materialDef.file ?? materialDef.name,
-                      frameCount
+                      frameCount,
                     ).map((name) => `${basePath}/textures/${name}.png`);
                 }
                 break;
@@ -148,16 +148,17 @@ export function getSkinImageUrls({
                 skinImageUrls[materialDef.file ?? materialDef.name] =
                   getFrameNames(
                     materialDef.file ?? materialDef.name,
-                    frameCount
+                    frameCount,
                   ).map(
-                    (name) => `${baseSkinPath}/${selectedSkin}/${name}.png`
+                    (name) =>
+                      `${SKIN_ASSET_BASE_URL}/${selectedSkin}/${name}.png`,
                   );
                 break;
             }
           }
           return skinImageUrls;
         },
-        {}
+        {},
       );
   }
   return {};
@@ -166,7 +167,7 @@ export function getSkinImageUrls({
 function getModelUrl(
   basePath: string,
   actualModel: string,
-  selectedAnimation: string | null
+  selectedAnimation: string | null,
 ) {
   switch (actualModel) {
     default:
@@ -185,13 +186,13 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
   const [selectedModel, setSelectedModel] = useState<string>("lmale");
   const [selectedModelType, setSelectedModelType] = useState("player");
   const [selectedSkin, setSelectedSkin] = useState<string | null>(
-    "Blood Eagle"
+    "Blood Eagle",
   );
   const [selectedSkinType, setSelectedSkinType] = useState<string | null>(
-    "default"
+    "default",
   );
   const [selectedAnimation, setSelectedAnimation] = useState<string | null>(
-    null
+    null,
   );
   const [animationPaused, setAnimationPaused] = useState(false);
   const [slowModeEnabled, setSlowModeEnabled] = useState(false);
@@ -200,7 +201,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
   const selectedModelUrl = getModelUrl(
     basePath,
     actualModel,
-    selectedAnimation
+    selectedAnimation,
   );
   const [importedSkins, setImportedSkins] = useState(IMPORTED_SKINS);
 
@@ -217,7 +218,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
         selectedModelType,
         selectedSkin,
         selectedSkinType,
-      })
+      }),
   );
 
   const defaultSkinImageUrls = useMemo(
@@ -229,7 +230,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
         selectedSkin: modelDefaults[actualModel],
         selectedSkinType: "default",
       }),
-    [actualModel, basePath, selectedModelType]
+    [actualModel, basePath, selectedModelType],
   );
 
   const context = useMemo(() => {
