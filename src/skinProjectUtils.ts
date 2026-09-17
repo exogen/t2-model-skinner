@@ -34,7 +34,9 @@ export interface SkinProjectFile {
   version: number;
   textureSize: [number, number];
   background?: SkinProjectObject;
+  metallicBackground?: SkinProjectObject;
   objects: SkinProjectObject[];
+  metallicObjects: SkinProjectObject[];
 }
 
 export interface SkinProjectLoadedObject extends SkinProjectObject {
@@ -42,9 +44,14 @@ export interface SkinProjectLoadedObject extends SkinProjectObject {
 }
 
 export interface SkinProjectLoaded
-  extends Omit<SkinProjectFile, "objects" | "background"> {
+  extends Omit<
+    SkinProjectFile,
+    "objects" | "metallicObjects" | "background" | "metallicBackground"
+  > {
   background?: SkinProjectLoadedObject;
+  metallicBackground?: SkinProjectLoadedObject;
   objects: SkinProjectLoadedObject[];
+  metallicObjects: SkinProjectLoadedObject[];
 }
 
 /**
@@ -127,13 +134,19 @@ function extractFilterSettings(object: FabricObject): SkinProjectFilterSettings 
   return settings;
 }
 
-// Applies previously extracted filter settings to a restored FabricImage.
+// Applies previously extracted filter settings to a restored FabricImage. The
+// metallic canvas always renders in grayscale (an app-managed filter, not a
+// user-editable setting), so it isn't part of SkinProjectFilterSettings.
 function applyFilterSettings(
   image: FabricImage,
-  settings: SkinProjectFilterSettings | undefined
+  settings: SkinProjectFilterSettings | undefined,
+  { grayscale = false }: { grayscale?: boolean } = {}
 ) {
   image.opacity = settings?.opacity ?? 1;
   const newFilters = [];
+  if (grayscale) {
+    newFilters.push(new filters.Grayscale());
+  }
   if (settings?.hueRotation) {
     newFilters.push(new filters.HueRotation({ rotation: settings.hueRotation }));
   }
@@ -150,6 +163,33 @@ function applyFilterSettings(
   if (newFilters.length) {
     image.applyFilters();
   }
+}
+
+// Recreates a locked, non-selectable base layer image from a restored background entry.
+async function restoreLockedBaseLayerImage(
+  info: SkinProjectLoadedObject,
+  { grayscale = false }: { grayscale?: boolean } = {}
+): Promise<FabricImage> {
+  const image = await createFabricImage(info.imageUrl);
+  image.set({
+    left: info.left,
+    top: info.top,
+    angle: info.angle,
+    scaleX: info.scaleX,
+    scaleY: info.scaleY,
+    flipX: info.flipX,
+    flipY: info.flipY,
+    selectable: false,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockRotation: true,
+    hoverCursor: "default",
+    moveCursor: "default",
+  });
+  applyFilterSettings(image, info.filterSettings, { grayscale });
+  return image;
 }
 
 function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
@@ -179,11 +219,12 @@ function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
 }
 
 export async function createSkinProjectZip(
-  canvas: FabricCanvas,
-  textureSize: [number, number]
+  colorCanvas: FabricCanvas,
+  textureSize: [number, number],
+  metallicCanvas?: FabricCanvas | null
 ) {
   const zip = new JSZip();
-  const objects = getEditableObjects(canvas);
+  const objects = getEditableObjects(colorCanvas);
   const projectObjects = await Promise.all(
     objects.map(async (object, index) => {
       const filename = `layer-${index}.png`;
@@ -193,7 +234,7 @@ export async function createSkinProjectZip(
     })
   );
 
-  const baseLayer = getLockedBaseLayer(canvas);
+  const baseLayer = getLockedBaseLayer(colorCanvas);
   let background: SkinProjectObject | undefined;
   if (baseLayer) {
     const blob = await imageObjectToPngBlob(baseLayer);
@@ -201,11 +242,40 @@ export async function createSkinProjectZip(
     background = serializeObjectTransform(baseLayer, "background.png", -1);
   }
 
+  // Metallic layers are kept separate from the color layers above so each is
+  // restored to the correct canvas; paint-mode strokes are not FabricImages
+  // and so are naturally left out of getEditableObjects().
+  const metallicObjects = metallicCanvas ? getEditableObjects(metallicCanvas) : [];
+  const projectMetallicObjects = await Promise.all(
+    metallicObjects.map(async (object, index) => {
+      const filename = `metallic-layer-${index}.png`;
+      const blob = await imageObjectToPngBlob(object);
+      zip.file(filename, blob);
+      return serializeObjectTransform(object, filename, index);
+    })
+  );
+
+  const metallicBaseLayer = metallicCanvas
+    ? getLockedBaseLayer(metallicCanvas)
+    : undefined;
+  let metallicBackground: SkinProjectObject | undefined;
+  if (metallicBaseLayer) {
+    const blob = await imageObjectToPngBlob(metallicBaseLayer);
+    zip.file("metallic-background.png", blob);
+    metallicBackground = serializeObjectTransform(
+      metallicBaseLayer,
+      "metallic-background.png",
+      -1
+    );
+  }
+
   const project: SkinProjectFile = {
     version: SKIN_PROJECT_VERSION,
     textureSize,
     background,
+    metallicBackground,
     objects: projectObjects,
+    metallicObjects: projectMetallicObjects,
   };
   zip.file("project.json", JSON.stringify(project, null, 2));
   return zip;
@@ -221,89 +291,105 @@ export async function readSkinProjectZip(
   }
   const projectJson = await projectFile.async("string");
   const project: SkinProjectFile = JSON.parse(projectJson);
-  const objects = await Promise.all(
-    project.objects
-      .slice()
-      .sort((a, b) => a.zIndex - b.zIndex)
-      .map(async (objectInfo) => {
-        const imageFile = content.file(objectInfo.filename);
-        if (!imageFile) {
-          throw new Error(`Missing image file in skin project: ${objectInfo.filename}`);
-        }
-        const base64 = await imageFile.async("base64");
-        return {
-          ...objectInfo,
-          imageUrl: `data:image/png;base64,${base64}`,
-        };
-      })
-  );
 
-  let background: SkinProjectLoadedObject | undefined;
-  if (project.background) {
-    const backgroundFile = content.file(project.background.filename);
-    if (!backgroundFile) {
-      throw new Error(
-        `Missing image file in skin project: ${project.background.filename}`
-      );
+  const loadImageForObject = async (
+    objectInfo: SkinProjectObject
+  ): Promise<SkinProjectLoadedObject> => {
+    const imageFile = content.file(objectInfo.filename);
+    if (!imageFile) {
+      throw new Error(`Missing image file in skin project: ${objectInfo.filename}`);
     }
-    const base64 = await backgroundFile.async("base64");
-    background = {
-      ...project.background,
-      imageUrl: `data:image/png;base64,${base64}`,
-    };
-  }
+    const base64 = await imageFile.async("base64");
+    return { ...objectInfo, imageUrl: `data:image/png;base64,${base64}` };
+  };
 
-  return { ...project, background, objects };
+  const loadObjectImages = (objectInfos: SkinProjectObject[]) =>
+    Promise.all(
+      objectInfos
+        .slice()
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .map(loadImageForObject)
+    );
+
+  const objects = await loadObjectImages(project.objects);
+  const metallicObjects = await loadObjectImages(project.metallicObjects ?? []);
+
+  const background = project.background
+    ? await loadImageForObject(project.background)
+    : undefined;
+  const metallicBackground = project.metallicBackground
+    ? await loadImageForObject(project.metallicBackground)
+    : undefined;
+
+  return { ...project, background, metallicBackground, objects, metallicObjects };
+}
+
+// Recreates a restored editable layer image (position/transform/filters), unlocked.
+async function restoreEditableLayerImage(
+  info: SkinProjectLoadedObject,
+  { grayscale = false }: { grayscale?: boolean } = {}
+): Promise<FabricImage> {
+  const image = await createFabricImage(info.imageUrl);
+  image.set({
+    left: info.left,
+    top: info.top,
+    angle: info.angle,
+    scaleX: info.scaleX,
+    scaleY: info.scaleY,
+    flipX: info.flipX,
+    flipY: info.flipY,
+  });
+  applyFilterSettings(image, info.filterSettings, { grayscale });
+  return image;
 }
 
 export async function applySkinProjectToCanvas(
-  canvas: FabricCanvas,
-  project: SkinProjectLoaded
+  colorCanvas: FabricCanvas,
+  project: SkinProjectLoaded,
+  metallicCanvas?: FabricCanvas | null
 ) {
-  const existingObjects = getEditableObjects(canvas);
-  canvas.remove(...existingObjects);
+  const existingObjects = getEditableObjects(colorCanvas);
+  colorCanvas.remove(...existingObjects);
 
   if (project.background) {
-    const existingBase = getLockedBaseLayer(canvas);
+    const existingBase = getLockedBaseLayer(colorCanvas);
     if (existingBase) {
-      canvas.remove(existingBase);
+      colorCanvas.remove(existingBase);
     }
-    const backgroundImage = await createFabricImage(project.background.imageUrl);
-    backgroundImage.set({
-      left: project.background.left,
-      top: project.background.top,
-      angle: project.background.angle,
-      scaleX: project.background.scaleX,
-      scaleY: project.background.scaleY,
-      flipX: project.background.flipX,
-      flipY: project.background.flipY,
-      selectable: false,
-      lockMovementX: true,
-      lockMovementY: true,
-      lockScalingX: true,
-      lockScalingY: true,
-      lockRotation: true,
-      hoverCursor: "default",
-      moveCursor: "default",
-    });
-    applyFilterSettings(backgroundImage, project.background.filterSettings);
+    const backgroundImage = await restoreLockedBaseLayerImage(project.background);
     // Added before the editable layers so it stays behind them in the stack.
-    canvas.add(backgroundImage);
+    colorCanvas.add(backgroundImage);
   }
 
   for (const objectInfo of project.objects) {
-    const image = await createFabricImage(objectInfo.imageUrl);
-    image.set({
-      left: objectInfo.left,
-      top: objectInfo.top,
-      angle: objectInfo.angle,
-      scaleX: objectInfo.scaleX,
-      scaleY: objectInfo.scaleY,
-      flipX: objectInfo.flipX,
-      flipY: objectInfo.flipY,
-    });
-    applyFilterSettings(image, objectInfo.filterSettings);
-    canvas.add(image);
+    const image = await restoreEditableLayerImage(objectInfo);
+    colorCanvas.add(image);
   }
-  canvas.requestRenderAll();
+  colorCanvas.requestRenderAll();
+
+  if (metallicCanvas) {
+    const existingMetallicObjects = getEditableObjects(metallicCanvas);
+    metallicCanvas.remove(...existingMetallicObjects);
+
+    if (project.metallicBackground) {
+      const existingMetallicBase = getLockedBaseLayer(metallicCanvas);
+      if (existingMetallicBase) {
+        metallicCanvas.remove(existingMetallicBase);
+      }
+      const metallicBackgroundImage = await restoreLockedBaseLayerImage(
+        project.metallicBackground,
+        { grayscale: true }
+      );
+      metallicCanvas.add(metallicBackgroundImage);
+      // Paint-mode strokes aren't touched above, so explicitly send the
+      // restored background behind them instead of relying on add-order.
+      metallicCanvas.sendObjectToBack(metallicBackgroundImage);
+    }
+
+    for (const objectInfo of project.metallicObjects) {
+      const image = await restoreEditableLayerImage(objectInfo, { grayscale: true });
+      metallicCanvas.add(image);
+    }
+    metallicCanvas.requestRenderAll();
+  }
 }

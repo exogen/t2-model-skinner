@@ -124,14 +124,22 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const activeCanvas = materialDef
     ? `${materialDef.name}:${activeCanvasType}:${selectedFrameIndex}:${sizeMultiplier}`
     : null;
+  const colorCanvasId = materialDef
+    ? `${materialDef.name}:color:${selectedFrameIndex}:${sizeMultiplier}`
+    : null;
   const metallicCanvasId = materialDef
     ? `${materialDef.name}:metallic:${selectedFrameIndex}:${sizeMultiplier}`
     : null;
   const { canvases } = useCanvas();
   const { canvas, notifyChange, undo, redo, canUndo, canRedo } =
     useCanvas(activeCanvas);
-  const { canvas: metallicCanvas, setDrawingMode } =
-    useCanvas(metallicCanvasId);
+  const { canvas: colorCanvas, notifyChange: notifyColorChange } =
+    useCanvas(colorCanvasId);
+  const {
+    canvas: metallicCanvas,
+    notifyChange: notifyMetallicChange,
+    setDrawingMode,
+  } = useCanvas(metallicCanvasId);
   const { combineColorAndAlphaImageUrls } = useImageWorker();
   const { canvasPadding } = useSettings();
   const [filterChanges, setFilterChanges] = useState<
@@ -571,31 +579,38 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   const exportSkinProject = useCallback(
     async (name: string) => {
-      if (!canvas) {
+      if (!colorCanvas) {
         return;
       }
       const { saveZipFile } = await import("./exportUtils");
       const { createSkinProjectZip } = await import("./skinProjectUtils");
-      const zip = await createSkinProjectZip(canvas, textureSize);
+      const zip = await createSkinProjectZip(
+        colorCanvas,
+        textureSize,
+        metallicCanvas
+      );
       const filename = `${name.trim() || "MyCustomSkin"}.skin`;
       await saveZipFile(zip, filename);
     },
-    [canvas, textureSize]
+    [colorCanvas, textureSize, metallicCanvas]
   );
 
   const loadSkinProject = useCallback(
     async (file: File | Blob) => {
-      if (!canvas) {
+      if (!colorCanvas) {
         return;
       }
       const { readSkinProjectZip, applySkinProjectToCanvas } = await import(
         "./skinProjectUtils"
       );
       const project = await readSkinProjectZip(file);
-      await applySkinProjectToCanvas(canvas, project);
-      notifyChange();
+      await applySkinProjectToCanvas(colorCanvas, project, metallicCanvas);
+      notifyColorChange();
+      if (metallicCanvas) {
+        notifyMetallicChange();
+      }
     },
-    [canvas, notifyChange]
+    [colorCanvas, metallicCanvas, notifyColorChange, notifyMetallicChange]
   );
 
   const context = useMemo(
