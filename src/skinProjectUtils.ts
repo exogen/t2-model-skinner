@@ -14,13 +14,12 @@ export interface SkinProjectObject {
   scaleY: number;
   flipX: boolean;
   flipY: boolean;
-  originX: string;
-  originY: string;
 }
 
 export interface SkinProjectFile {
   version: number;
   textureSize: [number, number];
+  background?: SkinProjectObject;
   objects: SkinProjectObject[];
 }
 
@@ -28,7 +27,9 @@ export interface SkinProjectLoadedObject extends SkinProjectObject {
   imageUrl: string;
 }
 
-export interface SkinProjectLoaded extends Omit<SkinProjectFile, "objects"> {
+export interface SkinProjectLoaded
+  extends Omit<SkinProjectFile, "objects" | "background"> {
+  background?: SkinProjectLoadedObject;
   objects: SkinProjectLoadedObject[];
 }
 
@@ -49,12 +50,40 @@ function isLockedBaseLayer(object: FabricObject) {
   );
 }
 
+// Retrieves all user-editable image objects from the canvas, excluding the locked base layer.
 export function getEditableObjects(canvas: FabricCanvas) {
   return canvas
     .getObjects()
     .filter((object): object is FabricImage => {
       return object instanceof FabricImage && !isLockedBaseLayer(object);
     });
+}
+
+// Retrieves the locked base layer (background) image from the canvas, if it exists.
+// This is a sibling function to getEditableObjects, but specifically for the locked base layer which is excluded by that function.
+function getLockedBaseLayer(canvas: FabricCanvas): FabricImage | undefined {
+  return canvas.getObjects().find((object): object is FabricImage => {
+    return object instanceof FabricImage && isLockedBaseLayer(object);
+  });
+}
+
+// Serializes the properties of a FabricObject into a SkinProjectObject.
+function serializeObjectTransform(
+  object: FabricObject,
+  filename: string,
+  zIndex: number
+): SkinProjectObject {
+  return {
+    filename,
+    zIndex,
+    left: object.left ?? 0,
+    top: object.top ?? 0,
+    angle: object.angle ?? 0,
+    scaleX: object.scaleX ?? 1,
+    scaleY: object.scaleY ?? 1,
+    flipX: Boolean(object.flipX),
+    flipY: Boolean(object.flipY),
+  };
 }
 
 function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
@@ -91,25 +120,22 @@ export async function createSkinProjectZip(
       const filename = `layer-${index}.png`;
       const blob = await imageObjectToPngBlob(object);
       zip.file(filename, blob);
-      const projectObject: SkinProjectObject = {
-        filename,
-        zIndex: index,
-        left: object.left ?? 0,
-        top: object.top ?? 0,
-        angle: object.angle ?? 0,
-        scaleX: object.scaleX ?? 1,
-        scaleY: object.scaleY ?? 1,
-        flipX: Boolean(object.flipX),
-        flipY: Boolean(object.flipY),
-        originX: String(object.originX ?? "left"),
-        originY: String(object.originY ?? "top"),
-      };
-      return projectObject;
+      return serializeObjectTransform(object, filename, index);
     })
   );
+
+  const baseLayer = getLockedBaseLayer(canvas);
+  let background: SkinProjectObject | undefined;
+  if (baseLayer) {
+    const blob = await imageObjectToPngBlob(baseLayer);
+    zip.file("background.png", blob);
+    background = serializeObjectTransform(baseLayer, "background.png", -1);
+  }
+
   const project: SkinProjectFile = {
     version: SKIN_PROJECT_VERSION,
     textureSize,
+    background,
     objects: projectObjects,
   };
   zip.file("project.json", JSON.stringify(project, null, 2));
@@ -142,7 +168,23 @@ export async function readSkinProjectZip(
         };
       })
   );
-  return { ...project, objects };
+
+  let background: SkinProjectLoadedObject | undefined;
+  if (project.background) {
+    const backgroundFile = content.file(project.background.filename);
+    if (!backgroundFile) {
+      throw new Error(
+        `Missing image file in skin project: ${project.background.filename}`
+      );
+    }
+    const base64 = await backgroundFile.async("base64");
+    background = {
+      ...project.background,
+      imageUrl: `data:image/png;base64,${base64}`,
+    };
+  }
+
+  return { ...project, background, objects };
 }
 
 export async function applySkinProjectToCanvas(
@@ -151,6 +193,34 @@ export async function applySkinProjectToCanvas(
 ) {
   const existingObjects = getEditableObjects(canvas);
   canvas.remove(...existingObjects);
+
+  if (project.background) {
+    const existingBase = getLockedBaseLayer(canvas);
+    if (existingBase) {
+      canvas.remove(existingBase);
+    }
+    const backgroundImage = await createFabricImage(project.background.imageUrl);
+    backgroundImage.set({
+      left: project.background.left,
+      top: project.background.top,
+      angle: project.background.angle,
+      scaleX: project.background.scaleX,
+      scaleY: project.background.scaleY,
+      flipX: project.background.flipX,
+      flipY: project.background.flipY,
+      selectable: false,
+      lockMovementX: true,
+      lockMovementY: true,
+      lockScalingX: true,
+      lockScalingY: true,
+      lockRotation: true,
+      hoverCursor: "default",
+      moveCursor: "default",
+    });
+    // Added before the editable layers so it stays behind them in the stack.
+    canvas.add(backgroundImage);
+  }
+
   for (const objectInfo of project.objects) {
     const image = await createFabricImage(objectInfo.imageUrl);
     image.set({
@@ -161,8 +231,6 @@ export async function applySkinProjectToCanvas(
       scaleY: objectInfo.scaleY,
       flipX: objectInfo.flipX,
       flipY: objectInfo.flipY,
-      originX: objectInfo.originX,
-      originY: objectInfo.originY,
     });
     canvas.add(image);
   }
