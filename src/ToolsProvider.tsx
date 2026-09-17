@@ -49,6 +49,12 @@ function materialHasMetallic(material: MaterialDefinition) {
   return !(material.metallicFactor === 0 && material.roughnessFactor === 1);
 }
 
+// Key used for a material's zip subfolder; multi-frame materials get one subfolder per frame.
+function materialArchiveKey(material: MaterialDefinition, frameIndex: number) {
+  const frameCount = material.frameCount ?? 1;
+  return frameCount > 1 ? `${material.name}-frame${frameIndex}` : material.name;
+}
+
 type ObjectFilters = {
   HueRotation?: number;
   Saturation?: number;
@@ -578,21 +584,34 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       const materialInputs = materialDefs
         .filter(isEditableMaterial)
         .map((material) => {
-          const colorCanvas =
-            canvases[`${material.name}:color:0:${sizeMultiplier}`]?.canvas;
-          if (!colorCanvas) {
-            return null;
-          }
-          const metallicCanvas = materialHasMetallic(material)
-            ? canvases[`${material.name}:metallic:0:${sizeMultiplier}`]?.canvas
-            : null;
           const baseTextureSize = material.size ?? defaultTextureSize;
           const textureSize: [number, number] = [
             baseTextureSize[0] * sizeMultiplier,
             baseTextureSize[1] * sizeMultiplier,
           ];
-          return { name: material.name, textureSize, colorCanvas, metallicCanvas };
+          const frameCount = material.frameCount ?? 1;
+          const frames = new Array(frameCount).fill(null);
+          return frames.map((_, frameIndex) => {
+            const colorCanvas =
+              canvases[`${material.name}:color:${frameIndex}:${sizeMultiplier}`]
+                ?.canvas;
+            if (!colorCanvas) {
+              return null;
+            }
+            const metallicCanvas = materialHasMetallic(material)
+              ? canvases[
+                  `${material.name}:metallic:${frameIndex}:${sizeMultiplier}`
+                ]?.canvas
+              : null;
+            return {
+              name: materialArchiveKey(material, frameIndex),
+              textureSize,
+              colorCanvas,
+              metallicCanvas,
+            };
+          });
         })
+        .flat()
         .filter((input): input is NonNullable<typeof input> => input !== null);
 
       if (!materialInputs.length) {
@@ -618,28 +637,31 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         if (!isEditableMaterial(material)) {
           continue;
         }
-        const loaded = materialsByName[material.name];
-        if (!loaded) {
-          continue;
-        }
-        const colorCanvasId = `${material.name}:color:0:${sizeMultiplier}`;
-        const colorCanvas = canvases[colorCanvasId]?.canvas;
-        if (!colorCanvas) {
-          continue;
-        }
-        const metallicCanvasId = `${material.name}:metallic:0:${sizeMultiplier}`;
-        const metallicCanvas = materialHasMetallic(material)
-          ? canvases[metallicCanvasId]?.canvas
-          : null;
-        const lockedObjects = await applySkinProjectToCanvas(
-          colorCanvas,
-          loaded,
-          metallicCanvas
-        );
-        restoredLockedObjects.push(...lockedObjects);
-        canvases[colorCanvasId]?.notifyChange();
-        if (metallicCanvas) {
-          canvases[metallicCanvasId]?.notifyChange();
+        const frameCount = material.frameCount ?? 1;
+        for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+          const loaded = materialsByName[materialArchiveKey(material, frameIndex)];
+          if (!loaded) {
+            continue;
+          }
+          const colorCanvasId = `${material.name}:color:${frameIndex}:${sizeMultiplier}`;
+          const colorCanvas = canvases[colorCanvasId]?.canvas;
+          if (!colorCanvas) {
+            continue;
+          }
+          const metallicCanvasId = `${material.name}:metallic:${frameIndex}:${sizeMultiplier}`;
+          const metallicCanvas = materialHasMetallic(material)
+            ? canvases[metallicCanvasId]?.canvas
+            : null;
+          const lockedObjects = await applySkinProjectToCanvas(
+            colorCanvas,
+            loaded,
+            metallicCanvas
+          );
+          restoredLockedObjects.push(...lockedObjects);
+          canvases[colorCanvasId]?.notifyChange();
+          if (metallicCanvas) {
+            canvases[metallicCanvasId]?.notifyChange();
+          }
         }
       }
       if (restoredLockedObjects.length) {
