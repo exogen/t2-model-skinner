@@ -1,8 +1,21 @@
 import JSZip from "jszip";
-import { FabricImage, Canvas as FabricCanvas, FabricObject } from "fabric";
+import {
+  FabricImage,
+  Canvas as FabricCanvas,
+  FabricObject,
+  filters,
+} from "fabric";
 import { createFabricImage } from "./fabricUtils";
 
 export const SKIN_PROJECT_VERSION = 1;
+
+export interface SkinProjectFilterSettings {
+  hueRotation: number;
+  saturation: number;
+  brightness: number;
+  contrast: number;
+  opacity: number;
+}
 
 export interface SkinProjectObject {
   filename: string;
@@ -14,6 +27,7 @@ export interface SkinProjectObject {
   scaleY: number;
   flipX: boolean;
   flipY: boolean;
+  filterSettings: SkinProjectFilterSettings;
 }
 
 export interface SkinProjectFile {
@@ -83,7 +97,59 @@ function serializeObjectTransform(
     scaleY: object.scaleY ?? 1,
     flipX: Boolean(object.flipX),
     flipY: Boolean(object.flipY),
+    filterSettings: extractFilterSettings(object),
   };
+}
+
+// Reads only the app-exposed filter values (hue/saturation/brightness/contrast/opacity);
+// other filters (e.g. the metallic canvas's grayscale filter) aren't user-editable and are ignored.
+function extractFilterSettings(object: FabricObject): SkinProjectFilterSettings {
+  const settings: SkinProjectFilterSettings = {
+    hueRotation: 0,
+    saturation: 0,
+    brightness: 0,
+    contrast: 0,
+    opacity: object.opacity ?? 1,
+  };
+  if (object instanceof FabricImage) {
+    for (const filter of object.filters ?? []) {
+      if (filter instanceof filters.HueRotation) {
+        settings.hueRotation = filter.rotation;
+      } else if (filter instanceof filters.Saturation) {
+        settings.saturation = filter.saturation;
+      } else if (filter instanceof filters.Brightness) {
+        settings.brightness = filter.brightness;
+      } else if (filter instanceof filters.Contrast) {
+        settings.contrast = filter.contrast;
+      }
+    }
+  }
+  return settings;
+}
+
+// Applies previously extracted filter settings to a restored FabricImage.
+function applyFilterSettings(
+  image: FabricImage,
+  settings: SkinProjectFilterSettings | undefined
+) {
+  image.opacity = settings?.opacity ?? 1;
+  const newFilters = [];
+  if (settings?.hueRotation) {
+    newFilters.push(new filters.HueRotation({ rotation: settings.hueRotation }));
+  }
+  if (settings?.saturation) {
+    newFilters.push(new filters.Saturation({ saturation: settings.saturation }));
+  }
+  if (settings?.brightness) {
+    newFilters.push(new filters.Brightness({ brightness: settings.brightness }));
+  }
+  if (settings?.contrast) {
+    newFilters.push(new filters.Contrast({ contrast: settings.contrast }));
+  }
+  image.filters = newFilters;
+  if (newFilters.length) {
+    image.applyFilters();
+  }
 }
 
 function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
@@ -220,6 +286,7 @@ export async function applySkinProjectToCanvas(
       hoverCursor: "default",
       moveCursor: "default",
     });
+    applyFilterSettings(backgroundImage, project.background.filterSettings);
     // Added before the editable layers so it stays behind them in the stack.
     canvas.add(backgroundImage);
   }
@@ -235,6 +302,7 @@ export async function applySkinProjectToCanvas(
       flipX: objectInfo.flipX,
       flipY: objectInfo.flipY,
     });
+    applyFilterSettings(image, objectInfo.filterSettings);
     canvas.add(image);
   }
   canvas.requestRenderAll();
