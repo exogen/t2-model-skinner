@@ -41,6 +41,7 @@ export interface SkinProjectObject {
   scaleY: number;
   flipX: boolean;
   flipY: boolean;
+  locked: boolean;
   filterSettings: SkinProjectFilterSettings;
 }
 
@@ -83,8 +84,13 @@ export interface SkinProjectLoaded
  * and exclude it when serializing/restoring the user's editable layers.
  */
 function isLockedBaseLayer(object: FabricObject) {
+  return object.selectable === false && isLockedObject(object);
+}
+
+// True for objects locked via the app's "lock selection" tool (still selectable),
+// as well as the (always non-selectable) locked base layer.
+function isLockedObject(object: FabricObject) {
   return (
-    object.selectable === false &&
     object.lockMovementX === true &&
     object.lockMovementY === true &&
     object.lockScalingX === true &&
@@ -131,6 +137,7 @@ function serializeObjectTransform(
     scaleY: object.scaleY ?? 1,
     flipX: Boolean(object.flipX),
     flipY: Boolean(object.flipY),
+    locked: isLockedObject(object),
     filterSettings: extractFilterSettings(object),
   };
 }
@@ -426,7 +433,7 @@ export async function readSkinProjectZip(
   return result;
 }
 
-// Recreates a restored editable layer image (position/transform/filters), unlocked.
+// Recreates a restored editable layer image, reapplying its locked state.
 async function restoreEditableLayerImage(
   info: SkinProjectLoadedObject,
   { grayscale = false }: { grayscale?: boolean } = {}
@@ -440,16 +447,25 @@ async function restoreEditableLayerImage(
     scaleY: info.scaleY,
     flipX: info.flipX,
     flipY: info.flipY,
+    lockMovementX: info.locked,
+    lockMovementY: info.locked,
+    lockScalingX: info.locked,
+    lockScalingY: info.locked,
+    lockRotation: info.locked,
   });
   applyFilterSettings(image, info.filterSettings, { grayscale });
   return image;
 }
 
+// Returns the restored objects that should be tracked as locked (via the app's
+// "lock selection" tool state), since that's a separate Set kept by the caller.
 export async function applySkinProjectToCanvas(
   colorCanvas: FabricCanvas,
   project: SkinProjectLoaded,
   metallicCanvas?: FabricCanvas | null
-) {
+): Promise<FabricObject[]> {
+  const lockedObjects: FabricObject[] = [];
+
   const existingObjects = getEditableObjects(colorCanvas);
   colorCanvas.remove(...existingObjects);
 
@@ -466,6 +482,9 @@ export async function applySkinProjectToCanvas(
   for (const objectInfo of project.objects) {
     const image = await restoreEditableLayerImage(objectInfo);
     colorCanvas.add(image);
+    if (objectInfo.locked) {
+      lockedObjects.push(image);
+    }
   }
   colorCanvas.requestRenderAll();
 
@@ -508,12 +527,20 @@ export async function applySkinProjectToCanvas(
       if (entry.kind === "image") {
         const image = await restoreEditableLayerImage(entry.data, { grayscale: true });
         metallicCanvas.add(image);
+        if (entry.data.locked) {
+          lockedObjects.push(image);
+        }
       } else {
         const path = await Path.fromObject(entry.data);
         metallicCanvas.add(path);
+        if (isLockedObject(path)) {
+          lockedObjects.push(path);
+        }
       }
     }
 
     metallicCanvas.requestRenderAll();
   }
+
+  return lockedObjects;
 }

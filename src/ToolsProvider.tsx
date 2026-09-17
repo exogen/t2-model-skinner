@@ -613,6 +613,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         "./skinProjectUtils"
       );
       const materialsByName = await readSkinProjectZip(file);
+      const restoredLockedObjects: FabricObject[] = [];
       for (const material of materialDefs) {
         if (!isEditableMaterial(material)) {
           continue;
@@ -630,11 +631,23 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         const metallicCanvas = materialHasMetallic(material)
           ? canvases[metallicCanvasId]?.canvas
           : null;
-        await applySkinProjectToCanvas(colorCanvas, loaded, metallicCanvas);
+        const lockedObjects = await applySkinProjectToCanvas(
+          colorCanvas,
+          loaded,
+          metallicCanvas
+        );
+        restoredLockedObjects.push(...lockedObjects);
         canvases[colorCanvasId]?.notifyChange();
         if (metallicCanvas) {
           canvases[metallicCanvasId]?.notifyChange();
         }
+      }
+      if (restoredLockedObjects.length) {
+        setLockedObjects((lockedObjects) => {
+          const newLockedObjects = new Set(lockedObjects);
+          restoredLockedObjects.forEach((object) => newLockedObjects.add(object));
+          return newLockedObjects;
+        });
       }
     },
     [materialDefs, canvases, sizeMultiplier]
