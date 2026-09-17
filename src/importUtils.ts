@@ -112,6 +112,8 @@ export async function readZipFile(inputFile: File) {
 export function detectFileType(file: File) {
   if (file.name.match(/\.png$/i)) {
     return "png";
+  } else if (file.name.match(/\.skin$/i)) {
+    return "skin";
   } else if (file.name.match(/\.zip$/i)) {
     return "zip";
   } else if (file.name.match(/\.vl2$/i)) {

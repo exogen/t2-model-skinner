@@ -3,7 +3,11 @@ import { FaFolderOpen } from "react-icons/fa";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { useRef, useState } from "react";
 import useTools from "./useTools";
-import { importMultipleFilesToModels, modelToModelType } from "./importUtils";
+import {
+  detectFileType,
+  importMultipleFilesToModels,
+  modelToModelType,
+} from "./importUtils";
 import useManifest from "./useManifest";
 import modelConfig from "./models";
 
@@ -28,7 +32,10 @@ export default function WarriorSelector() {
     importedSkins,
     addImportedSkins,
   } = useWarrior();
-  const { /*selectedMaterialIndex,*/ setSelectedMaterialIndex } = useTools();
+  const {
+    /*selectedMaterialIndex,*/ setSelectedMaterialIndex,
+    loadSkinProject,
+  } = useTools();
   // const materialDefs = materials[actualModel];
   // const materialDef = materialDefs[selectedMaterialIndex];
   const [customSkins, setCustomSkins] =
@@ -271,8 +278,26 @@ export default function WarriorSelector() {
           <input
             ref={fileInputRef}
             onChange={async (event) => {
+              const allFiles = Array.from(event.target.files ?? []);
+              const skinProjectFiles = allFiles.filter(
+                (file) => detectFileType(file) === "skin"
+              );
+              const otherFiles = allFiles.filter(
+                (file) => detectFileType(file) !== "skin"
+              );
+              if (skinProjectFiles.length) {
+                for (const skinProjectFile of skinProjectFiles) {
+                  await loadSkinProject(skinProjectFile);
+                }
+              }
+              if (!otherFiles.length) {
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+                return;
+              }
               const foundModels = await importMultipleFilesToModels(
-                event.target.files ?? []
+                otherFiles
               );
               addImportedSkins(foundModels);
               const currentModelSkins = foundModels.get(actualModel);
@@ -308,7 +333,7 @@ export default function WarriorSelector() {
               }
             }}
             type="file"
-            accept=".png, image/png, .vl2, .zip, application/zip, application/zip-compressed"
+            accept=".png, image/png, .vl2, .zip, application/zip, application/zip-compressed, .skin"
             multiple
             hidden
           />

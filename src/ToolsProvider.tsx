@@ -569,6 +569,35 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     ]
   );
 
+  const exportSkinProject = useCallback(
+    async (name: string) => {
+      if (!canvas) {
+        return;
+      }
+      const { saveZipFile } = await import("./exportUtils");
+      const { createSkinProjectZip } = await import("./skinProjectUtils");
+      const zip = await createSkinProjectZip(canvas, textureSize);
+      const filename = `${name.trim() || "MyCustomSkin"}.skin`;
+      await saveZipFile(zip, filename);
+    },
+    [canvas, textureSize]
+  );
+
+  const loadSkinProject = useCallback(
+    async (file: File | Blob) => {
+      if (!canvas) {
+        return;
+      }
+      const { readSkinProjectZip, applySkinProjectToCanvas } = await import(
+        "./skinProjectUtils"
+      );
+      const project = await readSkinProjectZip(file);
+      await applySkinProjectToCanvas(canvas, project);
+      notifyChange();
+    },
+    [canvas, notifyChange]
+  );
+
   const context = useMemo(
     () => ({
       activeCanvas,
@@ -608,6 +637,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canRedo,
       copyToMetallic,
       exportSkin,
+      exportSkinProject,
+      loadSkinProject,
       selectedMaterialIndex,
       setSelectedMaterialIndex,
       textureSize,
@@ -653,6 +684,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canRedo,
       copyToMetallic,
       exportSkin,
+      exportSkinProject,
+      loadSkinProject,
       selectedMaterialIndex,
       textureSize,
       hasMetallic,
