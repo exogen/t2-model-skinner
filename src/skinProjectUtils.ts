@@ -87,7 +87,10 @@ function serializeObjectTransform(
 }
 
 function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
-  const element = image.getElement() as HTMLImageElement | HTMLCanvasElement;
+  // Use the pre-filter source so baked-in filters (hue/saturation/etc.) aren't exported.
+  const element = (image._originalElement ?? image.getElement()) as
+    | HTMLImageElement
+    | HTMLCanvasElement;
   const width = image.width || element.width;
   const height = image.height || element.height;
   const tempCanvas = document.createElement("canvas");
