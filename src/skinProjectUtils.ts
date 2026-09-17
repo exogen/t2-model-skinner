@@ -245,18 +245,26 @@ function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
   });
 }
 
-export async function createSkinProjectZip(
+export interface SkinProjectMaterialInput {
+  name: string;
+  textureSize: [number, number];
+  colorCanvas: FabricCanvas;
+  metallicCanvas?: FabricCanvas | null;
+}
+
+// Builds one material's material.json + images into the given zip folder.
+async function writeMaterialProject(
+  folder: JSZip,
   colorCanvas: FabricCanvas,
   textureSize: [number, number],
   metallicCanvas?: FabricCanvas | null
-) {
-  const zip = new JSZip();
+): Promise<void> {
   const objects = getEditableObjects(colorCanvas);
   const projectObjects = await Promise.all(
     objects.map(async (object, index) => {
       const filename = `layer-${index}.png`;
       const blob = await imageObjectToPngBlob(object);
-      zip.file(filename, blob);
+      folder.file(filename, blob);
       return serializeObjectTransform(object, filename, index);
     })
   );
@@ -265,7 +273,7 @@ export async function createSkinProjectZip(
   let background: SkinProjectObject | undefined;
   if (baseLayer) {
     const blob = await imageObjectToPngBlob(baseLayer);
-    zip.file("background.png", blob);
+    folder.file("background.png", blob);
     background = serializeObjectTransform(baseLayer, "background.png", -1);
   }
 
@@ -280,7 +288,7 @@ export async function createSkinProjectZip(
     metallicObjects.map(async (object, index) => {
       const filename = `metallic-layer-${index}.png`;
       const blob = await imageObjectToPngBlob(object);
-      zip.file(filename, blob);
+      folder.file(filename, blob);
       return serializeObjectTransform(
         object,
         filename,
@@ -295,7 +303,7 @@ export async function createSkinProjectZip(
   let metallicBackground: SkinProjectObject | undefined;
   if (metallicBaseLayer) {
     const blob = await imageObjectToPngBlob(metallicBaseLayer);
-    zip.file("metallic-background.png", blob);
+    folder.file("metallic-background.png", blob);
     metallicBackground = serializeObjectTransform(
       metallicBaseLayer,
       "metallic-background.png",
@@ -322,17 +330,35 @@ export async function createSkinProjectZip(
     metallicObjects: projectMetallicObjects,
     metallicStrokes,
   };
-  zip.file("project.json", JSON.stringify(project, null, 2));
+  folder.file("material.json", JSON.stringify(project, null, 2));
+}
+
+// Builds a .skin archive with one subfolder (named after the material) per
+// input material; each subfolder is a self-contained material.json + images.
+export async function createSkinProjectZip(
+  materials: SkinProjectMaterialInput[]
+): Promise<JSZip> {
+  const zip = new JSZip();
+  for (const material of materials) {
+    const folder = zip.folder(material.name);
+    if (!folder) {
+      continue;
+    }
+    await writeMaterialProject(
+      folder,
+      material.colorCanvas,
+      material.textureSize,
+      material.metallicCanvas
+    );
+  }
   return zip;
 }
 
-export async function readSkinProjectZip(
-  file: File | Blob
-): Promise<SkinProjectLoaded> {
-  const content = await JSZip.loadAsync(file);
-  const projectFile = content.file("project.json");
+// Reads one material's material.json + images from the given zip folder.
+async function readMaterialProject(folder: JSZip): Promise<SkinProjectLoaded> {
+  const projectFile = folder.file("material.json");
   if (!projectFile) {
-    throw new Error("Invalid skin project: missing project.json");
+    throw new Error("Invalid skin project: missing material.json");
   }
   const projectJson = await projectFile.async("string");
   const project: SkinProjectFile = JSON.parse(projectJson);
@@ -340,7 +366,7 @@ export async function readSkinProjectZip(
   const loadImageForObject = async (
     objectInfo: SkinProjectObject
   ): Promise<SkinProjectLoadedObject> => {
-    const imageFile = content.file(objectInfo.filename);
+    const imageFile = folder.file(objectInfo.filename);
     if (!imageFile) {
       throw new Error(`Missing image file in skin project: ${objectInfo.filename}`);
     }
@@ -374,6 +400,30 @@ export async function readSkinProjectZip(
     metallicObjects,
     metallicStrokes: project.metallicStrokes ?? [],
   };
+}
+
+// Reads a .skin archive, returning each material's loaded project keyed by material name.
+// Materials are discovered by scanning for "<name>/material.json" entries (no manifest).
+export async function readSkinProjectZip(
+  file: File | Blob
+): Promise<Record<string, SkinProjectLoaded>> {
+  const content = await JSZip.loadAsync(file);
+  const materialNames = new Set<string>();
+  content.forEach((relativePath) => {
+    const match = /^([^/]+)\/material\.json$/.exec(relativePath);
+    if (match) {
+      materialNames.add(match[1]);
+    }
+  });
+
+  const result: Record<string, SkinProjectLoaded> = {};
+  for (const materialName of Array.from(materialNames)) {
+    const folder = content.folder(materialName);
+    if (folder) {
+      result[materialName] = await readMaterialProject(folder);
+    }
+  }
+  return result;
 }
 
 // Recreates a restored editable layer image (position/transform/filters), unlocked.

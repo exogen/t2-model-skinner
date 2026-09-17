@@ -41,6 +41,14 @@ function isActiveSelection(object: FabricObject): object is ActiveSelection {
   return object.type === "activeSelection";
 }
 
+function isEditableMaterial(material: MaterialDefinition | null | undefined) {
+  return Boolean(material && material.selectable !== false && !material.hidden);
+}
+
+function materialHasMetallic(material: MaterialDefinition) {
+  return !(material.metallicFactor === 0 && material.roughnessFactor === 1);
+}
+
 type ObjectFilters = {
   HueRotation?: number;
   Saturation?: number;
@@ -97,11 +105,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setSelectedExportMaterials(
-      materialDefs.map((material) =>
-        Boolean(material && material.selectable !== false && !material.hidden)
-      )
-    );
+    setSelectedExportMaterials(materialDefs.map(isEditableMaterial));
   }, [materialDefs]);
 
   useEffect(() => {
@@ -124,22 +128,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const activeCanvas = materialDef
     ? `${materialDef.name}:${activeCanvasType}:${selectedFrameIndex}:${sizeMultiplier}`
     : null;
-  const colorCanvasId = materialDef
-    ? `${materialDef.name}:color:${selectedFrameIndex}:${sizeMultiplier}`
-    : null;
   const metallicCanvasId = materialDef
     ? `${materialDef.name}:metallic:${selectedFrameIndex}:${sizeMultiplier}`
     : null;
   const { canvases } = useCanvas();
   const { canvas, notifyChange, undo, redo, canUndo, canRedo } =
     useCanvas(activeCanvas);
-  const { canvas: colorCanvas, notifyChange: notifyColorChange } =
-    useCanvas(colorCanvasId);
-  const {
-    canvas: metallicCanvas,
-    notifyChange: notifyMetallicChange,
-    setDrawingMode,
-  } = useCanvas(metallicCanvasId);
+  const { canvas: metallicCanvas, setDrawingMode } =
+    useCanvas(metallicCanvasId);
   const { combineColorAndAlphaImageUrls } = useImageWorker();
   const { canvasPadding } = useSettings();
   const [filterChanges, setFilterChanges] = useState<
@@ -579,38 +575,69 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   const exportSkinProject = useCallback(
     async (name: string) => {
-      if (!colorCanvas) {
+      const materialInputs = materialDefs
+        .filter(isEditableMaterial)
+        .map((material) => {
+          const colorCanvas =
+            canvases[`${material.name}:color:0:${sizeMultiplier}`]?.canvas;
+          if (!colorCanvas) {
+            return null;
+          }
+          const metallicCanvas = materialHasMetallic(material)
+            ? canvases[`${material.name}:metallic:0:${sizeMultiplier}`]?.canvas
+            : null;
+          const baseTextureSize = material.size ?? defaultTextureSize;
+          const textureSize: [number, number] = [
+            baseTextureSize[0] * sizeMultiplier,
+            baseTextureSize[1] * sizeMultiplier,
+          ];
+          return { name: material.name, textureSize, colorCanvas, metallicCanvas };
+        })
+        .filter((input): input is NonNullable<typeof input> => input !== null);
+
+      if (!materialInputs.length) {
         return;
       }
       const { saveZipFile } = await import("./exportUtils");
       const { createSkinProjectZip } = await import("./skinProjectUtils");
-      const zip = await createSkinProjectZip(
-        colorCanvas,
-        textureSize,
-        metallicCanvas
-      );
+      const zip = await createSkinProjectZip(materialInputs);
       const filename = `${name.trim() || "MyCustomSkin"}.skin`;
       await saveZipFile(zip, filename);
     },
-    [colorCanvas, textureSize, metallicCanvas]
+    [materialDefs, canvases, sizeMultiplier]
   );
 
   const loadSkinProject = useCallback(
     async (file: File | Blob) => {
-      if (!colorCanvas) {
-        return;
-      }
       const { readSkinProjectZip, applySkinProjectToCanvas } = await import(
         "./skinProjectUtils"
       );
-      const project = await readSkinProjectZip(file);
-      await applySkinProjectToCanvas(colorCanvas, project, metallicCanvas);
-      notifyColorChange();
-      if (metallicCanvas) {
-        notifyMetallicChange();
+      const materialsByName = await readSkinProjectZip(file);
+      for (const material of materialDefs) {
+        if (!isEditableMaterial(material)) {
+          continue;
+        }
+        const loaded = materialsByName[material.name];
+        if (!loaded) {
+          continue;
+        }
+        const colorCanvasId = `${material.name}:color:0:${sizeMultiplier}`;
+        const colorCanvas = canvases[colorCanvasId]?.canvas;
+        if (!colorCanvas) {
+          continue;
+        }
+        const metallicCanvasId = `${material.name}:metallic:0:${sizeMultiplier}`;
+        const metallicCanvas = materialHasMetallic(material)
+          ? canvases[metallicCanvasId]?.canvas
+          : null;
+        await applySkinProjectToCanvas(colorCanvas, loaded, metallicCanvas);
+        canvases[colorCanvasId]?.notifyChange();
+        if (metallicCanvas) {
+          canvases[metallicCanvasId]?.notifyChange();
+        }
       }
     },
-    [colorCanvas, metallicCanvas, notifyColorChange, notifyMetallicChange]
+    [materialDefs, canvases, sizeMultiplier]
   );
 
   const context = useMemo(
