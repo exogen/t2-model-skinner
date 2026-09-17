@@ -3,9 +3,23 @@ import {
   FabricImage,
   Canvas as FabricCanvas,
   FabricObject,
+  Path,
   filters,
 } from "fabric";
 import { createFabricImage } from "./fabricUtils";
+
+// The extra (non-default) properties fabric's toObject()/toJSON() include, matching
+// what Canvas.tsx's undo/redo snapshot requests, so lock/selectable state round-trips.
+const EXTRA_SERIALIZED_PROPERTIES = [
+  "lockMovementX",
+  "lockMovementY",
+  "lockRotation",
+  "lockScalingX",
+  "lockScalingY",
+  "selectable",
+  "hoverCursor",
+  "moveCursor",
+];
 
 export const SKIN_PROJECT_VERSION = 1;
 
@@ -30,6 +44,13 @@ export interface SkinProjectObject {
   filterSettings: SkinProjectFilterSettings;
 }
 
+// Raw fabric Path.toObject() output (SVG path commands + standard object props),
+// plus a zIndex shared with SkinProjectObject.zIndex so metallic images and
+// strokes (which may be interleaved on the canvas) can be restored in order.
+export interface SkinProjectStrokeData extends Record<string, unknown> {
+  zIndex: number;
+}
+
 export interface SkinProjectFile {
   version: number;
   textureSize: [number, number];
@@ -37,6 +58,7 @@ export interface SkinProjectFile {
   metallicBackground?: SkinProjectObject;
   objects: SkinProjectObject[];
   metallicObjects: SkinProjectObject[];
+  metallicStrokes: SkinProjectStrokeData[];
 }
 
 export interface SkinProjectLoadedObject extends SkinProjectObject {
@@ -78,6 +100,11 @@ export function getEditableObjects(canvas: FabricCanvas) {
     .filter((object): object is FabricImage => {
       return object instanceof FabricImage && !isLockedBaseLayer(object);
     });
+}
+
+// Retrieves all paint-mode brush strokes (drawn freehand as fabric Path objects).
+function getStrokeObjects(canvas: FabricCanvas): Path[] {
+  return canvas.getObjects().filter((object): object is Path => object instanceof Path);
 }
 
 // Retrieves the locked base layer (background) image from the canvas, if it exists.
@@ -244,14 +271,21 @@ export async function createSkinProjectZip(
 
   // Metallic layers are kept separate from the color layers above so each is
   // restored to the correct canvas; paint-mode strokes are not FabricImages
-  // and so are naturally left out of getEditableObjects().
+  // and so are naturally left out of getEditableObjects(). zIndex is taken from
+  // the canvas's actual object order (shared between images and strokes) so
+  // their original interleaving can be reconstructed on restore.
+  const metallicCanvasObjects = metallicCanvas ? metallicCanvas.getObjects() : [];
   const metallicObjects = metallicCanvas ? getEditableObjects(metallicCanvas) : [];
   const projectMetallicObjects = await Promise.all(
     metallicObjects.map(async (object, index) => {
       const filename = `metallic-layer-${index}.png`;
       const blob = await imageObjectToPngBlob(object);
       zip.file(filename, blob);
-      return serializeObjectTransform(object, filename, index);
+      return serializeObjectTransform(
+        object,
+        filename,
+        metallicCanvasObjects.indexOf(object)
+      );
     })
   );
 
@@ -269,6 +303,16 @@ export async function createSkinProjectZip(
     );
   }
 
+  const metallicStrokes: SkinProjectStrokeData[] = (
+    metallicCanvas ? getStrokeObjects(metallicCanvas) : []
+  ).map((path) => ({
+    ...(path.toObject(EXTRA_SERIALIZED_PROPERTIES as never[]) as unknown as Record<
+      string,
+      unknown
+    >),
+    zIndex: metallicCanvasObjects.indexOf(path),
+  }));
+
   const project: SkinProjectFile = {
     version: SKIN_PROJECT_VERSION,
     textureSize,
@@ -276,6 +320,7 @@ export async function createSkinProjectZip(
     metallicBackground,
     objects: projectObjects,
     metallicObjects: projectMetallicObjects,
+    metallicStrokes,
   };
   zip.file("project.json", JSON.stringify(project, null, 2));
   return zip;
@@ -321,7 +366,14 @@ export async function readSkinProjectZip(
     ? await loadImageForObject(project.metallicBackground)
     : undefined;
 
-  return { ...project, background, metallicBackground, objects, metallicObjects };
+  return {
+    ...project,
+    background,
+    metallicBackground,
+    objects,
+    metallicObjects,
+    metallicStrokes: project.metallicStrokes ?? [],
+  };
 }
 
 // Recreates a restored editable layer image (position/transform/filters), unlocked.
@@ -370,6 +422,8 @@ export async function applySkinProjectToCanvas(
   if (metallicCanvas) {
     const existingMetallicObjects = getEditableObjects(metallicCanvas);
     metallicCanvas.remove(...existingMetallicObjects);
+    const existingStrokes = getStrokeObjects(metallicCanvas);
+    metallicCanvas.remove(...existingStrokes);
 
     if (project.metallicBackground) {
       const existingMetallicBase = getLockedBaseLayer(metallicCanvas);
@@ -381,15 +435,35 @@ export async function applySkinProjectToCanvas(
         { grayscale: true }
       );
       metallicCanvas.add(metallicBackgroundImage);
-      // Paint-mode strokes aren't touched above, so explicitly send the
-      // restored background behind them instead of relying on add-order.
+      // Explicitly send the restored background behind the layers/strokes
+      // added below instead of relying on add-order.
       metallicCanvas.sendObjectToBack(metallicBackgroundImage);
     }
 
-    for (const objectInfo of project.metallicObjects) {
-      const image = await restoreEditableLayerImage(objectInfo, { grayscale: true });
-      metallicCanvas.add(image);
+    // Images and strokes may be interleaved on the canvas, so merge both lists
+    // and restore them in their original combined zIndex order.
+    type MetallicLayerEntry =
+      | { kind: "image"; zIndex: number; data: SkinProjectLoadedObject }
+      | { kind: "stroke"; zIndex: number; data: SkinProjectStrokeData };
+    const metallicLayerEntries: MetallicLayerEntry[] = [
+      ...project.metallicObjects.map(
+        (data): MetallicLayerEntry => ({ kind: "image", zIndex: data.zIndex, data })
+      ),
+      ...project.metallicStrokes.map(
+        (data): MetallicLayerEntry => ({ kind: "stroke", zIndex: data.zIndex, data })
+      ),
+    ].sort((a, b) => a.zIndex - b.zIndex);
+
+    for (const entry of metallicLayerEntries) {
+      if (entry.kind === "image") {
+        const image = await restoreEditableLayerImage(entry.data, { grayscale: true });
+        metallicCanvas.add(image);
+      } else {
+        const path = await Path.fromObject(entry.data);
+        metallicCanvas.add(path);
+      }
     }
+
     metallicCanvas.requestRenderAll();
   }
 }
