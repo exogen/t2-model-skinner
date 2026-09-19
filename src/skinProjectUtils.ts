@@ -9,20 +9,19 @@ import {
 import { createFabricImage } from "./fabricUtils";
 
 // The extra (non-default) properties fabric's toObject()/toJSON() include, matching
-// what Canvas.tsx's undo/redo snapshot requests, so lock/selectable state round-trips.
-const EXTRA_SERIALIZED_PROPERTIES = [
-  "lockMovementX",
-  "lockMovementY",
-  "lockRotation",
-  "lockScalingX",
-  "lockScalingY",
-  "selectable",
-  "hoverCursor",
-  "moveCursor",
-];
+// what Canvas.tsx's undo/redo snapshot requests, so lock and selectable states are recorded also.
+// const EXTRA_SERIALIZED_PROPERTIES = [
+//   "lockMovementX",
+//   "lockMovementY",
+//   "lockRotation",
+//   "lockScalingX",
+//   "lockScalingY",
+//   "selectable",
+// ];
 
 export const SKIN_PROJECT_VERSION = 1;
 
+// Interface for structs of filter settings relevant in this application
 export interface SkinProjectFilterSettings {
   hueRotation: number;
   saturation: number;
@@ -31,6 +30,7 @@ export interface SkinProjectFilterSettings {
   opacity: number;
 }
 
+// Interface for structs of editable image objects in this application. Includes z-index, transform info, editability, etc.
 export interface SkinProjectObject {
   filename: string;
   zIndex: number;
@@ -52,6 +52,7 @@ export interface SkinProjectStrokeData extends Record<string, unknown> {
   zIndex: number;
 }
 
+// Interface for the overall skin project file structure, including version, texture size, background, objects, and metallic elements.
 export interface SkinProjectFile {
   version: number;
   textureSize: [number, number];
@@ -62,11 +63,14 @@ export interface SkinProjectFile {
   metallicStrokes: SkinProjectStrokeData[];
 }
 
+// Interface for loaded skin project objects, which include the image URL in addition to the standard object properties.
 export interface SkinProjectLoadedObject extends SkinProjectObject {
   imageUrl: string;
 }
 
+// Interface for the overall loaded skin project file structure, which includes loaded objects with image URLs.
 export interface SkinProjectLoaded
+  // Omit these fields because they are replaced here with their "Loaded" versions including image URLs for display in the application
   extends Omit<
     SkinProjectFile,
     "objects" | "metallicObjects" | "background" | "metallicBackground"
@@ -77,12 +81,10 @@ export interface SkinProjectLoaded
   metallicObjects: SkinProjectLoadedObject[];
 }
 
-/**
- * The base/reference image added automatically by Canvas.tsx is locked and
- * non-selectable, unlike ordinary user-added layers (which may be locked via
- * the "lock selection" tool, but remain selectable). This lets us identify
- * and exclude it when serializing/restoring the user's editable layers.
- */
+// The base/reference image added automatically by Canvas.tsx is locked and
+// non-selectable, unlike ordinary user-added layers (which may be locked via
+// the "lock selection" tool, but remain selectable). This lets us identify
+// and exclude it when serializing/restoring the user's editable layers.
 function isLockedBaseLayer(object: FabricObject) {
   return object.selectable === false && isLockedObject(object);
 }
@@ -122,6 +124,7 @@ function getLockedBaseLayer(canvas: FabricCanvas): FabricImage | undefined {
 }
 
 // Serializes the properties of a FabricObject into a SkinProjectObject.
+// zIndex -1 is used for the base images on each canvas, otherwise they start at zero and go up for higher levels
 function serializeObjectTransform(
   object: FabricObject,
   filename: string,
@@ -150,6 +153,7 @@ function extractFilterSettings(object: FabricObject): SkinProjectFilterSettings 
     saturation: 0,
     brightness: 0,
     contrast: 0,
+    // Note opacity is handled differently from the other filters
     opacity: object.opacity ?? 1,
   };
   if (object instanceof FabricImage) {
@@ -174,8 +178,10 @@ function extractFilterSettings(object: FabricObject): SkinProjectFilterSettings 
 function applyFilterSettings(
   image: FabricImage,
   settings: SkinProjectFilterSettings | undefined,
+  // Grayscale is an optional parameter defaulting to false. If provided as true, a grayscale filter will be applied to the image (used in the metallic layer images, for example).
   { grayscale = false }: { grayscale?: boolean } = {}
 ) {
+  // Note opacity is handled differently than the other filters
   image.opacity = settings?.opacity ?? 1;
   const newFilters = [];
   if (grayscale) {
@@ -202,6 +208,7 @@ function applyFilterSettings(
 // Recreates a locked, non-selectable base layer image from a restored background entry.
 async function restoreLockedBaseLayerImage(
   info: SkinProjectLoadedObject,
+  // Grayscale is an optional parameter defaulting to false. If provided as true, a grayscale filter will be applied to the image (used in the metallic layer images, for example).
   { grayscale = false }: { grayscale?: boolean } = {}
 ): Promise<FabricImage> {
   const image = await createFabricImage(info.imageUrl);
@@ -219,15 +226,15 @@ async function restoreLockedBaseLayerImage(
     lockScalingX: true,
     lockScalingY: true,
     lockRotation: true,
-    hoverCursor: "default",
-    moveCursor: "default",
   });
   applyFilterSettings(image, info.filterSettings, { grayscale });
   return image;
 }
 
+// Converts a Fabric image object to a PNG blob, using the original image source if available (without filters applied to it)
 function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
   // Use the pre-filter source so baked-in filters (hue/saturation/etc.) aren't exported.
+  // In the unlikely case that the original image is missing, fall back on getElement(), however this could be a version of the image with the filter settings baked into it. At least some functionality would be maintained if that happened.
   const element = (image._originalElement ?? image.getElement()) as
     | HTMLImageElement
     | HTMLCanvasElement;
@@ -244,14 +251,17 @@ function imageObjectToPngBlob(image: FabricImage): Promise<Blob> {
   return new Promise((resolve, reject) => {
     tempCanvas.toBlob((blob) => {
       if (blob) {
+        // Successfully created PNG blob, mark the operation as resolved.
         resolve(blob);
       } else {
+        // Failed to create PNG blob, mark the operation as rejected.
         reject(new Error("Failed to create PNG image data"));
       }
     }, "image/png");
   });
 }
 
+// Interface for the input required to create a skin project material.
 export interface SkinProjectMaterialInput {
   name: string;
   textureSize: [number, number];
@@ -260,13 +270,14 @@ export interface SkinProjectMaterialInput {
 }
 
 // Builds one material's material.json + images into the given zip folder.
-async function writeMaterialProject(
+async function writeSkinProjectMaterial(
   folder: JSZip,
   colorCanvas: FabricCanvas,
   textureSize: [number, number],
   metallicCanvas?: FabricCanvas | null
 ): Promise<void> {
   const objects = getEditableObjects(colorCanvas);
+  // Asynchronously process all editable objects to generate their PNG blobs and serialized transform data.
   const projectObjects = await Promise.all(
     objects.map(async (object, index) => {
       const filename = `layer-${index}.png`;
@@ -281,7 +292,7 @@ async function writeMaterialProject(
   if (baseLayer) {
     const blob = await imageObjectToPngBlob(baseLayer);
     folder.file("background.png", blob);
-    background = serializeObjectTransform(baseLayer, "background.png", -1);
+    background = serializeObjectTransform(baseLayer, "background.png", /* zIndex for base layer */ -1);
   }
 
   // Metallic layers are kept separate from the color layers above so each is
@@ -314,14 +325,21 @@ async function writeMaterialProject(
     metallicBackground = serializeObjectTransform(
       metallicBaseLayer,
       "metallic-background.png",
-      -1
+      /* zIndex for metallic base layer */ -1
     );
   }
 
   const metallicStrokes: SkinProjectStrokeData[] = (
     metallicCanvas ? getStrokeObjects(metallicCanvas) : []
   ).map((path) => ({
-    ...(path.toObject(EXTRA_SERIALIZED_PROPERTIES as never[]) as unknown as Record<
+    ...(path.toObject([
+      "lockMovementX",
+      "lockMovementY",
+      "lockRotation",
+      "lockScalingX",
+      "lockScalingY",
+      "selectable",
+    ]) as unknown as Record<
       string,
       unknown
     >),
@@ -337,7 +355,7 @@ async function writeMaterialProject(
     metallicObjects: projectMetallicObjects,
     metallicStrokes,
   };
-  folder.file("material.json", JSON.stringify(project, null, 2));
+  folder.file("material.json", JSON.stringify(project, /* replacer (null means stringify everything) */ null, /* space (whitespace rule to follow) */ 2));
 }
 
 // Builds a .skin archive with one subfolder (named after the material) per
@@ -351,7 +369,7 @@ export async function createSkinProjectZip(
     if (!folder) {
       continue;
     }
-    await writeMaterialProject(
+    await writeSkinProjectMaterial(
       folder,
       material.colorCanvas,
       material.textureSize,
@@ -383,6 +401,7 @@ async function readMaterialProject(folder: JSZip): Promise<SkinProjectLoaded> {
 
   const loadObjectImages = (objectInfos: SkinProjectObject[]) =>
     Promise.all(
+      // Sort objects by their zIndex before loading their images to maintain the correct layering order. 
       objectInfos
         .slice()
         .sort((a, b) => a.zIndex - b.zIndex)
@@ -410,7 +429,7 @@ async function readMaterialProject(folder: JSZip): Promise<SkinProjectLoaded> {
 }
 
 // Reads a .skin archive, returning each material's loaded project keyed by material name.
-// Materials are discovered by scanning for "<name>/material.json" entries (no manifest).
+// Materials are discovered by scanning for "<name>/material.json" entries.
 export async function readSkinProjectZip(
   file: File | Blob
 ): Promise<Record<string, SkinProjectLoaded>> {
@@ -433,8 +452,8 @@ export async function readSkinProjectZip(
   return result;
 }
 
-// Recreates a restored editable layer image, reapplying its locked state.
-async function restoreEditableLayerImage(
+// Recreates a restored editable canvas fabric image, reapplying its locked state.
+async function restoreEditableFabricImage(
   info: SkinProjectLoadedObject,
   { grayscale = false }: { grayscale?: boolean } = {}
 ): Promise<FabricImage> {
@@ -457,8 +476,8 @@ async function restoreEditableLayerImage(
   return image;
 }
 
-// Returns the restored objects that should be tracked as locked (via the app's
-// "lock selection" tool state), since that's a separate Set kept by the caller.
+// This function applies a .skin file project to the color and metallic canvases.
+// While doing this, it also collects a list of locked objects so that their lock state can be restored.
 export async function applySkinProjectToCanvas(
   colorCanvas: FabricCanvas,
   project: SkinProjectLoaded,
@@ -480,7 +499,7 @@ export async function applySkinProjectToCanvas(
   }
 
   for (const objectInfo of project.objects) {
-    const image = await restoreEditableLayerImage(objectInfo);
+    const image = await restoreEditableFabricImage(objectInfo);
     colorCanvas.add(image);
     if (objectInfo.locked) {
       lockedObjects.push(image);
@@ -525,7 +544,7 @@ export async function applySkinProjectToCanvas(
 
     for (const entry of metallicLayerEntries) {
       if (entry.kind === "image") {
-        const image = await restoreEditableLayerImage(entry.data, { grayscale: true });
+        const image = await restoreEditableFabricImage(entry.data, { grayscale: true });
         metallicCanvas.add(image);
         if (entry.data.locked) {
           lockedObjects.push(image);

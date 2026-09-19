@@ -41,10 +41,12 @@ function isActiveSelection(object: FabricObject): object is ActiveSelection {
   return object.type === "activeSelection";
 }
 
+// Determines if a material is editable based on its properties.
 function isEditableMaterial(material: MaterialDefinition | null | undefined) {
   return Boolean(material && material.selectable !== false && !material.hidden);
 }
 
+// Determines if a material has a metallic component based on its properties.
 function materialHasMetallic(material: MaterialDefinition) {
   return !(material.metallicFactor === 0 && material.roughnessFactor === 1);
 }

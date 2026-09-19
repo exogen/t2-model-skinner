@@ -67,6 +67,62 @@ export default function WarriorSelector() {
     skinSelectValue = `${selectedSkinSection}/${selectedSkin}`;
   }
 
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const allFiles = Array.from(event.target.files ?? []);
+    const skinProjectFiles = allFiles.filter(
+      (file) => detectFileType(file) === "skin"
+    );
+    const otherFiles = allFiles.filter(
+      (file) => detectFileType(file) !== "skin"
+    );
+    if (skinProjectFiles.length) {
+      for (const skinProjectFile of skinProjectFiles) {
+        await loadSkinProject(skinProjectFile);
+      }
+    }
+    if (!otherFiles.length) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+    const foundModels = await importMultipleFilesToModels(otherFiles);
+    addImportedSkins(foundModels);
+    const currentModelSkins = foundModels.get(actualModel);
+    if (currentModelSkins) {
+      const completeSkins = Array.from(currentModelSkins.values()).filter(
+        (skin) => skin.isComplete
+      );
+      if (completeSkins.length) {
+        const skin = completeSkins[0];
+        setSelectedSkinType("import");
+        setSelectedSkinSection("import");
+        setSelectedSkin(skin.name ?? "__untitled__");
+        setSelectedMaterialIndex(0);
+        setSelectedAnimation(null);
+        return;
+      }
+    }
+    for (const [modelName, skinsByName] of Array.from(
+      foundModels.entries()
+    )) {
+      for (const skin of Array.from(skinsByName.values())) {
+        if (skin.isComplete) {
+          setSelectedModel(modelName);
+          setSelectedModelType(modelToModelType(modelName));
+          setSelectedSkinType("import");
+          setSelectedSkinSection("import");
+          setSelectedSkin(skin.name ?? "__untitled__");
+          setSelectedMaterialIndex(0);
+          setSelectedAnimation(null);
+          break;
+        }
+      }
+    }
+  };
+
   return (
     <div className="Toolbar">
       <div className="Field">
@@ -277,61 +333,7 @@ export default function WarriorSelector() {
           </button>
           <input
             ref={fileInputRef}
-            onChange={async (event) => {
-              const allFiles = Array.from(event.target.files ?? []);
-              const skinProjectFiles = allFiles.filter(
-                (file) => detectFileType(file) === "skin"
-              );
-              const otherFiles = allFiles.filter(
-                (file) => detectFileType(file) !== "skin"
-              );
-              if (skinProjectFiles.length) {
-                for (const skinProjectFile of skinProjectFiles) {
-                  await loadSkinProject(skinProjectFile);
-                }
-              }
-              if (!otherFiles.length) {
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = "";
-                }
-                return;
-              }
-              const foundModels = await importMultipleFilesToModels(
-                otherFiles
-              );
-              addImportedSkins(foundModels);
-              const currentModelSkins = foundModels.get(actualModel);
-              if (currentModelSkins) {
-                const completeSkins = Array.from(
-                  currentModelSkins.values()
-                ).filter((skin) => skin.isComplete);
-                if (completeSkins.length) {
-                  const skin = completeSkins[0];
-                  setSelectedSkinType("import");
-                  setSelectedSkinSection("import");
-                  setSelectedSkin(skin.name ?? "__untitled__");
-                  setSelectedMaterialIndex(0);
-                  setSelectedAnimation(null);
-                  return;
-                }
-              }
-              for (const [modelName, skinsByName] of Array.from(
-                foundModels.entries()
-              )) {
-                for (const skin of Array.from(skinsByName.values())) {
-                  if (skin.isComplete) {
-                    setSelectedModel(modelName);
-                    setSelectedModelType(modelToModelType(modelName));
-                    setSelectedSkinType("import");
-                    setSelectedSkinSection("import");
-                    setSelectedSkin(skin.name ?? "__untitled__");
-                    setSelectedMaterialIndex(0);
-                    setSelectedAnimation(null);
-                    break;
-                  }
-                }
-              }
-            }}
+            onChange={handleFileChange}
             type="file"
             accept=".png, image/png, .vl2, .zip, application/zip, application/zip-compressed, .skin"
             multiple
