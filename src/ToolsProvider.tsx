@@ -63,6 +63,28 @@ type ObjectFilters = {
   Opacity?: number;
 };
 
+// Reads the filter/opacity values actually applied to a fabric object, so filterMap
+// (which drives the slider UI) can be resynced after objects are replaced wholesale
+// (undo/redo's canvas.loadFromJSON, or a .skin project load), rather than mutated
+// in place through setFilter.
+function extractObjectFilters(object: FabricObject): ObjectFilters {
+  const objectFilters: ObjectFilters = { Opacity: object.opacity ?? 1 };
+  if (object instanceof FabricImage) {
+    for (const filter of object.filters ?? []) {
+      if (filter instanceof filters.HueRotation) {
+        objectFilters.HueRotation = filter.rotation;
+      } else if (filter instanceof filters.Saturation) {
+        objectFilters.Saturation = filter.saturation;
+      } else if (filter instanceof filters.Brightness) {
+        objectFilters.Brightness = filter.brightness;
+      } else if (filter instanceof filters.Contrast) {
+        objectFilters.Contrast = filter.contrast;
+      }
+    }
+  }
+  return objectFilters;
+}
+
 export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { actualModel, selectedModelType } = useWarrior();
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
@@ -792,6 +814,37 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       };
     }
   }, [canvas]);
+
+  // Undo/redo (canvas.loadFromJSON) and .skin project loads replace canvas objects
+  // with new instances, so filterMap's per-object entries go stale. Resync from the
+  // objects' actual filters/opacity whenever new objects are added to either canvas.
+  useEffect(() => {
+    const syncFilterMapForCanvas = (targetCanvas: typeof canvas) => {
+      if (!targetCanvas) {
+        return;
+      }
+      setFilterMap((filterMap) => {
+        const newFilterMap = new Map(filterMap);
+        for (const object of targetCanvas._objects) {
+          if (object instanceof FabricImage) {
+            newFilterMap.set(object, extractObjectFilters(object));
+          }
+        }
+        return newFilterMap;
+      });
+    };
+
+    const handleColorObjectAdded = () => syncFilterMapForCanvas(canvas);
+    const handleMetallicObjectAdded = () => syncFilterMapForCanvas(metallicCanvas);
+
+    canvas?.on("object:added", handleColorObjectAdded);
+    metallicCanvas?.on("object:added", handleMetallicObjectAdded);
+
+    return () => {
+      canvas?.off("object:added", handleColorObjectAdded);
+      metallicCanvas?.off("object:added", handleMetallicObjectAdded);
+    };
+  }, [canvas, metallicCanvas]);
 
   useEffect(() => {
     if (metallicCanvas) {
