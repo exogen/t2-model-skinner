@@ -1,10 +1,15 @@
 self.__BUILD_MANIFEST = {
   "/_error": [
-    "./static/chunks/6d5810e571801965.js"
+    "./static/chunks/04db4ed1adbaa47d.js"
   ],
   "__rewrites": {
     "afterFiles": [],
-    "beforeFiles": [],
+    "beforeFiles": [
+      {
+        "source": "/t2-model-skinner//_next/:path+",
+        "destination": "/t2-model-skinner/_next/:path+"
+      }
+    ],
     "fallback": []
   },
   "sortedPages": [
