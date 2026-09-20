@@ -1,12 +1,18 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useCanvas from "./useCanvas";
 import useSettings from "./useSettings";
 import useTools from "./useTools";
-import { Canvas as FabricCanvas, InteractiveFabricObject } from "fabric";
-import { createFabricImage } from "./fabricUtils";
-
-type JSONSnapshot = ReturnType<(typeof Canvas.prototype)["toDatalessJSON"]>;
+import {
+  Canvas as FabricCanvas,
+  InteractiveFabricObject,
+  FabricObject,
+  util,
+} from "fabric";
+import { createCanvasHistory, type HistoryState } from "./canvasHistory";
+import { createFabricImage, type CanvasSnapshot } from "./fabricUtils";
+import useImageLoader from "./useImageLoader";
+import useAsyncTask from "./useAsyncTask";
 
 function updateObjectControlOptions() {
   InteractiveFabricObject.ownDefaults = {
@@ -22,11 +28,66 @@ function updateObjectControlOptions() {
   };
 }
 
+export type CanvasSource =
+  | { kind: "project"; snapshot: CanvasSnapshot }
+  | {
+      kind: "texture";
+      url: string | null;
+      fallbackUrl?: string;
+      optional?: boolean;
+      convert: (buffer: ArrayBuffer) => Promise<string>;
+    };
+
+async function prepareCanvasSource(
+  source: CanvasSource,
+  textureSize: [number, number],
+  loadImage: (url: string) => Promise<ArrayBuffer>,
+  signal: AbortSignal
+): Promise<FabricObject[]> {
+  if (source.kind === "project") {
+    return util.enlivenObjects<FabricObject>(source.snapshot.objects, {
+      signal,
+    });
+  }
+  // Texture archives can omit fixed materials such as vehicle windshields.
+  const textureUrl = source.url ?? source.fallbackUrl;
+  if (!textureUrl) return [];
+  let buffer;
+  try {
+    buffer = await loadImage(textureUrl);
+  } catch (error) {
+    signal.throwIfAborted();
+    if (source.optional) return [];
+    if (!source.fallbackUrl || source.fallbackUrl === textureUrl) throw error;
+    buffer = await loadImage(source.fallbackUrl);
+  }
+  signal.throwIfAborted();
+  const url = await source.convert(buffer);
+  signal.throwIfAborted();
+  const image = await createFabricImage(url, signal);
+  if (!image.width || !image.height) {
+    image.dispose();
+    throw new Error("Zero-height image");
+  }
+  image.set({
+    scaleX: textureSize[0] / image.width,
+    scaleY: textureSize[1] / image.height,
+    selectable: false,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockRotation: true,
+    hoverCursor: "default",
+    moveCursor: "default",
+  });
+  return [image];
+}
+
 export interface CanvasProps {
   canvasId: string;
-  canvasType: "color" | "metallic";
   onChange: (canvas: FabricCanvas) => void;
-  baseImageUrl: string | null;
+  source: CanvasSource;
   textureSize: [number, number];
   defaultDrawingMode?: boolean;
 }
@@ -34,71 +95,31 @@ export interface CanvasProps {
 export default function Canvas({
   canvasId,
   onChange,
-  baseImageUrl,
+  source,
   textureSize,
   defaultDrawingMode = false,
 }: CanvasProps) {
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
-  const [canvas, setCanvas] = useState<FabricCanvas | null>(null);
+  const [surface, setSurface] = useState<{
+    canvas: FabricCanvas;
+    history: ReturnType<typeof createCanvasHistory>;
+  } | null>(null);
+  const { canvas, history } = surface ?? {};
   const { activeCanvas } = useTools();
   const { canvasPadding } = useSettings();
   const { registerCanvas, unregisterCanvas } = useCanvas();
   const [isDrawingMode, setDrawingMode] = useState(defaultDrawingMode);
   const handleChangeRef = useRef<CanvasProps["onChange"]>(null);
-  const trackChanges = useRef(true);
-  const [undoHistory, setUndoHistory] = useState<JSONSnapshot[]>(() => []);
-  const [redoHistory, setRedoHistory] = useState<JSONSnapshot[]>(() => []);
-
-  const canUndo = undoHistory.length > 1;
-  const canRedo = redoHistory.length > 0;
-
-  const handleChange: CanvasProps["onChange"] = useCallback((canvas) => {
-    const handleChange = handleChangeRef.current;
-    if (handleChange) {
-      handleChange(canvas);
-    }
-  }, []);
-
-  const undo = useCallback(async () => {
-    if (!canvas) {
-      return;
-    }
-    if (undoHistory.length > 1) {
-      const [restoreState, currentState] = undoHistory.slice(-2);
-      trackChanges.current = false;
-      // eslint-disable-next-line react-hooks/immutability
-      canvas.renderOnAddRemove = false;
-      canvas.clear();
-      canvas.loadFromJSON(restoreState, () => {
-        canvas.renderAll();
-        trackChanges.current = true;
-        canvas.renderOnAddRemove = true;
-      });
-      setUndoHistory((undoHistory) => undoHistory.slice(0, -1));
-      setRedoHistory((redoHistory) => [currentState, ...redoHistory]);
-    }
-  }, [canvas, undoHistory]);
-
-  const redo = useCallback(() => {
-    if (!canvas) {
-      return;
-    }
-    if (redoHistory.length > 0) {
-      const nextState = redoHistory[0];
-      trackChanges.current = false;
-      // eslint-disable-next-line react-hooks/immutability
-      canvas.renderOnAddRemove = false;
-      canvas.clear();
-      canvas.loadFromJSON(nextState, () => {
-        canvas.renderAll();
-        trackChanges.current = true;
-        canvas.renderOnAddRemove = true;
-      });
-      setUndoHistory((undoHistory) => [...undoHistory, nextState]);
-      setRedoHistory((redoHistory) => redoHistory.slice(1));
-    }
-  }, [canvas, redoHistory]);
-
+  const [{ canUndo, canRedo }, setHistoryState] = useState<HistoryState>({
+    canUndo: false,
+    canRedo: false,
+  });
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading"
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { loadImage } = useImageLoader();
+  const initialize = useAsyncTask(true);
   useEffect(() => {
     handleChangeRef.current = onChange;
   }, [onChange]);
@@ -119,76 +140,37 @@ export default function Canvas({
 
     const canvas = new FabricCanvas(canvasElementRef.current, options);
 
-    let isSnapshotting = false;
-    let changeTimer: ReturnType<typeof setTimeout>;
-
-    const handleChangeWithCanvasArg = () => {
-      handleChange(canvas);
-    };
-
-    const handleRender = () => {
-      if (isSnapshotting) {
-        return;
-      }
-      if (!trackChanges.current) {
-        return;
-      }
-      clearTimeout(changeTimer);
-      changeTimer = setTimeout(() => {
-        const snapshot = snapshotCanvas();
-        setUndoHistory((history) => {
-          if (history.length === 0) {
-            return [snapshot];
-          }
-          const lastSnapshot = history[history.length - 1];
-          if (JSON.stringify(snapshot) === JSON.stringify(lastSnapshot)) {
-            return history;
-          } else {
-            return [...history.slice(-10), snapshot];
-          }
-        });
-        setRedoHistory([]);
-      }, 250);
-    };
-
-    const snapshotCanvas = () => {
-      isSnapshotting = true;
-      const snapshot = canvas.toDatalessJSON([
-        "lockMovementX",
-        "lockMovementY",
-        "lockRotation",
-        "lockScalingX",
-        "lockScalingY",
-        "selectable",
-      ]);
-      isSnapshotting = false;
-      return snapshot;
-    };
-
-    canvas.on("object:modified", handleChangeWithCanvasArg);
-    canvas.on("object:added", handleChangeWithCanvasArg);
-    canvas.on("object:removed", handleChangeWithCanvasArg);
-    canvas.on("after:render", handleRender);
-
-    setCanvas(canvas);
+    const history = createCanvasHistory(
+      canvas,
+      () => handleChangeRef.current?.(canvas),
+      (next) =>
+        setHistoryState((previous) =>
+          previous.canUndo === next.canUndo &&
+          previous.canRedo === next.canRedo
+            ? previous
+            : next
+        )
+    );
+    setSurface({ canvas, history });
 
     return () => {
-      clearTimeout(changeTimer);
-      setCanvas(null);
-      canvas.dispose();
+      history.dispose();
+      setSurface(null);
+      void canvas.dispose();
     };
-  }, [handleChange]);
+  }, []);
 
   useEffect(() => {
     if (canvas) {
-      // eslint-disable-next-line react-hooks/immutability
-      canvas.isDrawingMode = isDrawingMode;
-      if (isDrawingMode) {
+      canvas.isDrawingMode = status === "ready" && isDrawingMode;
+      canvas.selection = status === "ready";
+      canvas.skipTargetFind = status !== "ready";
+      if (canvas.isDrawingMode) {
         canvas.discardActiveObject();
         canvas.requestRenderAll();
       }
     }
-  }, [canvas, isDrawingMode]);
+  }, [canvas, isDrawingMode, status]);
 
   useEffect(() => {
     if (canvas && isActive) {
@@ -197,15 +179,13 @@ export default function Canvas({
   }, [canvas, isActive]);
 
   useEffect(() => {
-    if (canvas) {
+    if (canvas && history) {
       registerCanvas(canvasId, {
         canvas,
-        notifyChange: () => {
-          canvas.renderAll();
-          handleChange(canvas);
-        },
-        undo,
-        redo,
+        status,
+        notifyChange: history.notifyChange,
+        undo: history.undo,
+        redo: history.redo,
         canUndo,
         canRedo,
         isDrawingMode,
@@ -220,74 +200,48 @@ export default function Canvas({
     registerCanvas,
     unregisterCanvas,
     canvasId,
-    handleChange,
+    status,
+    history,
     isDrawingMode,
     setDrawingMode,
-    undo,
-    redo,
     canUndo,
     canRedo,
   ]);
 
   useEffect(() => {
-    setUndoHistory([]);
-    setRedoHistory([]);
-  }, [canvas, baseImageUrl, textureSize]);
-
-  useEffect(() => {
-    if (canvas && textureSize) {
-      trackChanges.current = false;
-      canvas.clear();
-      if (baseImageUrl) {
-        let stale = false;
-        const addImage = async () => {
-          const image = await createFabricImage(baseImageUrl);
-          if (!stale) {
-            if (!image.width || !image.height) {
-              throw new Error("Zero-height image");
-            }
-            image.selectable = false;
-            image.lockMovementX = true;
-            image.lockMovementY = true;
-            image.lockScalingX = true;
-            image.lockScalingY = true;
-            image.lockRotation = true;
-            image.hoverCursor = "default";
-            image.moveCursor = "default";
-            const [expectedWidth, expectedHeight] = textureSize;
-            const scaleX =
-              image.width === expectedWidth ? 1 : expectedWidth / image.width;
-            const scaleY =
-              image.height === expectedHeight
-                ? 1
-                : expectedHeight / image.height;
-            if (scaleX !== 1 || scaleY !== 1) {
-              image.scaleX = scaleX;
-              image.scaleY = scaleY;
-            }
-            canvas.centerObject(image);
-            canvas.add(image);
-          }
-          trackChanges.current = true;
-          canvas.requestRenderAll();
-        };
-
-        addImage();
-
-        return () => {
-          stale = true;
-        };
-      }
-    }
-  }, [canvas, baseImageUrl, textureSize]);
+    if (!canvas || !history) return;
+    setStatus("loading");
+    setLoadError(null);
+    void initialize(
+      (signal) => prepareCanvasSource(source, textureSize, loadImage, signal),
+      (objects) => {
+        if (source.kind === "texture")
+          objects.forEach((object) => canvas.centerObject(object));
+        history.reset(objects);
+        setStatus("ready");
+      },
+      (objects) => objects.forEach((object) => object.dispose())
+    ).catch((error: unknown) => {
+      setStatus("error");
+      setLoadError(
+        error instanceof Error ? error.message : "Unable to load texture"
+      );
+    });
+  }, [canvas, history, source, textureSize, loadImage, initialize]);
 
   return (
-    <div className="CanvasContainer" data-active={isActive ? "true" : "false"}>
-      <canvas
-        width={textureSize[0] + canvasPadding * 2}
-        height={textureSize[1] + canvasPadding * 2}
-        ref={canvasElementRef}
-      />
+    <div
+      className="CanvasContainer"
+      data-active={isActive ? "true" : "false"}
+    >
+      {loadError ? <p role="alert">{loadError}</p> : null}
+      <div>
+        <canvas
+          width={textureSize[0] + canvasPadding * 2}
+          height={textureSize[1] + canvasPadding * 2}
+          ref={canvasElementRef}
+        />
+      </div>
     </div>
   );
 }

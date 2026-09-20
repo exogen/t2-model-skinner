@@ -6,10 +6,6 @@ import useModelViewer from "./useModelViewer";
 import useWarrior from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 
-// const secondaryMaterialTextures: Record<string, string[]> = {
-//   disc: ["textures/discshield2"],
-// };
-
 export type ModelMaterial = NonNullable<
   ModelViewerElement["model"]
 >["materials"][number];

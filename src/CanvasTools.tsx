@@ -1,6 +1,8 @@
 "use client";
 import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
 import { FabricImage } from "fabric";
+import { isLockedObject } from "./fabricUtils";
+import { readImageFile } from "./importUtils";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
 import {
@@ -35,7 +37,6 @@ import modelConfig from "./models";
 const { materials } = modelConfig;
 
 export default function CanvasTools() {
-  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [exportFileType, setExportFileType] = useState("vl2");
   const {
@@ -43,7 +44,6 @@ export default function CanvasTools() {
     backgroundColor,
     setBackgroundColor,
     selectedObjects,
-    lockedObjects,
     lockSelection,
     unlockSelection,
     bringForward,
@@ -73,11 +73,41 @@ export default function CanvasTools() {
     setLayerMode,
     activeCanvasType,
     addImages,
+    exportName,
+    setExportName,
     exportSkin,
     exportSkinProject,
     selectedExportMaterials,
     setSelectedExportMaterials,
   } = useTools();
+  const filterControls = [
+    {
+      label: "Hue",
+      value: hueRotate,
+      setValue: setHueRotate,
+      scale: 180,
+      min: -180,
+      labelOffset: 0,
+      unit: "°",
+      colorOnly: true,
+    },
+    {
+      label: "Saturation",
+      value: saturation,
+      setValue: setSaturation,
+      colorOnly: true,
+    },
+    { label: "Brightness", value: brightness, setValue: setBrightness },
+    { label: "Contrast", value: contrast, setValue: setContrast },
+    {
+      label: "Opacity",
+      value: opacity,
+      setValue: setOpacity,
+      min: 0,
+      labelOffset: 0,
+      defaultValue: 1,
+    },
+  ];
   const { actualModel } = useWarrior();
   const materialDefs: MaterialDefinition[] = materials[actualModel];
   const { canvas, isDrawingMode, setDrawingMode } = useCanvas(activeCanvas);
@@ -163,7 +193,7 @@ export default function CanvasTools() {
   } = useInteractions([exportClick, exportDismiss, exportRole]);
 
   const isSelectionLocked = selectedObjects.length
-    ? selectedObjects.every((object) => lockedObjects.has(object))
+    ? selectedObjects.every(isLockedObject)
     : false;
 
   const hasSelection = selectedObjects.length > 0;
@@ -341,19 +371,18 @@ export default function CanvasTools() {
           <input
             ref={fileInputRef}
             onChange={async (event) => {
-              const imageUrl = await new Promise<string>((resolve, reject) => {
-                const inputFile = event.target.files?.[0];
-                if (inputFile) {
-                  const reader = new FileReader();
-                  reader.addEventListener("load", (event) => {
-                    resolve(event.target?.result as string);
-                  });
-                  reader.readAsDataURL(inputFile);
-                } else {
-                  reject(new Error("No input file provided."));
-                }
-              });
-              addImages([imageUrl]);
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file) return;
+              try {
+                await addImages([await readImageFile(file)]);
+              } catch (error) {
+                window.alert(
+                  error instanceof Error
+                    ? error.message
+                    : "Unable to add this image"
+                );
+              }
             }}
             type="file"
             accept=".png, image/png"
@@ -410,7 +439,8 @@ export default function CanvasTools() {
                             }}
                           />
                           <label htmlFor="FilterLayer-SelectedLayer">
-                            selected ({selectedObjects.length.toLocaleString()})
+                            selected (
+                            {selectedObjects.length.toLocaleString()})
                           </label>
                         </li>
                       ) : (
@@ -426,7 +456,9 @@ export default function CanvasTools() {
                                 setLayerMode("BaseLayer");
                               }}
                             />{" "}
-                            <label htmlFor="FilterLayer-BaseLayer">base</label>
+                            <label htmlFor="FilterLayer-BaseLayer">
+                              base
+                            </label>
                           </li>
                           <li>
                             <input
@@ -453,136 +485,51 @@ export default function CanvasTools() {
                       )}
                     </ul>
                   </div>
-                  {activeCanvasType === "color" ? (
-                    <>
-                      <div className="Field">
-                        <label>
-                          Hue:{" "}
-                          <strong>
-                            {hueRotate == null ? (
-                              "MULTIPLE VALUES"
-                            ) : (
-                              <>{Math.round(hueRotate * 180)}&deg;</>
-                            )}
-                          </strong>
-                        </label>
-                        <div className="SliderContainer">
-                          <Slider
-                            min={-180}
-                            max={180}
-                            startPoint={0}
-                            value={Math.round((hueRotate ?? 0) * 180)}
-                            onChange={(value: number | number[]) => {
-                              if (Array.isArray(value)) {
-                                value = value[0];
-                              }
-                              setHueRotate(value / 180);
-                            }}
-                          />
+                  {filterControls.map(
+                    ({
+                      label,
+                      value,
+                      setValue,
+                      scale = 100,
+                      min = -100,
+                      labelOffset = 100,
+                      unit = "%",
+                      colorOnly = false,
+                      defaultValue = 0,
+                    }) => {
+                      if (colorOnly && activeCanvasType !== "color")
+                        return null;
+                      const sliderValue = Math.round(
+                        (value ?? defaultValue) * scale
+                      );
+                      return (
+                        <div className="Field" key={label}>
+                          <label>
+                            {label}:{" "}
+                            <strong>
+                              {value == null
+                                ? "MULTIPLE VALUES"
+                                : `${sliderValue + labelOffset}${unit}`}
+                            </strong>
+                          </label>
+                          <div className="SliderContainer">
+                            <Slider
+                              min={min}
+                              max={scale}
+                              startPoint={0}
+                              value={sliderValue}
+                              onChange={(value: number | number[]) => {
+                                setValue(
+                                  (Array.isArray(value) ? value[0] : value) /
+                                    scale
+                                );
+                              }}
+                            />
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="Field">
-                        <label>
-                          Saturation:{" "}
-                          <strong>
-                            {saturation == null
-                              ? "MULTIPLE VALUES"
-                              : `${Math.round(saturation * 100 + 100)}%`}
-                          </strong>
-                        </label>
-                        <div className="SliderContainer">
-                          <Slider
-                            min={-100}
-                            max={100}
-                            startPoint={0}
-                            value={Math.round((saturation ?? 0) * 100)}
-                            onChange={(value: number | number[]) => {
-                              if (Array.isArray(value)) {
-                                value = value[0];
-                              }
-                              setSaturation(value / 100);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  ) : null}
-
-                  <div className="Field">
-                    <label>
-                      Brightness:{" "}
-                      <strong>
-                        {brightness == null
-                          ? "MULTIPLE VALUES"
-                          : `${Math.round(brightness * 100 + 100)}%`}
-                      </strong>
-                    </label>
-                    <div className="SliderContainer">
-                      <Slider
-                        min={-100}
-                        max={100}
-                        startPoint={0}
-                        value={Math.round((brightness ?? 0) * 100)}
-                        onChange={(value: number | number[]) => {
-                          if (Array.isArray(value)) {
-                            value = value[0];
-                          }
-                          setBrightness(value / 100);
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="Field">
-                    <label>
-                      Contrast:{" "}
-                      <strong>
-                        {contrast == null
-                          ? "MULTIPLE VALUES"
-                          : `${Math.round(contrast * 100 + 100)}%`}
-                      </strong>
-                    </label>
-                    <div className="SliderContainer">
-                      <Slider
-                        min={-100}
-                        max={100}
-                        startPoint={0}
-                        value={Math.round((contrast ?? 0) * 100)}
-                        onChange={(value: number | number[]) => {
-                          if (Array.isArray(value)) {
-                            value = value[0];
-                          }
-                          setContrast(value / 100);
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="Field">
-                    <label>
-                      Opacity:{" "}
-                      <strong>
-                        {opacity == null
-                          ? "MULTIPLE VALUES"
-                          : `${Math.round((opacity ?? 1) * 100)}%`}
-                      </strong>
-                    </label>
-                    <div className="SliderContainer">
-                      <Slider
-                        min={0}
-                        max={100}
-                        startPoint={0}
-                        value={Math.round((opacity ?? 1) * 100)}
-                        onChange={(value: number | number[]) => {
-                          if (Array.isArray(value)) {
-                            value = value[0];
-                          }
-                          setOpacity(value / 100);
-                        }}
-                      />
-                    </div>
-                  </div>
+                      );
+                    }
+                  )}
                 </div>
               </div>
             </FloatingFocusManager>
@@ -678,7 +625,8 @@ export default function CanvasTools() {
       </div>
       <div className="Export">
         <input
-          ref={nameInputRef}
+          value={exportName}
+          onChange={(event) => setExportName(event.target.value)}
           type="text"
           name="CustomSkinName"
           placeholder="Skin Name"
@@ -721,7 +669,11 @@ export default function CanvasTools() {
                             <input
                               id={`MaterialSelect-${material.name}`}
                               type="checkbox"
-                              checked={selectedExportMaterials[i] !== false}
+                              disabled={exportFileType === "skin"}
+                              checked={
+                                exportFileType === "skin" ||
+                                selectedExportMaterials[i] !== false
+                              }
                               onChange={(event) => {
                                 setSelectedExportMaterials(
                                   (selectedExportMaterials) => {
@@ -734,7 +686,9 @@ export default function CanvasTools() {
                                 );
                               }}
                             />
-                            <label htmlFor={`MaterialSelect-${material.name}`}>
+                            <label
+                              htmlFor={`MaterialSelect-${material.name}`}
+                            >
                               {material.label}
                             </label>
                           </li>
@@ -775,12 +729,22 @@ export default function CanvasTools() {
 
         <button
           type="button"
-          onClick={() => {
-            const name = nameInputRef.current ? nameInputRef.current.value : "";
-            if (exportFileType === "skin") {
-              exportSkinProject(name);
-            } else {
-              exportSkin({ name, format: exportFileType });
+          onClick={async () => {
+            try {
+              if (exportFileType === "skin") {
+                await exportSkinProject(exportName);
+              } else {
+                await exportSkin({
+                  name: exportName,
+                  format: exportFileType,
+                });
+              }
+            } catch (error) {
+              window.alert(
+                error instanceof Error
+                  ? error.message
+                  : "Unable to export this skin"
+              );
             }
           }}
         >

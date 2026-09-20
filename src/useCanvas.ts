@@ -4,6 +4,7 @@ import { Canvas as FabricCanvas } from "fabric";
 
 export interface CanvasInfo {
   canvas: FabricCanvas;
+  status: "loading" | "ready" | "error";
   notifyChange: () => void;
   isDrawingMode: boolean;
   setDrawingMode: (isDrawingMode: boolean) => void;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { SKIN_MANIFEST_URL } from "./deployPaths";
+import useAsyncTask from "./useAsyncTask";
 
 export type Manifest = {
   customSkins: Record<string, string[]>;
@@ -25,35 +26,14 @@ export const defaultManifest: Manifest = {
 export default function useManifest(): [Manifest, boolean] {
   const [manifest, setManifest] = useState<Manifest>(defaultManifest);
 
+  const load = useAsyncTask();
   useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    let ignore = false;
-
-    const loadCustomSkins = async () => {
-      let res;
-      try {
-        res = await fetch(SKIN_MANIFEST_URL, { signal });
-        if (!ignore) {
-          const json = await res.json();
-          if (!ignore) {
-            setManifest(json as Manifest);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadCustomSkins();
-
-    return () => {
-      ignore = true;
-      if (!controller.signal.aborted) {
-        controller.abort();
-      }
-    };
-  }, []);
+    void load(async (signal) => {
+      const response = await fetch(SKIN_MANIFEST_URL, { signal });
+      if (!response.ok) throw new Error("Unable to load the skin manifest");
+      return (await response.json()) as Manifest;
+    }, setManifest).catch(console.error);
+  }, [load]);
 
   const isLoaded = manifest !== defaultManifest;
   return [manifest, isLoaded];

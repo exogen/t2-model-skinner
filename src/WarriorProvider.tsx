@@ -4,7 +4,7 @@ import useSettings from "./useSettings";
 import { WarriorContext } from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 import type { Skin } from "./importUtils";
-import modelConfig from "./models";
+import modelConfig, { modelToModelType } from "./models";
 import { SKIN_ASSET_BASE_URL } from "./deployPaths";
 
 const { materials, modelDefaults, defaultSkins } = modelConfig;
@@ -38,44 +38,6 @@ function getFrameNames(frameZeroFile: string, frameCount: number) {
   }
 }
 
-function modelToType(model: string) {
-  switch (model) {
-    case "lmale":
-    case "mmale":
-    case "hmale":
-    case "lfemale":
-    case "mfemale":
-    case "hfemale":
-    case "lbioderm":
-    case "mbioderm":
-    case "hbioderm":
-      return "player";
-    case "disc":
-    case "chaingun":
-    case "grenade_launcher":
-    case "sniper":
-    case "plasmathrower":
-    case "energy":
-    case "shocklance":
-    case "elf":
-    case "missile":
-    case "mortar":
-    case "repair":
-    case "targeting":
-    case "mine":
-      return "weapon";
-    case "vehicle_grav_scout":
-    case "vehicle_grav_tank":
-    case "vehicle_land_mpbbase":
-    case "vehicle_air_scout":
-    case "vehicle_air_bomber":
-    case "vehicle_air_hapc":
-      return "vehicle";
-    default:
-      return null;
-  }
-}
-
 function skinToType(actualModel: string, skinName: string) {
   const defaultSkin = modelDefaults[actualModel];
   if (skinName === defaultSkin) {
@@ -90,19 +52,24 @@ function skinToType(actualModel: string, skinName: string) {
 export function getSkinImageUrls({
   basePath,
   actualModel,
-  selectedModelType,
   selectedSkin,
   selectedSkinType,
+  importedSkins = IMPORTED_SKINS,
 }: {
   basePath: string;
   actualModel: string;
-  selectedModelType: string;
   selectedSkin: string | null;
   selectedSkinType: string | null;
+  importedSkins?: typeof IMPORTED_SKINS;
 }): Record<string, string[]> {
+  // Materials omitted from a legacy project use the model's default textures.
+  if (selectedSkinType === "project") {
+    selectedSkinType = "default";
+    selectedSkin = modelDefaults[actualModel] ?? null;
+  }
   const materialDefs = materials[actualModel];
   if (selectedSkin && selectedSkinType === "import") {
-    const skinsByName = IMPORTED_SKINS.get(actualModel);
+    const skinsByName = importedSkins.get(actualModel);
     if (skinsByName) {
       const key = selectedSkin === "__untitled__" ? null : selectedSkin;
       const skin = skinsByName.get(key);
@@ -112,7 +79,7 @@ export function getSkinImageUrls({
     }
     throw new Error("No skin found");
   }
-  switch (selectedModelType) {
+  switch (modelToModelType(actualModel)) {
     case "player":
       switch (selectedSkinType) {
         case "default":
@@ -184,7 +151,7 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
   const [searchParamsInitialized, setSearchParamsInitialized] = useState(false);
 
   const [selectedModel, setSelectedModel] = useState<string>("lmale");
-  const [selectedModelType, setSelectedModelType] = useState("player");
+  const selectedModelType = modelToModelType(selectedModel);
   const [selectedSkin, setSelectedSkin] = useState<string | null>(
     "Blood Eagle",
   );
@@ -210,35 +177,44 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     setImportedSkins(IMPORTED_SKINS);
   }, []);
 
-  const [skinImageUrls, setSkinImageUrls] = useState<Record<string, string[]>>(
-    () =>
-      getSkinImageUrls({
-        basePath,
-        actualModel,
-        selectedModelType,
-        selectedSkin,
-        selectedSkinType,
-      }),
-  );
-
   const defaultSkinImageUrls = useMemo(
     () =>
       getSkinImageUrls({
         basePath,
         actualModel,
-        selectedModelType,
         selectedSkin: modelDefaults[actualModel],
         selectedSkinType: "default",
       }),
-    [actualModel, basePath, selectedModelType],
+    [actualModel, basePath],
   );
+
+  const skinImageUrls = useMemo(() => {
+    if (!selectedSkin) return {};
+    try {
+      return getSkinImageUrls({
+        basePath,
+        actualModel,
+        selectedSkin,
+        selectedSkinType,
+        importedSkins,
+      });
+    } catch {
+      return defaultSkinImageUrls;
+    }
+  }, [
+    basePath,
+    actualModel,
+    selectedSkin,
+    selectedSkinType,
+    defaultSkinImageUrls,
+    importedSkins,
+  ]);
 
   const context = useMemo(() => {
     return {
       selectedModel,
       setSelectedModel,
       selectedModelType,
-      setSelectedModelType,
       actualModel,
       selectedModelUrl,
       animationPaused,
@@ -250,7 +226,6 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       selectedAnimation,
       setSelectedAnimation,
       skinImageUrls,
-      setSkinImageUrls,
       defaultSkinImageUrls,
       slowModeEnabled,
       setSlowModeEnabled,
@@ -261,7 +236,6 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     selectedModel,
     setSelectedModel,
     selectedModelType,
-    setSelectedModelType,
     actualModel,
     selectedModelUrl,
     animationPaused,
@@ -273,7 +247,6 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     selectedAnimation,
     setSelectedAnimation,
     skinImageUrls,
-    setSkinImageUrls,
     defaultSkinImageUrls,
     slowModeEnabled,
     importedSkins,
@@ -284,11 +257,10 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     const modelName = searchParams.get("m");
     const skinPath = searchParams.get("s");
     if (typeof modelName === "string") {
-      const modelType = modelToType(modelName);
+      const modelType = modelToModelType(modelName);
       const actualModel = modelName === "hfemale" ? "hmale" : modelName;
       if (modelType) {
         setSelectedModel(modelName);
-        setSelectedModelType(modelType);
         if (typeof skinPath === "string") {
           const skinType = skinToType(actualModel, skinPath);
           setSelectedSkin(skinPath);
@@ -314,29 +286,6 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, router, searchParams, selectedModel, selectedSkin]);
 
-  useEffect(() => {
-    if (selectedSkin) {
-      try {
-        const skinImageUrls = getSkinImageUrls({
-          basePath,
-          actualModel,
-          selectedModelType,
-          selectedSkin,
-          selectedSkinType,
-        });
-        setSkinImageUrls(skinImageUrls);
-      } catch (err) {
-        setSelectedSkinType("default");
-        setSelectedSkin(modelDefaults[actualModel]);
-      }
-    }
-  }, [
-    actualModel,
-    basePath,
-    selectedModelType,
-    selectedSkin,
-    selectedSkinType,
-  ]);
 
   return (
     <WarriorContext.Provider value={context}>

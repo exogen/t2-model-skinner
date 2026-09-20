@@ -18,8 +18,7 @@ import { matchSorter } from "match-sorter";
 import useManifest from "../../useManifest";
 import styles from "./gallery.module.css";
 import { collectFiles, createZipFile, saveZipFile } from "../../exportUtils";
-import { modelToModelType, modelTypes } from "../../importUtils";
-import modelConfig from "../../models";
+import modelConfig, { modelToModelType, modelTypes } from "../../models";
 import { SKIN_GALLERY_BASE_URL } from "../../deployPaths";
 
 const emptySkins: string[] = [];
@@ -474,6 +473,7 @@ function Gallery() {
                       aria-label={`Download ${skinName} skin`}
                       onClick={async () => {
                         const modelType = modelToModelType(skinModel);
+                        if (!modelType) throw new Error("Unknown model");
                         const camelCaseModelName = skinModel.replace(
                           /(?:^([a-z])|_([a-z]))/g,
                           (match, a, b) => (a || b).toUpperCase(),

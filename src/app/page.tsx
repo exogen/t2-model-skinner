@@ -1,9 +1,9 @@
 "use client";
 import CanvasTools from "../CanvasTools";
 import AppFooter from "../AppFooter";
-import ToolsProvider from "../ToolsProvider";
+import EditorProvider from "../EditorProvider";
+import ImageWorkerProvider from "../ImageWorkerProvider";
 import CanvasBackdrop from "../CanvasBackdrop";
-import CanvasProvider from "../CanvasProvider";
 import CanvasInteractions from "../CanvasInteractions";
 import CanvasToggle from "../CanvasToggle";
 import WarriorSelector from "../WarriorSelector";
@@ -51,23 +51,23 @@ export default function HomePage() {
             <Suspense>
               <WarriorProvider>
                 <EnvironmentProvider>
-                  <SkinProvider>
-                    <div className="Viewport">
-                      <div className="ModelTools">
-                        <div className="Field">
-                          <EnvironmentSelector />
+                  <ImageWorkerProvider>
+                    <SkinProvider>
+                      <div className="Viewport">
+                        <div className="ModelTools">
+                          <div className="Field">
+                            <EnvironmentSelector />
+                          </div>
+                          <div className="Field SliderField">
+                            <EnvironmentExposure />
+                          </div>
+                          <div className="Field">
+                            <AnimationSelector />
+                          </div>
                         </div>
-                        <div className="Field SliderField">
-                          <EnvironmentExposure />
-                        </div>
-                        <div className="Field">
-                          <AnimationSelector />
-                        </div>
+                        <WarriorViewer />
                       </div>
-                      <WarriorViewer />
-                    </div>
-                    <CanvasProvider>
-                      <ToolsProvider>
+                      <EditorProvider>
                         <CanvasInteractions>
                           <WarriorSelector />
                           <div className="CanvasViewport">
@@ -81,9 +81,9 @@ export default function HomePage() {
                           <CanvasTools />
                           <AppFooter />
                         </CanvasInteractions>
-                      </ToolsProvider>
-                    </CanvasProvider>
-                  </SkinProvider>
+                      </EditorProvider>
+                    </SkinProvider>
+                  </ImageWorkerProvider>
                 </EnvironmentProvider>
               </WarriorProvider>
             </Suspense>

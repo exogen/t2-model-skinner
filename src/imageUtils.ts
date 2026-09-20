@@ -142,8 +142,7 @@ export async function setAlphaFromGrayscale(
   grayscaleRgba: Uint8Array
 ) {
   const length = rgba.length;
-  // Modify image to map white pixels on the metallic canvas
-  // to the alpha channel.
+  // Copy metallic grayscale values into alpha, clamping zero to 1.
   for (let i = 0; i < length; i += 4) {
     rgba[i + 3] = Math.max(1, grayscaleRgba[i]);
   }
@@ -160,11 +159,11 @@ export function setMetallicFromGrayscale(rgba: Uint8Array) {
   const length = rgba.length;
   for (let i = 0; i < length; i += 4) {
     const grayscale = rgba[i];
-    // Red meanings nothing, set to 0.
+    // The red channel is unused in the metallic/roughness texture.
     rgba[i] = 0;
     // Green maps to roughness. We want more metallic to be less rough.
     rgba[i + 1] = grayscale > 0 ? 255 - Math.min(grayscale * 2 + 64, 255) : 255;
-    // Blue and alpha values should already be correct.
+    // Blue stores metallic intensity; leave alpha unchanged.
     rgba[i + 2] = grayscale ? Math.min(grayscale * 1 + 64, 255) : 0;
   }
 }

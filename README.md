@@ -2,6 +2,12 @@
 
 [Launch the app!](https://exogen.github.io/t2-model-skinner/)
 
+Export as `.skin` to save an editable project, then use **Load Skin** to resume
+editing. Export as `.png` or `.vl2` for use in the game.
+
+Drop images onto the canvas to add layers, or drop `.skin` or `.vl2` files to
+load a skin.
+
 ## Support
 
 Did this project bring you joy? Want to request a feature? Check out
@@ -25,11 +31,16 @@ Then run `npm start` to launch the development server:
 npm start
 ```
 
-Build the production version of the app with `npm run build`:
+Regenerate the model configuration and build the static site in `docs/` with
+`npm run build`:
 
 ```sh
 npm run build
 ```
+
+Run `npm test` for Vitest, `npm run test:watch` for watch mode, and
+`npm run lint` for ESLint and TypeScript checks. Keep tests alongside their
+source files in `src/` as `*.test.mjs`.
 
 To get new skins to appear in the Custom Skins dropdown menu or the gallery
 page, they must be deployed with the [t2-skins](https://github.com/exogen/t2-skins)

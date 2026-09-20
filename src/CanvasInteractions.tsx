@@ -1,6 +1,7 @@
 import { ReactNode, useRef } from "react";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
+import { detectFileType, readImageFile } from "./importUtils";
 
 export default function CanvasInteractions({
   children,
@@ -16,19 +17,27 @@ export default function CanvasInteractions({
     duplicate,
     deleteSelection,
     addImages,
+    loadSkinFiles,
     undo,
     redo,
   } = useTools();
-  const { canvas, notifyChange, setDrawingMode } = useCanvas(activeCanvas);
+  const { canvas, status, notifyChange, setDrawingMode } =
+    useCanvas(activeCanvas);
 
-  const nudge = async ({ top = 0, left = 0 } = {}) => {
-    const objects = canvas.getActiveObjects();
-    for (const object of objects) {
-      object.top = (object.top ?? 0) + top;
-      object.left = (object.left ?? 0) + left;
+  const nudge = ({ top = 0, left = 0 } = {}) => {
+    let changed = false;
+    for (const object of canvas.getActiveObjects()) {
+      if (top && !object.lockMovementY) {
+        object.top += top;
+        changed = true;
+      }
+      if (left && !object.lockMovementX) {
+        object.left += left;
+        changed = true;
+      }
       object.setCoords();
     }
-    notifyChange();
+    if (changed) notifyChange();
   };
 
   return (
@@ -44,38 +53,39 @@ export default function CanvasInteractions({
         if (ref.current) {
           ref.current.focus();
         }
-        const { items } = event.dataTransfer;
-        const images = Array.from(items).filter(
-          (item) => item.kind === "file" && item.type.match(/^image\//)
-        );
-        const imageUrls = await Promise.all(
-          images
-            .map(async (droppedImageFile) => {
-              const file = droppedImageFile.getAsFile();
-              if (!file) {
-                throw new Error("Not a file.");
-              }
-              const reader = new FileReader();
-              const imageUrl = await new Promise<string>((resolve, reject) => {
-                reader.onload = async (event) => {
-                  if (event.target && typeof event.target.result === "string") {
-                    resolve(event.target.result);
-                  } else {
-                    reject(new Error("Failed to load image data."));
-                  }
-                };
-                reader.readAsDataURL(file);
-              });
-              return imageUrl;
-            })
-            .filter(Boolean)
-        );
-
-        await addImages(imageUrls);
+        const files = Array.from(event.dataTransfer.files);
+        const archives = files.filter((file) => {
+          const type = detectFileType(file);
+          return type === "skin" || type === "vl2" || type === "zip";
+        });
+        try {
+          if (archives.length) {
+            await loadSkinFiles(archives);
+          } else {
+            const images = files.filter(
+              (file) =>
+                file.type.startsWith("image/") ||
+                detectFileType(file) === "png"
+            );
+            if (images.length) {
+              await addImages(await Promise.all(images.map(readImageFile)));
+            }
+          }
+        } catch (error) {
+          window.alert(
+            error instanceof Error
+              ? error.message
+              : "Unable to load these files"
+          );
+        }
       }}
       onKeyDown={async (event) => {
+        if (!canvas || status !== "ready") return;
         const target = event.target as HTMLElement;
-        if (target.nodeName === "INPUT" || target.nodeName === "TEXTAREA") {
+        if (
+          event.defaultPrevented ||
+          target.closest('input, textarea, select, [role="slider"]')
+        ) {
           return;
         }
         if (event.ctrlKey || event.metaKey) {
@@ -102,7 +112,12 @@ export default function CanvasInteractions({
               }
           }
         }
-        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        if (
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey
+        ) {
           return;
         }
         switch (event.key) {

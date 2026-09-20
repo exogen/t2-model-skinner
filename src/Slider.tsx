@@ -12,7 +12,6 @@ const sliderStyles = {
     marginTop: -6,
     borderColor: "#03fccf",
     background: "rgb(5, 69, 76)",
-    // background: `rgb(${brushColor}, ${brushColor}, ${brushColor})`,
     opacity: 1,
   },
   rail: {

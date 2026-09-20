@@ -35,6 +35,8 @@ interface ToolsContextValue {
   bringForward: () => void;
   lockSelection: () => void;
   unlockSelection: () => void;
+  exportName: string;
+  setExportName: (name: string) => void;
   exportSkin: ({
     name,
     format,
@@ -44,7 +46,7 @@ interface ToolsContextValue {
   }) => Promise<void>;
   exportSkinProject: (name: string) => Promise<void>;
   loadSkinProject: (file: File | Blob) => Promise<void>;
-  lockedObjects: Set<FabricObject>;
+  loadSkinFiles: (files: File[]) => Promise<void>;
   backgroundColor: string;
   setBackgroundColor: (backgroundColor: string) => void;
   selectedMaterialIndex: number;
@@ -64,8 +66,7 @@ interface ToolsContextValue {
   selectedExportMaterials: boolean[];
   setSelectedExportMaterials: (
     selectedExportMaterials:
-      | boolean[]
-      | ((selectedExportMaterials: boolean[]) => boolean[])
+      boolean[] | ((selectedExportMaterials: boolean[]) => boolean[])
   ) => void;
 }
 

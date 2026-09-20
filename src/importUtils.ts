@@ -1,94 +1,9 @@
 import JSZip from "jszip";
-import modelConfig from "./models";
-
-type MaterialDefinition = {
-  name: string;
-  file?: string;
-  fileSuffix?: string;
-  hidden?: boolean;
-  selectable?: boolean;
-  optional?: boolean;
-  frameCount?: number;
-};
+import modelConfig, { type MaterialDefinition } from "./models";
 
 const materialMap: Record<string, MaterialDefinition[]> = modelConfig.materials;
 
 const ignoreFilePattern = /^(\.|__MACOSX)/;
-
-export const modelTypes = {
-  player: [
-    "lmale",
-    "mmale",
-    "hmale",
-    "lfemale",
-    "mfemale",
-    "hfemale",
-    "lbioderm",
-    "mbioderm",
-    "hbioderm",
-  ],
-  weapon: [
-    "disc",
-    "chaingun",
-    "grenade_launcher",
-    "sniper",
-    "plasmathrower",
-    "energy",
-    "shocklance",
-    "elf",
-    "missile",
-    "mortar",
-    "repair",
-    "targeting",
-    "mine",
-  ],
-  vehicle: [
-    "vehicle_grav_scout",
-    "vehicle_grav_tank",
-    "vehicle_land_mpbbase",
-    "vehicle_air_scout",
-    "vehicle_air_bomber",
-    "vehicle_air_hapc",
-  ],
-};
-
-export function modelToModelType(modelName: string) {
-  switch (modelName) {
-    case "lmale":
-    case "mmale":
-    case "hmale":
-    case "lfemale":
-    case "mfemale":
-    case "hfemale":
-    case "lbioderm":
-    case "mbioderm":
-    case "hbioderm":
-      return "player";
-    case "disc":
-    case "chaingun":
-    case "grenade_launcher":
-    case "sniper":
-    case "plasmathrower":
-    case "energy":
-    case "shocklance":
-    case "elf":
-    case "missile":
-    case "mortar":
-    case "repair":
-    case "targeting":
-    case "mine":
-      return "weapon";
-    case "vehicle_grav_scout":
-    case "vehicle_grav_tank":
-    case "vehicle_land_mpbbase":
-    case "vehicle_air_scout":
-    case "vehicle_air_bomber":
-    case "vehicle_air_hapc":
-      return "vehicle";
-    default:
-      throw new Error("Unknown model");
-  }
-}
 
 export async function readZipFile(inputFile: File) {
   const content = await JSZip.loadAsync(inputFile);
@@ -128,11 +43,11 @@ export async function readImageFile(file: File) {
       if (typeof event.target?.result === "string") {
         resolve(event.target.result);
       } else {
-        reject();
+        reject(new Error("Unable to read image data"));
       }
     });
-    reader.addEventListener("error", (event) => {
-      reject();
+    reader.addEventListener("error", () => {
+      reject(reader.error ?? new Error("Unable to read image file"));
     });
     reader.readAsDataURL(file);
   });

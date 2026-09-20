@@ -1,11 +1,12 @@
 import React, { useContext } from "react";
 import { Skin } from "./importUtils";
+import type { ModelType } from "./models";
 
 type WarriorContextValue = {
   actualModel: string;
   selectedModel: string;
   setSelectedModel: (selectedModel: string) => void;
-  selectedModelType: string;
+  selectedModelType: ModelType | undefined;
   selectedAnimation: string | null;
   selectedModelUrl: string;
   setSelectedAnimation: (selectedAnimation: string | null) => void;
@@ -15,18 +16,10 @@ type WarriorContextValue = {
   ) => void;
   skinImageUrls: Record<string, string[]>;
   defaultSkinImageUrls: Record<string, string[]>;
-  setSkinImageUrls: (
-    value:
-      | Record<string, string[]>
-      | ((
-          prevSkinImageUrls: Record<string, string[]>
-        ) => Record<string, string[]>)
-  ) => void;
   selectedSkinType: string | null;
   setSelectedSkinType: (selectedSkinType: string | null) => void;
   selectedSkin: string | null;
   setSelectedSkin: (selectedSkin: string | null) => void;
-  setSelectedModelType: (selectedModelType: string) => void;
   slowModeEnabled: boolean;
   setSlowModeEnabled: (slowModeEnabled: boolean) => void;
   importedSkins: Map<string, Map<string | null, Skin>>;

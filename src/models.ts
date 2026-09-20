@@ -1,5 +1,49 @@
 import modelConfig from "@config/models.json";
 
+export const modelTypes = {
+  player: [
+    "lmale",
+    "mmale",
+    "hmale",
+    "lfemale",
+    "mfemale",
+    "hfemale",
+    "lbioderm",
+    "mbioderm",
+    "hbioderm",
+  ],
+  weapon: [
+    "disc",
+    "chaingun",
+    "grenade_launcher",
+    "sniper",
+    "plasmathrower",
+    "energy",
+    "shocklance",
+    "elf",
+    "missile",
+    "mortar",
+    "repair",
+    "targeting",
+    "mine",
+  ],
+  vehicle: [
+    "vehicle_grav_scout",
+    "vehicle_grav_tank",
+    "vehicle_land_mpbbase",
+    "vehicle_air_scout",
+    "vehicle_air_bomber",
+    "vehicle_air_hapc",
+  ],
+};
+
+export type ModelType = keyof typeof modelTypes;
+const modelGroups = Object.entries(modelTypes) as [ModelType, string[]][];
+
+export function modelToModelType(model: string): ModelType | undefined {
+  return modelGroups.find(([, names]) => names.includes(model))?.[0];
+}
+
 export type MaterialDefinition = {
   name: string;
   label?: string;
@@ -37,3 +81,23 @@ export interface ModelConfig {
 const typedModelConfig = modelConfig as unknown as ModelConfig;
 
 export default typedModelConfig;
+
+// Prefer an editable canvas for each shared texture, falling back to the first
+// material when none is editable. This prevents late loads of fixed duplicates
+// from overwriting the preview.
+export function isTextureSourceMaterial(
+  material: MaterialDefinition,
+  model: string
+) {
+  const definitions = typedModelConfig.materials[model];
+  const sharesTexture = (candidate: MaterialDefinition) =>
+    (candidate.file ?? candidate.name) === (material.file ?? material.name);
+  const source =
+    definitions.find(
+      (candidate) =>
+        sharesTexture(candidate) &&
+        !candidate.hidden &&
+        candidate.selectable !== false
+    ) ?? definitions.find(sharesTexture);
+  return source?.name === material.name;
+}

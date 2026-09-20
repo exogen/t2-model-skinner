@@ -12,7 +12,9 @@
     "build:pages": "rm -rf docs && next build --turbo && touch docs/.nojekyll",
     "build:gh-pages": "NEXT_PUBLIC_BASE_PATH=/t2-model-skinner npm run build",
     "lint": "eslint . && tsc --noEmit",
-    "start": "next dev --turbo"
+    "start": "next dev --turbo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",
@@ -47,6 +49,7 @@
     "jiti": "^2.6.1",
     "jsdom": "^27.0.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.1"
+    "typescript-eslint": "^8.46.1",
+    "vitest": "^4.1.11"
   }
 }

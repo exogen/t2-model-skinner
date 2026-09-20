@@ -3,17 +3,10 @@ import { FaFolderOpen } from "react-icons/fa";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { useRef, useState } from "react";
 import useTools from "./useTools";
-import {
-  detectFileType,
-  importMultipleFilesToModels,
-  modelToModelType,
-} from "./importUtils";
 import useManifest from "./useManifest";
 import modelConfig from "./models";
 
 const { defaultSkins, modelDefaults } = modelConfig;
-
-const defaultCustomSkins = {};
 
 const emptyMap = new Map();
 
@@ -22,29 +15,17 @@ export default function WarriorSelector() {
     selectedModel,
     setSelectedModel,
     selectedModelType,
-    setSelectedModelType,
     selectedSkin,
+    selectedSkinType,
     setSelectedSkin,
     setSelectedSkinType,
     actualModel,
     setSelectedAnimation,
     setAnimationPaused,
     importedSkins,
-    addImportedSkins,
   } = useWarrior();
-  const {
-    /*selectedMaterialIndex,*/ setSelectedMaterialIndex,
-    loadSkinProject,
-  } = useTools();
-  // const materialDefs = materials[actualModel];
-  // const materialDef = materialDefs[selectedMaterialIndex];
-  const [customSkins, setCustomSkins] =
-    useState<Record<string, string[]>>(defaultCustomSkins);
-  const [newSkins, setNewSkins] =
-    useState<Record<string, string[]>>(defaultCustomSkins);
-  const [selectedSkinSection, setSelectedSkinSection] = useState<string | null>(
-    null
-  );
+  const { setSelectedMaterialIndex, loadSkinFiles } = useTools();
+  const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [manifest, isManifestLoaded] = useManifest();
 
@@ -54,74 +35,41 @@ export default function WarriorSelector() {
     importedSkinsForModel.values()
   ).filter((skin) => skin.isComplete);
 
-  if (
-    isManifestLoaded &&
-    (customSkins !== manifest.customSkins || newSkins !== manifest.newSkins)
-  ) {
-    setCustomSkins(manifest.customSkins);
-    setNewSkins(manifest.newSkins);
-  }
-
-  let skinSelectValue = selectedSkin ?? "";
-  if (selectedSkin && selectedSkinSection) {
-    skinSelectValue = `${selectedSkinSection}/${selectedSkin}`;
-  }
+  const { customSkins, newSkins } = manifest;
+  const defaultNames =
+    selectedModelType === "player"
+      ? (defaultSkins[actualModel] ?? [])
+      : modelDefaults[actualModel]
+        ? [modelDefaults[actualModel]]
+        : [];
+  const skinSelectValue = selectedSkin
+    ? `${selectedSkinType}/${selectedSkin}`
+    : "";
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const allFiles = Array.from(event.target.files ?? []);
-    const skinProjectFiles = allFiles.filter(
-      (file) => detectFileType(file) === "skin"
-    );
-    const otherFiles = allFiles.filter(
-      (file) => detectFileType(file) !== "skin"
-    );
-    if (skinProjectFiles.length) {
-      for (const skinProjectFile of skinProjectFiles) {
-        await loadSkinProject(skinProjectFile);
-      }
-    }
-    if (!otherFiles.length) {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      return;
-    }
-    const foundModels = await importMultipleFilesToModels(otherFiles);
-    addImportedSkins(foundModels);
-    const currentModelSkins = foundModels.get(actualModel);
-    if (currentModelSkins) {
-      const completeSkins = Array.from(currentModelSkins.values()).filter(
-        (skin) => skin.isComplete
+    setImportError(null);
+    try {
+      await loadSkinFiles(Array.from(event.target.files ?? []));
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "Unable to open this skin"
       );
-      if (completeSkins.length) {
-        const skin = completeSkins[0];
-        setSelectedSkinType("import");
-        setSelectedSkinSection("import");
-        setSelectedSkin(skin.name ?? "__untitled__");
-        setSelectedMaterialIndex(0);
-        setSelectedAnimation(null);
-        return;
-      }
-    }
-    for (const [modelName, skinsByName] of Array.from(
-      foundModels.entries()
-    )) {
-      for (const skin of Array.from(skinsByName.values())) {
-        if (skin.isComplete) {
-          setSelectedModel(modelName);
-          setSelectedModelType(modelToModelType(modelName));
-          setSelectedSkinType("import");
-          setSelectedSkinSection("import");
-          setSelectedSkin(skin.name ?? "__untitled__");
-          setSelectedMaterialIndex(0);
-          setSelectedAnimation(null);
-          break;
-        }
-      }
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
+  const newSkinGroup = newSkins[actualModel]?.length ? (
+    <optgroup label="New Skins ✨" data-skin-type="custom">
+      {newSkins[actualModel].map((name) => (
+        <option key={`new/${name}`} value={`custom/${name}`}>
+          {name} ✨
+        </option>
+      ))}
+    </optgroup>
+  ) : null;
 
   return (
     <div className="Toolbar">
@@ -131,46 +79,31 @@ export default function WarriorSelector() {
           id="ModelSelect"
           value={selectedModel}
           onChange={(event) => {
-            const parentNode = event.target.selectedOptions[0]
-              .parentNode as HTMLElement;
             const newSelectedModel = event.target.value;
             const newActualModel =
               newSelectedModel === "hfemale" ? "hmale" : newSelectedModel;
-            const { modelType } = parentNode.dataset;
-            if (!modelType) {
-              throw new Error("No data-model-type found");
-            }
+            const availableSkins =
+              selectedSkinType === "default"
+                ? (defaultSkins[newActualModel] ?? [
+                    modelDefaults[newActualModel],
+                  ])
+                : selectedSkinType === "custom"
+                  ? customSkins[newActualModel]
+                  : [];
             const newModelHasSkin =
-              (selectedSkin &&
-                (defaultSkins[newActualModel]?.includes(selectedSkin) ||
-                  customSkins[newActualModel]?.includes(selectedSkin))) ||
-              false;
-
-            let newModelHasSection = false;
-            if (
-              selectedSkin &&
-              selectedSkinSection === "new" &&
-              newModelHasSkin
-            ) {
-              newModelHasSection =
-                newSkins[newActualModel]?.includes(selectedSkin);
-            }
+              selectedSkin && availableSkins?.includes(selectedSkin);
 
             setSelectedAnimation(null);
             setAnimationPaused(false);
-            setSelectedModelType(modelType);
             setSelectedModel(newSelectedModel);
             setSelectedMaterialIndex(0);
             if (!newModelHasSkin) {
               setSelectedSkin(modelDefaults[newActualModel] ?? null);
               setSelectedSkinType("default");
             }
-            if (!newModelHasSection) {
-              setSelectedSkinSection(null);
-            }
           }}
         >
-          <optgroup label="Players" data-model-type="player">
+          <optgroup label="Players">
             <option value="lmale">Human Male &bull; Light</option>
             <option value="mmale">Human Male &bull; Medium</option>
             <option value="hmale">Human Male &bull; Heavy</option>
@@ -181,7 +114,7 @@ export default function WarriorSelector() {
             <option value="mbioderm">Bioderm &bull; Medium</option>
             <option value="hbioderm">Bioderm &bull; Heavy</option>
           </optgroup>
-          <optgroup label="Weapons" data-model-type="weapon">
+          <optgroup label="Weapons">
             <option value="disc">Disc Launcher</option>
             <option value="chaingun">Chaingun</option>
             <option value="grenade_launcher">Grenade Launcher</option>
@@ -196,7 +129,7 @@ export default function WarriorSelector() {
             <option value="targeting">Targeting Laser</option>
             <option value="mine">Mine</option>
           </optgroup>
-          <optgroup label="Vehicles" data-model-type="vehicle">
+          <optgroup label="Vehicles">
             <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
             <option value="vehicle_grav_tank">Beowulf Assault Tank</option>
             <option value="vehicle_land_mpbbase">
@@ -218,105 +151,58 @@ export default function WarriorSelector() {
               const parentNode = event.target.selectedOptions[0]
                 .parentNode as HTMLElement;
               const skinType = event.target.value
-                ? parentNode.dataset.skinType ?? null
+                ? (parentNode.dataset.skinType ?? null)
                 : null;
-              const skinParts = event.target.value.split("/");
-              const selectedSkin = skinParts.slice(-1)[0] ?? null;
-              setSelectedSkin(selectedSkin);
+              const value = event.target.value;
+              setSelectedSkin(
+                value ? value.slice(value.indexOf("/") + 1) : null
+              );
               setSelectedSkinType(skinType);
-              if (skinParts.length > 1) {
-                setSelectedSkinSection(skinParts[0]);
-              } else {
-                setSelectedSkinSection(null);
-              }
             }}
           >
             <option value="">Select a skin…</option>
-            {selectedModelType === "player" ? (
-              <>
-                <optgroup label="Default Skins" data-skin-type="default">
-                  {defaultSkins[actualModel]?.map((name: string) => {
-                    return (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    );
-                  })}
-                </optgroup>
-                {selectableImportedSkins.length ? (
-                  <optgroup label="Imported Skins" data-skin-type="import">
-                    {selectableImportedSkins.map((skin) => {
-                      return (
-                        <option
-                          key={`import/${skin.name ?? "__untitled__"}`}
-                          value={`import/${skin.name ?? "__untitled__"}`}
-                        >
-                          {skin.name || "Untitled Imported Skin"}
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                ) : null}
-                {newSkins[actualModel]?.length ? (
-                  <optgroup label="New Skins ✨" data-skin-type="custom">
-                    {newSkins[actualModel]?.map((name: string) => {
-                      return (
-                        <option key={`new/${name}`} value={`new/${name}`}>
-                          {name} ✨
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                ) : null}
-                <optgroup label="Custom Skins" data-skin-type="custom">
-                  {customSkins === defaultCustomSkins ? (
-                    <option key="loading" value="">
-                      Loading…
-                    </option>
-                  ) : (
-                    customSkins[actualModel]?.map((name: string) => {
-                      return (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      );
-                    })
-                  )}
-                </optgroup>
-              </>
+            {selectedSkinType === "project" ? (
+              <optgroup label="Project" data-skin-type="project">
+                <option value={`project/${selectedSkin}`}>
+                  {selectedSkin}
+                </option>
+              </optgroup>
             ) : null}
-            {selectedModelType === "weapon" ||
-            selectedModelType === "vehicle" ? (
-              <>
-                {modelDefaults[actualModel] ? (
-                  <optgroup label="Default Skins" data-skin-type="default">
-                    <option value={modelDefaults[actualModel]}>Default</option>
-                  </optgroup>
-                ) : null}
-                {selectableImportedSkins.length ? (
-                  <optgroup label="Imported Skins" data-skin-type="import">
-                    {selectableImportedSkins.map((skin) => {
-                      return (
-                        <option
-                          key={`import/${skin.name ?? "__untitled__"}`}
-                          value={`import/${skin.name ?? "__untitled__"}`}
-                        >
-                          {skin.name || "Untitled Imported Skin"}
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                ) : null}
-                {customSkins[actualModel]?.length ? (
-                  <optgroup label="Custom Skins" data-skin-type="custom">
-                    {customSkins[actualModel].map((name: string) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-              </>
+            {defaultNames.length ? (
+              <optgroup label="Default Skins" data-skin-type="default">
+                {defaultNames.map((name) => (
+                  <option key={name} value={`default/${name}`}>
+                    {selectedModelType === "player" ? name : "Default"}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            {selectableImportedSkins.length ? (
+              <optgroup label="Imported Skins" data-skin-type="import">
+                {selectableImportedSkins.map((skin) => (
+                  <option
+                    key={skin.name ?? "__untitled__"}
+                    value={`import/${skin.name ?? "__untitled__"}`}
+                  >
+                    {skin.name || "Untitled Imported Skin"}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            {newSkinGroup}
+            {selectedModelType === "player" ||
+            customSkins[actualModel]?.length ? (
+              <optgroup label="Custom Skins" data-skin-type="custom">
+                {!isManifestLoaded ? (
+                  <option value="">Loading…</option>
+                ) : (
+                  customSkins[actualModel]?.map((name) => (
+                    <option key={name} value={`custom/${name}`}>
+                      {name}
+                    </option>
+                  ))
+                )}
+              </optgroup>
             ) : null}
           </select>
           <button
@@ -341,6 +227,7 @@ export default function WarriorSelector() {
           />
         </div>
       </div>
+      {importError ? <p role="alert">{importError}</p> : null}
       <div className="Field GalleryField">
         <a
           href="gallery/"

@@ -1,6 +1,5 @@
 import React from "react";
-import ColorCanvas from "./ColorCanvas";
-import MetallicCanvas from "./MetallicCanvas";
+import MaterialCanvas from "./MaterialCanvas";
 import useWarrior from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 import modelConfig from "./models";
@@ -18,14 +17,16 @@ export default function MaterialCanvases() {
           return null;
         }
         const hasMetallic = !(
-          materialDef.metallicFactor === 0 && materialDef.roughnessFactor === 1
+          materialDef.metallicFactor === 0 &&
+          materialDef.roughnessFactor === 1
         );
         const frameCount = materialDef.frameCount ?? 1;
         const frames = new Array(frameCount).fill(null);
         return (
           <React.Fragment key={`${actualModel}-${materialDef.name}`}>
             {frames.map((_, i) => (
-              <ColorCanvas
+              <MaterialCanvas
+                type="color"
                 materialDef={materialDef}
                 frameIndex={i}
                 key={`color:${i}`}
@@ -33,7 +34,8 @@ export default function MaterialCanvases() {
             ))}
             {hasMetallic
               ? frames.map((_, i) => (
-                  <MetallicCanvas
+                  <MaterialCanvas
+                    type="metallic"
                     materialDef={materialDef}
                     frameIndex={i}
                     key={`metallic:${i}`}
