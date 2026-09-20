@@ -41,6 +41,22 @@ function isActiveSelection(object: FabricObject): object is ActiveSelection {
   return object.type === "activeSelection";
 }
 
+// Determines if a material is editable based on its properties.
+function isEditableMaterial(material: MaterialDefinition | null | undefined) {
+  return Boolean(material && material.selectable !== false && !material.hidden);
+}
+
+// Determines if a material has a metallic component based on its properties.
+function materialHasMetallic(material: MaterialDefinition) {
+  return !(material.metallicFactor === 0 && material.roughnessFactor === 1);
+}
+
+// Key used for a material's zip subfolder; multi-frame materials get one subfolder per frame.
+function materialArchiveKey(material: MaterialDefinition, frameIndex: number) {
+  const frameCount = material.frameCount ?? 1;
+  return frameCount > 1 ? `${material.name}-frame${frameIndex}` : material.name;
+}
+
 type ObjectFilters = {
   HueRotation?: number;
   Saturation?: number;
@@ -48,6 +64,28 @@ type ObjectFilters = {
   Contrast?: number;
   Opacity?: number;
 };
+
+// Reads the filter/opacity values actually applied to a fabric object, so filterMap
+// (which drives the slider UI) can be resynced after objects are replaced wholesale
+// (undo/redo's canvas.loadFromJSON, or a .skin project load), rather than mutated
+// in place through setFilter.
+function extractObjectFilters(object: FabricObject): ObjectFilters {
+  const objectFilters: ObjectFilters = { Opacity: object.opacity ?? 1 };
+  if (object instanceof FabricImage) {
+    for (const filter of object.filters ?? []) {
+      if (filter instanceof filters.HueRotation) {
+        objectFilters.HueRotation = filter.rotation;
+      } else if (filter instanceof filters.Saturation) {
+        objectFilters.Saturation = filter.saturation;
+      } else if (filter instanceof filters.Brightness) {
+        objectFilters.Brightness = filter.brightness;
+      } else if (filter instanceof filters.Contrast) {
+        objectFilters.Contrast = filter.contrast;
+      }
+    }
+  }
+  return objectFilters;
+}
 
 export default function ToolsProvider({ children }: { children: ReactNode }) {
   const { actualModel, selectedModelType } = useWarrior();
@@ -97,11 +135,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setSelectedExportMaterials(
-      materialDefs.map((material) =>
-        Boolean(material && material.selectable !== false && !material.hidden)
-      )
-    );
+    setSelectedExportMaterials(materialDefs.map(isEditableMaterial));
   }, [materialDefs]);
 
   useEffect(() => {
@@ -569,6 +603,102 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     ]
   );
 
+  const exportSkinProject = useCallback(
+    async (name: string) => {
+      const materialInputs = materialDefs
+        .filter(isEditableMaterial)
+        .map((material) => {
+          const baseTextureSize = material.size ?? defaultTextureSize;
+          const textureSize: [number, number] = [
+            baseTextureSize[0] * sizeMultiplier,
+            baseTextureSize[1] * sizeMultiplier,
+          ];
+          const frameCount = material.frameCount ?? 1;
+          const frames = new Array(frameCount).fill(null);
+          return frames.map((_, frameIndex) => {
+            const colorCanvas =
+              canvases[`${material.name}:color:${frameIndex}:${sizeMultiplier}`]
+                ?.canvas;
+            if (!colorCanvas) {
+              return null;
+            }
+            const metallicCanvas = materialHasMetallic(material)
+              ? canvases[
+                  `${material.name}:metallic:${frameIndex}:${sizeMultiplier}`
+                ]?.canvas
+              : null;
+            return {
+              name: materialArchiveKey(material, frameIndex),
+              textureSize,
+              colorCanvas,
+              metallicCanvas,
+            };
+          });
+        })
+        .flat()
+        .filter((input): input is NonNullable<typeof input> => input !== null);
+
+      if (!materialInputs.length) {
+        return;
+      }
+      const { saveZipFile } = await import("./exportUtils");
+      const { createSkinProjectZip } = await import("./skinProjectUtils");
+      const zip = await createSkinProjectZip(materialInputs);
+      const filename = `${name.trim() || "MyCustomSkin"}.skin`;
+      await saveZipFile(zip, filename);
+    },
+    [materialDefs, canvases, sizeMultiplier]
+  );
+
+  const loadSkinProject = useCallback(
+    async (file: File | Blob) => {
+      const { readSkinProjectZip, applySkinProjectToCanvas } = await import(
+        "./skinProjectUtils"
+      );
+      const materialsByName = await readSkinProjectZip(file);
+      const restoredLockedObjects: FabricObject[] = [];
+      for (const material of materialDefs) {
+        if (!isEditableMaterial(material)) {
+          continue;
+        }
+        const frameCount = material.frameCount ?? 1;
+        for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+          const loaded = materialsByName[materialArchiveKey(material, frameIndex)];
+          if (!loaded) {
+            continue;
+          }
+          const colorCanvasId = `${material.name}:color:${frameIndex}:${sizeMultiplier}`;
+          const colorCanvas = canvases[colorCanvasId]?.canvas;
+          if (!colorCanvas) {
+            continue;
+          }
+          const metallicCanvasId = `${material.name}:metallic:${frameIndex}:${sizeMultiplier}`;
+          const metallicCanvas = materialHasMetallic(material)
+            ? canvases[metallicCanvasId]?.canvas
+            : null;
+          const lockedObjects = await applySkinProjectToCanvas(
+            colorCanvas,
+            loaded,
+            metallicCanvas
+          );
+          restoredLockedObjects.push(...lockedObjects);
+          canvases[colorCanvasId]?.notifyChange();
+          if (metallicCanvas) {
+            canvases[metallicCanvasId]?.notifyChange();
+          }
+        }
+      }
+      if (restoredLockedObjects.length) {
+        setLockedObjects((lockedObjects) => {
+          const newLockedObjects = new Set(lockedObjects);
+          restoredLockedObjects.forEach((object) => newLockedObjects.add(object));
+          return newLockedObjects;
+        });
+      }
+    },
+    [materialDefs, canvases, sizeMultiplier]
+  );
+
   const context = useMemo(
     () => ({
       activeCanvas,
@@ -608,6 +738,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canRedo,
       copyToMetallic,
       exportSkin,
+      exportSkinProject,
+      loadSkinProject,
       selectedMaterialIndex,
       setSelectedMaterialIndex,
       textureSize,
@@ -653,6 +785,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canRedo,
       copyToMetallic,
       exportSkin,
+      exportSkinProject,
+      loadSkinProject,
       selectedMaterialIndex,
       textureSize,
       hasMetallic,
@@ -682,6 +816,37 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       };
     }
   }, [canvas]);
+
+  // Undo/redo (canvas.loadFromJSON) and .skin project loads replace canvas objects
+  // with new instances, so filterMap's per-object entries go stale. Resync from the
+  // objects' actual filters/opacity whenever new objects are added to either canvas.
+  useEffect(() => {
+    const syncFilterMapForCanvas = (targetCanvas: typeof canvas) => {
+      if (!targetCanvas) {
+        return;
+      }
+      setFilterMap((filterMap) => {
+        const newFilterMap = new Map(filterMap);
+        for (const object of targetCanvas._objects) {
+          if (object instanceof FabricImage) {
+            newFilterMap.set(object, extractObjectFilters(object));
+          }
+        }
+        return newFilterMap;
+      });
+    };
+
+    const handleColorObjectAdded = () => syncFilterMapForCanvas(canvas);
+    const handleMetallicObjectAdded = () => syncFilterMapForCanvas(metallicCanvas);
+
+    canvas?.on("object:added", handleColorObjectAdded);
+    metallicCanvas?.on("object:added", handleMetallicObjectAdded);
+
+    return () => {
+      canvas?.off("object:added", handleColorObjectAdded);
+      metallicCanvas?.off("object:added", handleMetallicObjectAdded);
+    };
+  }, [canvas, metallicCanvas]);
 
   useEffect(() => {
     if (metallicCanvas) {

@@ -42,6 +42,8 @@ interface ToolsContextValue {
     name: string;
     format: string;
   }) => Promise<void>;
+  exportSkinProject: (name: string) => Promise<void>;
+  loadSkinProject: (file: File | Blob) => Promise<void>;
   lockedObjects: Set<FabricObject>;
   backgroundColor: string;
   setBackgroundColor: (backgroundColor: string) => void;

@@ -160,8 +160,6 @@ export default function Canvas({
         "lockScalingX",
         "lockScalingY",
         "selectable",
-        "hoverCursor",
-        "moveCursor",
       ]);
       isSnapshotting = false;
       return snapshot;

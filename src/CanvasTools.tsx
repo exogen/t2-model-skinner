@@ -74,6 +74,7 @@ export default function CanvasTools() {
     activeCanvasType,
     addImages,
     exportSkin,
+    exportSkinProject,
     selectedExportMaterials,
     setSelectedExportMaterials,
   } = useTools();
@@ -182,6 +183,7 @@ export default function CanvasTools() {
       switch (savedExportFileType) {
         case "vl2":
         case "png":
+        case "skin":
           setExportFileType(savedExportFileType);
           break;
       }
@@ -763,6 +765,7 @@ export default function CanvasTools() {
                   >
                     <option value="png">.png</option>
                     <option value="vl2">.vl2</option>
+                    <option value="skin">.skin</option>
                   </select>
                 </div>
               </div>
@@ -774,7 +777,11 @@ export default function CanvasTools() {
           type="button"
           onClick={() => {
             const name = nameInputRef.current ? nameInputRef.current.value : "";
-            exportSkin({ name, format: exportFileType });
+            if (exportFileType === "skin") {
+              exportSkinProject(name);
+            } else {
+              exportSkin({ name, format: exportFileType });
+            }
           }}
         >
           Export
