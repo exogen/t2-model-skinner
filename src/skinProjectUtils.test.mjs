@@ -508,3 +508,36 @@ test("late metallic processing cannot overwrite the newly opened project preview
     await m.dispose();
   }
 });
+
+test("saving and reopening a texture keeps artwork aligned with the padded atlas", async () => {
+  const element = fabric.getEnv().document.createElement("canvas");
+  element.width = element.height = 512;
+  const context = element.getContext("2d");
+  context.fillStyle = "#346789";
+  context.fillRect(0, 0, 512, 512);
+  context.fillStyle = "#ff0000";
+  context.fillRect(0, 0, 64, 64);
+  context.fillStyle = "#00ff00";
+  context.fillRect(448, 448, 64, 64);
+  const url = element.toDataURL();
+  const app = await editor("lmale", {
+    realCanvases: true,
+    initialImageUrls: { base: [url] },
+  });
+  const crop = { left: 64, top: 64, width: 512, height: 512, multiplier: 1 };
+  try {
+    for (let pass = 0; pass < 3; pass++) {
+      for (const type of ["color", "metallic"]) {
+        const c = app.canvases[`base:${type}:0:1`].canvas;
+        expect(c.item(0).left).toBe(64);
+        expect(c.item(0).top).toBe(64);
+        expect(c.toDataURL(crop)).toBe(url);
+      }
+      expect(app.skin.getColorImageUrl("base", 0)).toBe(url);
+      await act(async () => app.tools.exportSkinProject("aligned"));
+      await app.load(await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }));
+    }
+  } finally {
+    await app.close();
+  }
+});

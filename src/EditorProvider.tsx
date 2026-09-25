@@ -3,6 +3,8 @@ import CanvasProvider from "./CanvasProvider";
 import ToolsProvider from "./ToolsProvider";
 import useWarrior from "./useWarrior";
 import useAsyncTask from "./useAsyncTask";
+import useImageLoader from "./useImageLoader";
+import { detectTextureSizeMultiplier } from "./textureResolution";
 import { detectFileType, importMultipleFilesToModels } from "./importUtils";
 import {
   EditorSessionContext,
@@ -89,6 +91,7 @@ export default function EditorProvider({
     skinType: warrior.selectedSkinType,
     skin: warrior.selectedSkin,
     images: warrior.skinImageUrls,
+    defaultImages: warrior.defaultSkinImageUrls,
     sizeMultiplier,
     project: activeProject,
   };
@@ -102,7 +105,8 @@ export default function EditorProvider({
     previous.skin !== source.skin ||
     previous.sizeMultiplier !== source.sizeMultiplier ||
     previous.project !== source.project ||
-    !sameTextureUrls(previous.images, source.images)
+    !sameTextureUrls(previous.images, source.images) ||
+    !sameTextureUrls(previous.defaultImages, source.defaultImages)
   ) {
     setSession({ source, revision: session.revision + 1 });
   }
@@ -110,6 +114,7 @@ export default function EditorProvider({
   return (
     <EditorSession
       key={session.revision}
+      source={session.source}
       preferences={preferences}
       setPreferences={setPreferences}
       project={activeProject?.document ?? null}
@@ -124,14 +129,21 @@ export default function EditorProvider({
 
 function EditorSession({
   children,
+  source,
   preferences,
   setPreferences,
   project,
-  sizeMultiplier,
+  sizeMultiplier: preferredSize,
   setSizeMultiplier,
   openProject,
 }: {
   children: ReactNode;
+  source: {
+    model: string;
+    skin: string | null;
+    images: Record<string, string[]>;
+    defaultImages: Record<string, string[]>;
+  };
   preferences: EditorSessionValue["preferences"];
   setPreferences: EditorSessionValue["setPreferences"];
   project: SkinProject | null;
@@ -141,6 +153,35 @@ function EditorSession({
 }) {
   const warrior = useWarrior();
   const { selectedModel } = warrior;
+  const { loadImage } = useImageLoader();
+  const [detectedSize, setDetectedSize] = useState<number | undefined | null>(
+    null
+  );
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
+  const resolveSize = useAsyncTask();
+  useEffect(() => {
+    if (project) return;
+    void resolveSize(
+      () =>
+        detectTextureSizeMultiplier(
+          source.model,
+          source.images,
+          source.skin ? source.defaultImages : {},
+          loadImage
+        ),
+      setDetectedSize
+    ).catch((error: unknown) => {
+      setResolutionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to determine texture size"
+      );
+    });
+  }, [project, source, loadImage, resolveSize]);
+  const isResolvingSize = !project && detectedSize === null && !resolutionError;
+  const sizeMultiplier = project
+    ? preferredSize
+    : (detectedSize ?? preferredSize);
   const runTask = useAsyncTask();
   const runLoad = useAsyncTask(true);
   const loadSkinProject = useCallback(
@@ -206,13 +247,15 @@ function EditorSession({
         setPreferences,
         project,
         sizeMultiplier,
+        isResolvingSize,
+        resolutionError,
         setSizeMultiplier,
         loadSkinProject,
         loadSkinFiles,
         runTask,
       }}
     >
-      <CanvasProvider>
+      <CanvasProvider key={sizeMultiplier}>
         <ToolsProvider>{children}</ToolsProvider>
       </CanvasProvider>
     </EditorSessionContext.Provider>

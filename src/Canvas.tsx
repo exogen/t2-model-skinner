@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import useCanvas from "./useCanvas";
 import useSettings from "./useSettings";
 import useTools from "./useTools";
@@ -10,9 +10,14 @@ import {
   util,
 } from "fabric";
 import { createCanvasHistory, type HistoryState } from "./canvasHistory";
-import { createFabricImage, type CanvasSnapshot } from "./fabricUtils";
+import {
+  configureCanvasControls,
+  createFabricImage,
+  type CanvasSnapshot,
+} from "./fabricUtils";
 import useImageLoader from "./useImageLoader";
 import useAsyncTask from "./useAsyncTask";
+import useEditorSession from "./useEditorSession";
 
 function updateObjectControlOptions() {
   InteractiveFabricObject.ownDefaults = {
@@ -106,6 +111,7 @@ export default function Canvas({
   } | null>(null);
   const { canvas, history } = surface ?? {};
   const { activeCanvas } = useTools();
+  const { sizeMultiplier, isResolvingSize, resolutionError } = useEditorSession();
   const { canvasPadding } = useSettings();
   const { registerCanvas, unregisterCanvas } = useCanvas();
   const [isDrawingMode, setDrawingMode] = useState(defaultDrawingMode);
@@ -134,6 +140,9 @@ export default function Canvas({
     const options = {
       preserveObjectStacking: true,
       targetFindTolerance: 2,
+      // HD already has multiple image pixels per displayed pixel. Avoid
+      // multiplying every HD canvas's memory usage again on Retina screens.
+      enableRetinaScaling: sizeMultiplier === 1,
     };
 
     updateObjectControlOptions();
@@ -158,7 +167,21 @@ export default function Canvas({
       setSurface(null);
       void canvas.dispose();
     };
-  }, []);
+  }, [sizeMultiplier]);
+
+  useLayoutEffect(() => {
+    if (!canvas) return;
+    // Keep document coordinates and exports at full resolution. Fabric maps
+    // pointer positions through these CSS dimensions for editing and painting.
+    canvas.setDimensions(
+      {
+        width: (textureSize[0] + canvasPadding * 2) / sizeMultiplier,
+        height: (textureSize[1] + canvasPadding * 2) / sizeMultiplier,
+      },
+      { cssOnly: true }
+    );
+    return configureCanvasControls(canvas, sizeMultiplier);
+  }, [canvas, textureSize, canvasPadding, sizeMultiplier]);
 
   useEffect(() => {
     if (canvas) {
@@ -209,7 +232,12 @@ export default function Canvas({
   ]);
 
   useEffect(() => {
-    if (!canvas || !history) return;
+    if (!canvas || !history || isResolvingSize) return;
+    if (resolutionError) {
+      setStatus("error");
+      setLoadError(resolutionError);
+      return;
+    }
     setStatus("loading");
     setLoadError(null);
     void initialize(
@@ -227,12 +255,16 @@ export default function Canvas({
         error instanceof Error ? error.message : "Unable to load texture"
       );
     });
-  }, [canvas, history, source, textureSize, loadImage, initialize]);
+  }, [
+    canvas, history, source, textureSize, loadImage, initialize, isResolvingSize,
+    resolutionError,
+  ]);
 
   return (
     <div
       className="CanvasContainer"
       data-active={isActive ? "true" : "false"}
+      style={{ padding: canvasPadding * (1 - 1 / sizeMultiplier) }}
     >
       {loadError ? <p role="alert">{loadError}</p> : null}
       <div>

@@ -11,7 +11,7 @@ export default function CanvasToggle() {
     selectedFrameIndex,
     setSelectedFrameIndex,
     sizeMultiplier,
-    setSizeMultiplier,
+    textureSize,
   } = useTools();
 
   return (
@@ -37,35 +37,15 @@ export default function CanvasToggle() {
             Metallic
           </button>
         ) : null}
-      </div>
-      <div className="CanvasToggle" style={{ display: "none" }}>
-        <button
-          type="button"
-          data-selected={sizeMultiplier === 1 ? "" : undefined}
-          onClick={() => {
-            setSizeMultiplier(1);
-          }}
-        >
-          1&times;
-        </button>
-        <button
-          type="button"
-          data-selected={sizeMultiplier === 2 ? "" : undefined}
-          onClick={() => {
-            setSizeMultiplier(2);
-          }}
-        >
-          2&times;
-        </button>
-        <button
-          type="button"
-          data-selected={sizeMultiplier === 4 ? "" : undefined}
-          onClick={() => {
-            setSizeMultiplier(4);
-          }}
-        >
-          4&times;
-        </button>
+        {sizeMultiplier > 1 ? (
+          <span
+            className="CanvasResolution"
+            title={`${textureSize[0]} × ${textureSize[1]} pixels`}
+            aria-label={`${sizeMultiplier}× resolution: ${textureSize[0]} × ${textureSize[1]} pixels`}
+          >
+            {sizeMultiplier}&times;
+          </span>
+        ) : null}
       </div>
       {hasAnimation ? (
         <div className="FrameSelector">

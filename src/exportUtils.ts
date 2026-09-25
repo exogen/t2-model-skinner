@@ -106,7 +106,9 @@ export async function collectFiles(
         if (skipNotFound && res.status === 404) {
           return null;
         }
-        throw new Error(`Response failed: ${res.status} ${res.statusText}`);
+        throw new Error(
+          `Unable to download ${fileName}: ${res.status} ${res.statusText}`
+        );
       }
       const arrayBuffer = await res.arrayBuffer();
       return {

@@ -19,6 +19,8 @@ export interface EditorSessionValue {
   setPreferences: Dispatch<SetStateAction<EditorPreferences>>;
   project: SkinProject | null;
   sizeMultiplier: number;
+  isResolvingSize: boolean;
+  resolutionError: string | null;
   setSizeMultiplier: (value: number | ((previous: number) => number)) => void;
   loadSkinProject: (file: File | Blob) => Promise<void>;
   loadSkinFiles: (files: File[]) => Promise<void>;

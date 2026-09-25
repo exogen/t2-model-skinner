@@ -61,6 +61,12 @@ function modelToFileList(modelName: string) {
     .map((fileName) => `${fileName}.png`);
 }
 
+function reportDownloadError(error: unknown) {
+  window.alert(
+    error instanceof Error ? error.message : "Unable to download this skin"
+  );
+}
+
 const modelOrder: Record<string, number> = {
   lmale: 0,
   mmale: 1,
@@ -187,13 +193,16 @@ function Gallery() {
           if (!ignore) {
             await saveZipFile(zip, zipFileName);
           }
-          if (!ignore) {
-            setPreparingDownload(false);
-          }
         }
       };
 
-      download();
+      void download()
+        .catch((error: unknown) => {
+          if (!ignore) reportDownloadError(error);
+        })
+        .finally(() => {
+          if (!ignore) setPreparingDownload(false);
+        });
 
       return () => {
         ignore = true;
@@ -472,84 +481,89 @@ function Gallery() {
                       title={`Download ${skinName} skin`}
                       aria-label={`Download ${skinName} skin`}
                       onClick={async () => {
-                        const modelType = modelToModelType(skinModel);
-                        if (!modelType) throw new Error("Unknown model");
-                        const camelCaseModelName = skinModel.replace(
-                          /(?:^([a-z])|_([a-z]))/g,
-                          (match, a, b) => (a || b).toUpperCase(),
-                        );
-                        let zipFileName = "";
-                        let fileNames: string[] = [];
+                        try {
+                          const modelType = modelToModelType(skinModel);
+                          if (!modelType) throw new Error("Unknown model");
+                          const camelCaseModelName = skinModel.replace(
+                            /(?:^([a-z])|_([a-z]))/g,
+                            (match, a, b) => (a || b).toUpperCase(),
+                          );
+                          let zipFileName = "";
+                          let fileNames: string[] = [];
 
-                        switch (modelType) {
-                          case "player":
-                            zipFileName = `zPlayerSkin-${skinName}.vl2`;
-                            fileNames = modelTypes.player
-                              .filter((modelName) =>
-                                manifest.customSkins[modelName].includes(
-                                  skinName,
-                                ),
-                              )
-                              .map(
-                                (modelName) => `${skinName}.${modelName}.png`,
+                          switch (modelType) {
+                            case "player":
+                              zipFileName = `zPlayerSkin-${skinName}.vl2`;
+                              fileNames = modelTypes.player
+                                .filter((modelName) =>
+                                  manifest.customSkins[modelName]?.includes(
+                                    skinName,
+                                  ),
+                                )
+                                .map(
+                                  (modelName) => `${skinName}.${modelName}.png`,
+                                );
+                              break;
+                            case "weapon":
+                              zipFileName = `zWeapon${camelCaseModelName}-${skinName}.vl2`;
+                              fileNames = modelToFileList(skinModel).map(
+                                (fileName) => `${skinName}/${fileName}`,
                               );
-                            break;
-                          case "weapon":
-                            zipFileName = `zWeapon${camelCaseModelName}-${skinName}.vl2`;
-                            fileNames = modelToFileList(skinModel).map(
-                              (fileName) => `${skinName}/${fileName}`,
+                              break;
+                            case "vehicle":
+                              zipFileName = `z${camelCaseModelName}-${skinName}.vl2`;
+                              fileNames = modelToFileList(skinModel).map(
+                                (fileName) => `${skinName}/${fileName}`,
+                              );
+                              break;
+                          }
+                          if (fileNames.length) {
+                            const hasHiRes = fileNames.some(
+                              (fileName) => manifest.sizeMultiplier[fileName] > 1,
                             );
-                            break;
-                          case "vehicle":
-                            zipFileName = `z${camelCaseModelName}-${skinName}.vl2`;
-                            fileNames = modelToFileList(skinModel).map(
-                              (fileName) => `${skinName}/${fileName}`,
-                            );
-                            break;
-                        }
-                        if (fileNames.length) {
-                          const hasHiRes = fileNames.some(
-                            (fileName) => manifest.sizeMultiplier[fileName] > 1,
-                          );
 
-                          if (hasHiRes && hiResDownload === "prompt") {
-                            window.alert(
-                              "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again.",
-                            );
-                            if (hiResSelectRef.current) {
-                              hiResSelectRef.current.focus();
+                            if (hasHiRes && hiResDownload === "prompt") {
+                              window.alert(
+                                "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again.",
+                              );
+                              if (hiResSelectRef.current) {
+                                hiResSelectRef.current.focus();
+                              }
+                              return;
                             }
-                            return;
-                          }
 
-                          const collectFileNames =
-                            hiResDownload === "yes"
-                              ? fileNames
-                              : fileNames.map((fileName) => {
-                                  return manifest.sizeMultiplier[fileName] > 1
-                                    ? fileName.replace(/\.png$/, "@1x.png")
-                                    : fileName;
-                                });
+                            const collectFileNames =
+                              hiResDownload === "yes"
+                                ? fileNames
+                                : fileNames.map((fileName) => {
+                                    return manifest.sizeMultiplier[fileName] > 1
+                                      ? fileName.replace(/\.png$/, "@1x.png")
+                                      : fileName;
+                                  });
 
-                          if (hasHiRes && hiResDownload === "no") {
-                            zipFileName = zipFileName.replace(
-                              /\.vl2$/,
-                              "@1x.vl2",
+                            if (hasHiRes && hiResDownload === "no") {
+                              zipFileName = zipFileName.replace(
+                                /\.vl2$/,
+                                "@1x.vl2",
+                              );
+                            }
+
+                            const files = await collectFiles(collectFileNames, {
+                              // An omitted override falls back to the stock texture.
+                              skipNotFound: true,
+                            });
+                            const zip = createZipFile(
+                              files.map(({ name, data }) => {
+                                return {
+                                  name: name.split("/").slice(-1)[0],
+                                  data,
+                                };
+                              }),
                             );
+                            await saveZipFile(zip, zipFileName);
                           }
-
-                          const files = await collectFiles(collectFileNames, {
-                            skipNotFound: true,
-                          });
-                          const zip = createZipFile(
-                            files.map(({ name, data }) => {
-                              return {
-                                name: name.split("/").slice(-1)[0],
-                                data,
-                              };
-                            }),
-                          );
-                          await saveZipFile(zip, zipFileName);
+                        } catch (error) {
+                          reportDownloadError(error);
                         }
                       }}
                     >

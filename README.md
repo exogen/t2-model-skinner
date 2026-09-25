@@ -8,6 +8,16 @@ editing. Export as `.png` or `.vl2` for use in the game.
 Drop images onto the canvas to add layers, or drop `.skin` or `.vl2` files to
 load a skin.
 
+HD skins are detected automatically when selecting a skin or loading a PNG,
+VL2, or `.skin` project. The editor supports 1×, 2×, and 4× textures while
+keeping the canvas the same size on screen. A resolution badge beside the
+Color/Metallic tabs shows the multiplier; hover over it for pixel dimensions.
+Project saves and game exports retain the editing resolution. Skins with mixed
+material sizes use the largest multiplier, scaling smaller textures up.
+
+In the gallery, **HD support?** selects original HD textures or their 1×
+alternatives.
+
 ## Support
 
 Did this project bring you joy? Want to request a feature? Check out

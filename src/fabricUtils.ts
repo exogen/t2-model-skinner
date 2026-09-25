@@ -1,4 +1,41 @@
-import { Canvas, FabricImage, FabricObject } from "fabric";
+import { Canvas, Control, FabricImage, FabricObject } from "fabric";
+
+// CSS scales the artwork down, but handles and hit targets remain screen-sized.
+// Apply this on attachment and selection so restored layers and multi-selections
+// get the same controls without changing their saved document coordinates.
+export function configureCanvasControls(canvas: Canvas, sizeMultiplier: number) {
+  const configure = (object: FabricObject) => {
+    object.set({
+      cornerSize: 9 * sizeMultiplier,
+      touchCornerSize: 24 * sizeMultiplier,
+      borderScaleFactor: sizeMultiplier,
+    });
+    if (object.controls.mtr) {
+      object.controls = {
+        ...object.controls,
+        mtr: new Control({
+          ...object.controls.mtr,
+          offsetY: -40 * sizeMultiplier,
+        }),
+      };
+    }
+    object.setCoords();
+  };
+  const configureSelection = () => {
+    const selected = canvas.getActiveObject();
+    if (selected) configure(selected);
+  };
+  canvas.setTargetFindTolerance(2 * sizeMultiplier);
+  canvas.selectionLineWidth = sizeMultiplier;
+  canvas.getObjects().forEach(configure);
+  configureSelection();
+  const unsubscribe = [
+    canvas.on("object:added", ({ target }) => configure(target)),
+    canvas.on("selection:created", configureSelection),
+    canvas.on("selection:updated", configureSelection),
+  ];
+  return () => unsubscribe.forEach((off) => off());
+}
 
 export const SERIALIZED_PROPERTIES = [
   "lockMovementX",
