@@ -5,7 +5,7 @@ import { WarriorContext } from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 import type { Skin } from "./importUtils";
 import modelConfig, { modelToModelType } from "./models";
-import { SKIN_ASSET_BASE_URL } from "./deployPaths";
+import { getLocalAssetUrl, getSkinAssetUrl } from "./deployPaths";
 
 const { materials, modelDefaults, defaultSkins } = modelConfig;
 
@@ -84,11 +84,11 @@ export function getSkinImageUrls({
       switch (selectedSkinType) {
         case "default":
           return {
-            base: [`${basePath}/textures/${selectedSkin}.${actualModel}.png`],
+            base: [getLocalAssetUrl(basePath, `textures/${selectedSkin}.${actualModel}.png`)],
           };
         case "custom":
           return {
-            base: [`${SKIN_ASSET_BASE_URL}/${selectedSkin}.${actualModel}.png`],
+            base: [getSkinAssetUrl(`${selectedSkin}.${actualModel}.png`)],
           };
       }
       break;
@@ -108,7 +108,7 @@ export function getSkinImageUrls({
                     getFrameNames(
                       materialDef.file ?? materialDef.name,
                       frameCount,
-                    ).map((name) => `${basePath}/textures/${name}.png`);
+                    ).map((name) => getLocalAssetUrl(basePath, `textures/${name}.png`));
                 }
                 break;
               case "custom":
@@ -118,7 +118,7 @@ export function getSkinImageUrls({
                     frameCount,
                   ).map(
                     (name) =>
-                      `${SKIN_ASSET_BASE_URL}/${selectedSkin}/${name}.png`,
+                      getSkinAssetUrl(`${selectedSkin}/${name}.png`),
                   );
                 break;
             }
@@ -136,12 +136,10 @@ function getModelUrl(
   actualModel: string,
   selectedAnimation: string | null,
 ) {
-  switch (actualModel) {
-    default:
-      return `${basePath}/${actualModel}${
-        selectedAnimation ? ".anim" : ""
-      }.glb`;
-  }
+  return getLocalAssetUrl(
+    basePath,
+    `${actualModel}${selectedAnimation ? ".anim" : ""}.glb`,
+  );
 }
 
 export default function WarriorProvider({ children }: { children: ReactNode }) {

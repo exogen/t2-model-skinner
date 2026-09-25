@@ -67,6 +67,28 @@ function reportDownloadError(error: unknown) {
   );
 }
 
+function confirmDownload(
+  name: string,
+  models: string[],
+  fileCount: number,
+  includesHiRes: boolean,
+) {
+  if (!fileCount) {
+    window.alert("No skin files are available to download.");
+    return false;
+  }
+  const dropdownOrder = Object.values(modelTypes).flat();
+  const sortedModels = orderBy(models, (model) => {
+    const index = dropdownOrder.indexOf(model);
+    return index === -1 ? dropdownOrder.length : index;
+  });
+  const modelList = sortedModels.length ? ` (${sortedModels.join(", ")})` : "";
+  const hdStatus = includesHiRes ? "Yes (requires QoL patch)" : "No";
+  return window.confirm(
+    `Download “${name}”?\n\nModels: ${models.length.toLocaleString()}${modelList}\nFiles: ${fileCount.toLocaleString()}\nHD: ${hdStatus}`,
+  );
+}
+
 const modelOrder: Record<string, number> = {
   lmale: 0,
   mmale: 1,
@@ -129,6 +151,9 @@ function Gallery() {
     clearOnDefault: false,
   });
   const [isPreparingDownload, setPreparingDownload] = useState(false);
+  const [preparingSkin, setPreparingSkin] = useState<string | null>(null);
+  const pendingSkinDownload = useRef<{ canceled: boolean } | null>(null);
+  const isDownloadBusy = isPreparingDownload || preparingSkin !== null;
   const [hiResDownload, setHiResDownload] = useState<"prompt" | "yes" | "no">(
     "prompt",
   );
@@ -138,6 +163,12 @@ function Gallery() {
   const isNew = selectedModel === "new";
   const pack = manifest?.packs?.[selectedModel];
   const isPack = pack != null;
+
+  useEffect(() => {
+    return () => {
+      if (pendingSkinDownload.current) pendingSkinDownload.current.canceled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const savedHiResDownload = localStorage.getItem("hiResDownload");
@@ -188,6 +219,22 @@ function Gallery() {
 
         const files = await collectFiles(collectFileNames);
         if (!ignore) {
+          const models = Object.entries(pack.skins)
+            .filter(([, skins]) => skins.length > 0)
+            .map(([model]) => model);
+          const includesHiRes =
+            hiResDownload === "yes" &&
+            files.some(({ name }) => manifest.sizeMultiplier[name] > 1);
+          if (
+            !confirmDownload(
+              selectedModel,
+              models,
+              files.length,
+              includesHiRes,
+            )
+          ) {
+            return;
+          }
           const zip = createZipFile(files);
           await new Promise((resolve) => setTimeout(resolve, 500));
           if (!ignore) {
@@ -391,6 +438,7 @@ function Gallery() {
                 <button
                   type="button"
                   className={styles.DownloadButton}
+                  disabled={isDownloadBusy}
                   onClick={async () => {
                     setPreparingDownload(true);
                   }}
@@ -414,7 +462,7 @@ function Gallery() {
                 className={styles.HiResSelect}
                 ref={hiResSelectRef}
                 value={hiResDownload}
-                disabled={isPreparingDownload}
+                disabled={isDownloadBusy}
                 onChange={(event) => {
                   switch (event.target.value) {
                     case "prompt":
@@ -451,9 +499,10 @@ function Gallery() {
               const url = `${SKIN_GALLERY_BASE_URL}/${encodeURIComponent(
                 skinName,
               )}.${skinModel}.webp`;
+              const skinKey = `${skinName}:${skinModel}`;
 
               return (
-                <div key={`${skinName}:${skinModel}`} className={styles.Skin}>
+                <div key={skinKey} className={styles.Skin}>
                   <img
                     className={styles.Preview}
                     loading="lazy"
@@ -480,7 +529,13 @@ function Gallery() {
                       className={styles.DownloadSkin}
                       title={`Download ${skinName} skin`}
                       aria-label={`Download ${skinName} skin`}
+                      aria-busy={preparingSkin === skinKey}
+                      disabled={isDownloadBusy}
                       onClick={async () => {
+                        if (pendingSkinDownload.current || isPreparingDownload) return;
+                        const download = { canceled: false };
+                        pendingSkinDownload.current = download;
+                        setPreparingSkin(skinKey);
                         try {
                           const modelType = modelToModelType(skinModel);
                           if (!modelType) throw new Error("Unknown model");
@@ -552,6 +607,30 @@ function Gallery() {
                               // An omitted override falls back to the stock texture.
                               skipNotFound: true,
                             });
+                            if (download.canceled) return;
+                            const models =
+                              modelType === "player"
+                                ? modelTypes.player.filter((model) =>
+                                    files.some(
+                                      ({ name }) => name === `${skinName}.${model}.png`,
+                                    ),
+                                  )
+                                : files.length > 0
+                                  ? [skinModel]
+                                  : [];
+                            const includesHiRes =
+                              hiResDownload === "yes" &&
+                              files.some(({ name }) => manifest.sizeMultiplier[name] > 1);
+                            if (
+                              !confirmDownload(
+                                skinName,
+                                models,
+                                files.length,
+                                includesHiRes,
+                              )
+                            ) {
+                              return;
+                            }
                             const zip = createZipFile(
                               files.map(({ name, data }) => {
                                 return {
@@ -563,11 +642,18 @@ function Gallery() {
                             await saveZipFile(zip, zipFileName);
                           }
                         } catch (error) {
-                          reportDownloadError(error);
+                          if (!download.canceled) reportDownloadError(error);
+                        } finally {
+                          pendingSkinDownload.current = null;
+                          if (!download.canceled) setPreparingSkin(null);
                         }
                       }}
                     >
-                      <FaDownload />
+                      {preparingSkin === skinKey ? (
+                        <CgSpinnerTwo className={styles.DownloadSpinner} />
+                      ) : (
+                        <FaDownload />
+                      )}
                     </button>
                   </div>
                 </div>

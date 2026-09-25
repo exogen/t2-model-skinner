@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { SKIN_ASSET_BASE_URL } from "./deployPaths";
+import { getSkinAssetUrl } from "./deployPaths";
 import { imageUrlToArrayBuffer } from "./imageUtils";
 import { modelToModelType, type MaterialDefinition } from "./models";
 import type { ImageFunctions } from "./imageProcessing.worker";
@@ -100,7 +100,7 @@ export async function collectFiles(
 ) {
   const results = await Promise.all(
     files.map(async (fileName) => {
-      const url = `${SKIN_ASSET_BASE_URL}/${fileName}`;
+      const url = getSkinAssetUrl(fileName);
       const res = await fetch(url);
       if (!res.ok) {
         if (skipNotFound && res.status === 404) {

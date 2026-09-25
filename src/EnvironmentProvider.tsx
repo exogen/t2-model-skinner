@@ -1,6 +1,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import { EnvironmentContext } from "./useEnvironment";
 import useSettings from "./useSettings";
+import { getLocalAssetUrl } from "./deployPaths";
 
 export default function EnvironmentProvider({
   children,
@@ -16,7 +17,7 @@ export default function EnvironmentProvider({
 
   const context = useMemo(() => {
     const environmentImageUrl = selectedEnvironment
-      ? `${basePath}/${selectedEnvironment}`
+      ? getLocalAssetUrl(basePath, selectedEnvironment)
       : null;
     return {
       selectedEnvironment,
