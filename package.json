@@ -43,6 +43,7 @@
     "@types/lodash.orderby": "^4.6.9",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.3.0",
     "eslint": "^9.38.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.0",

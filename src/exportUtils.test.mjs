@@ -1,11 +1,24 @@
 import { afterEach, expect, test, vi } from "vitest";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { collectFiles, createZipFile, exportSkinTextures } from "./exportUtils";
+import { collectFiles, createZipFile, exportSkinTextures, saveZipFile } from "./exportUtils";
 
 vi.mock("file-saver", () => ({ saveAs: vi.fn() }));
 
 afterEach(() => vi.restoreAllMocks());
+
+test("canceling while an archive is being generated prevents a late download", async () => {
+  const controller = new globalThis.AbortController();
+  let finish;
+  const zip = new JSZip();
+  vi.spyOn(zip, "generateAsync").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const previousDownloads = vi.mocked(saveAs).mock.calls.length;
+  const saving = saveZipFile(zip, "set.vl2", { signal: controller.signal });
+  controller.abort();
+  finish(new globalThis.Blob());
+  await expect(saving).rejects.toThrow();
+  expect(vi.mocked(saveAs).mock.calls).toHaveLength(previousDownloads);
+});
 
 test.each(["BloodBanshee.lfemale.png", "BloodBanshee.lfemale@1x.png"])(
   "a missing %s override can fall back to the stock texture",

@@ -33,10 +33,12 @@ import useWarrior from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 import Slider from "./Slider";
 import modelConfig from "./models";
+import useMessageDialog from "./useMessageDialog";
 
 const { materials } = modelConfig;
 
 export default function CanvasTools() {
+  const { showMessage, messageDialog } = useMessageDialog();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [exportFileType, setExportFileType] = useState("vl2");
   const {
@@ -232,6 +234,7 @@ export default function CanvasTools() {
 
   return (
     <div className="CanvasTools">
+      {messageDialog}
       <div className="CanvasBackgroundColor">
         <input
           className="ColorSwatch"
@@ -377,10 +380,11 @@ export default function CanvasTools() {
               try {
                 await addImages([await readImageFile(file)]);
               } catch (error) {
-                window.alert(
+                showMessage(
                   error instanceof Error
                     ? error.message
-                    : "Unable to add this image"
+                    : "Unable to add this image",
+                  "Unable to add image",
                 );
               }
             }}
@@ -740,10 +744,11 @@ export default function CanvasTools() {
                 });
               }
             } catch (error) {
-              window.alert(
+              showMessage(
                 error instanceof Error
                   ? error.message
-                  : "Unable to export this skin"
+                  : "Unable to export this skin",
+                "Unable to export skin",
               );
             }
           }}

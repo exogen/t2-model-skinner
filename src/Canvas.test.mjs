@@ -284,7 +284,6 @@ test.each(["skin", "vl2"])(
   "a failed .%s drop leaves existing artwork intact",
   async (extension) => {
     const app = await editor();
-    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
     try {
       const current = app.canvases[app.tools.activeCanvas].canvas;
       const original = image({ left: 333 });
@@ -295,13 +294,12 @@ test.each(["skin", "vl2"])(
       await dropFiles(
         app,
         [new window.File(["invalid archive"], `Broken.${extension}`)],
-        () => expect(alert).toHaveBeenCalledOnce()
+        () => expect(document.querySelector('dialog [role="alert"]')).not.toBeNull()
       );
       expect(app.canvases[app.tools.activeCanvas].canvas).toBe(current);
       expect(current.item(0)).toBe(original);
       expect(app.tools.exportName).toBe("Current Skin");
     } finally {
-      alert.mockRestore();
       await app.close();
     }
   }

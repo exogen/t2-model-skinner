@@ -15,8 +15,10 @@ export function createZipFile(
   return zip;
 }
 
-export async function saveZipFile(zip: JSZip, name: string) {
+export async function saveZipFile(zip: JSZip, name: string, { signal }: { signal?: AbortSignal } = {}) {
+  signal?.throwIfAborted();
   const blob = await zip.generateAsync({ type: "blob" });
+  signal?.throwIfAborted();
   saveAs(blob, name);
 }
 
@@ -96,12 +98,12 @@ export async function exportSkinTextures(
 
 export async function collectFiles(
   files: string[],
-  { skipNotFound = false }: { skipNotFound?: boolean } = {}
+  { skipNotFound = false, signal }: { skipNotFound?: boolean; signal?: AbortSignal } = {}
 ) {
   const results = await Promise.all(
     files.map(async (fileName) => {
       const url = getSkinAssetUrl(fileName);
-      const res = await fetch(url);
+      const res = signal ? await fetch(url, { signal }) : await fetch(url);
       if (!res.ok) {
         if (skipNotFound && res.status === 404) {
           return null;

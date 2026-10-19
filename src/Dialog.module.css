@@ -1,0 +1,151 @@
+.Dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid #33766f;
+  border-radius: 6px;
+  background: linear-gradient(145deg, #173b40, #0b242d 65%);
+  color: #d9eee8;
+  box-shadow:
+    0 24px 90px #0009,
+    inset 0 1px #8effd52e;
+  font: inherit;
+  text-align: left;
+  overflow: auto;
+  color-scheme: dark;
+}
+
+.Dialog::backdrop {
+  background: #001016bd;
+  backdrop-filter: blur(6px);
+}
+
+.Header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px 12px 16px;
+  border-bottom: 1px solid #84d5c41c;
+}
+
+.Icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  height: 42px;
+  border: 1px solid #55debf42;
+  border-radius: 4px;
+  background: #43eac510;
+  color: #66efd0;
+  font-size: 19px;
+}
+
+.Heading {
+  flex: 1;
+  min-width: 0;
+}
+.Heading h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.Close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #8bbdb4;
+  cursor: pointer;
+}
+
+.Close:hover {
+  background: #84d5c41a;
+  color: #fff;
+}
+
+.Body {
+  padding: 16px;
+}
+
+.Message {
+  margin: 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.Footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 26px;
+  border-top: 1px solid #84d5c41c;
+  background: #00161e3b;
+}
+
+.Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 32px;
+  padding: 8px 16px;
+  border: 1px solid #6da99c50;
+  border-radius: 4px;
+  background: #173b40;
+  color: #c5ded7;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.Button:hover {
+  background: #23504f;
+}
+
+.Primary {
+  border-color: #59ddbb;
+  background: linear-gradient(#78ecd0, #4ed3b2);
+  color: #083831;
+  box-shadow: 0 2px 9px #0003;
+}
+
+.Primary:hover {
+  background: #97f5de;
+}
+
+.Button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.Dialog button:focus-visible,
+.Dialog a:focus-visible,
+.Dialog input:focus-visible {
+  outline: 2px solid #9cffe1;
+  outline-offset: 4px;
+}
+
+@media (max-width: 480px) {
+  .Header {
+    padding: 20px 18px;
+    gap: 10px;
+  }
+  .Heading h2 {
+    font-size: 21px;
+  }
+  .Body {
+    padding: 20px 18px;
+  }
+  .Footer {
+    padding: 16px 18px;
+  }
+}

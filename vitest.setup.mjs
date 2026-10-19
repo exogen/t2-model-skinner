@@ -10,3 +10,7 @@ vi.stubGlobal("window", window);
 vi.stubGlobal("FileReader", window.FileReader);
 vi.stubGlobal("Blob", window.Blob);
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+
+// JSDOM does not implement native dialog presentation or its top layer.
+window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+window.HTMLDialogElement.prototype.close = function () { this.open = false; };

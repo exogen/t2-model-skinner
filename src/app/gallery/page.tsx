@@ -1,93 +1,27 @@
 "use client";
 import {
   Suspense,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import Head from "next/head";
 import Link from "next/link";
 import { CgSpinnerTwo } from "react-icons/cg";
-import { BsBadge3dFill } from "react-icons/bs";
-import { FaDownload, FaChevronLeft, FaSearch, FaTimes } from "react-icons/fa";
+import { FaChevronLeft, FaSearch, FaTimes } from "react-icons/fa";
+import { FiDownload } from "react-icons/fi";
 import { useQueryState } from "nuqs";
 import orderBy from "lodash.orderby";
-import { matchSorter } from "match-sorter";
 import useManifest from "../../useManifest";
 import styles from "./gallery.module.css";
-import { collectFiles, createZipFile, saveZipFile } from "../../exportUtils";
-import modelConfig, { modelToModelType, modelTypes } from "../../models";
-import { SKIN_GALLERY_BASE_URL } from "../../deployPaths";
+import DownloadDialog from "./DownloadDialog";
+import AllSkinsDownloadDialog from "./AllSkinsDownloadDialog";
+import GalleryPreviews, { type GallerySkin } from "./GalleryPreviews";
+import type { DownloadTarget, HdPreference } from "./galleryDownloads";
 
-const emptySkins: string[] = [];
-
-function modelToFileList(modelName: string) {
-  return modelConfig.materials[modelName]
-    .map((material) => {
-      if (material.hidden || material.selectable === false) {
-        return null;
-      }
-      const file = material.file ?? material.name;
-      if (file) {
-        if (
-          typeof material.frameCount === "number" &&
-          material.frameCount > 1
-        ) {
-          return new Array(material.frameCount)
-            .fill(file)
-            .map((fileName, i) => {
-              if (i > 0) {
-                const match = /^(.+[^\d])(\d{2,})$/.exec(fileName);
-                if (match) {
-                  const head = match[1];
-                  const tail = match[2];
-                  return `${head}${i.toString().padStart(tail.length, "0")}`;
-                } else {
-                  throw new Error("frameCount > 0, but could not parse index");
-                }
-              } else {
-                return fileName;
-              }
-            });
-        } else {
-          return file;
-        }
-      }
-    })
-    .flat()
-    .filter((fileName) => fileName != null)
-    .map((fileName) => `${fileName}.png`);
-}
-
-function reportDownloadError(error: unknown) {
-  window.alert(
-    error instanceof Error ? error.message : "Unable to download this skin"
-  );
-}
-
-function confirmDownload(
-  name: string,
-  models: string[],
-  fileCount: number,
-  includesHiRes: boolean,
-) {
-  if (!fileCount) {
-    window.alert("No skin files are available to download.");
-    return false;
-  }
-  const dropdownOrder = Object.values(modelTypes).flat();
-  const sortedModels = orderBy(models, (model) => {
-    const index = dropdownOrder.indexOf(model);
-    return index === -1 ? dropdownOrder.length : index;
-  });
-  const modelList = sortedModels.length ? ` (${sortedModels.join(", ")})` : "";
-  const hdStatus = includesHiRes ? "Yes (requires QoL patch)" : "No";
-  return window.confirm(
-    `Download “${name}”?\n\nModels: ${models.length.toLocaleString()}${modelList}\nFiles: ${fileCount.toLocaleString()}\nHD: ${hdStatus}`,
-  );
-}
+type GalleryDownloadTarget = DownloadTarget | { kind: "all" };
 
 const modelOrder: Record<string, number> = {
   lmale: 0,
@@ -121,8 +55,8 @@ const modelOrder: Record<string, number> = {
 
 function skinDataToList(
   skinData: Record<string, string[]>,
-): Array<{ name: string; model: string }> {
-  const allSkins: Array<{ name: string; model: string }> = [];
+): GallerySkin[] {
+  const allSkins: GallerySkin[] = [];
 
   Object.entries(skinData).forEach(([model, names]) => {
     allSkins.push(...names.map((name) => ({ name, model })));
@@ -136,133 +70,65 @@ function skinDataToList(
 }
 
 function Gallery() {
-  const hiResSelectRef = useRef<HTMLSelectElement>(null);
   const [searchQuery, setSearchQuery] = useQueryState("q", {
     defaultValue: "",
     clearOnDefault: true,
   });
-  const [browseMode, setBrowseMode] = useState<"select" | "search">(
-    searchQuery.trim() ? "search" : "select",
-  );
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [manifest, isLoaded] = useManifest();
-  const [selectedModel, setSelectedModel] = useQueryState("filter", {
-    defaultValue: "lmale",
-    clearOnDefault: false,
+  const [manifest, isLoaded, { error: manifestError, retry: retryManifest }] = useManifest();
+  const [filterQuery, setFilterQuery] = useQueryState("filter", {
+    defaultValue: "all",
+    clearOnDefault: true,
   });
-  const [isPreparingDownload, setPreparingDownload] = useState(false);
-  const [preparingSkin, setPreparingSkin] = useState<string | null>(null);
-  const pendingSkinDownload = useRef<{ canceled: boolean } | null>(null);
-  const isDownloadBusy = isPreparingDownload || preparingSkin !== null;
-  const [hiResDownload, setHiResDownload] = useState<"prompt" | "yes" | "no">(
-    "prompt",
-  );
+  const [collectionQuery, setCollectionQuery] = useQueryState("collection", {
+    defaultValue: "",
+    clearOnDefault: true,
+  });
+  const [downloadTarget, setDownloadTarget] = useState<GalleryDownloadTarget | null>(null);
+  const downloadOpen = useRef(false);
+  const isDownloadBusy = downloadTarget !== null;
+  const [hiResDownload, setHiResDownload] = useState<HdPreference>("prompt");
+  const openDownload = useCallback((target: GalleryDownloadTarget) => {
+    if (downloadOpen.current) return;
+    downloadOpen.current = true;
+    setDownloadTarget(target);
+  }, []);
+  const closeDownload = () => {
+    downloadOpen.current = false;
+    setDownloadTarget(null);
+  };
+  const changeHdPreference = (value: HdPreference) => {
+    setHiResDownload(value);
+    try {
+      if (value === "prompt") localStorage.removeItem("hiResDownload");
+      else localStorage.setItem("hiResDownload", value);
+    } catch { /* Download choices still work when storage is unavailable. */ }
+  };
+  // Older links used one filter for either a model or a collection, and
+  // search links searched every model. Preserve those entry points.
+  const legacyCollection = filterQuery === "new" || manifest.packs[filterQuery] != null;
+  const legacySearch = !collectionQuery && !!searchQuery.trim();
+  const selectedCollection = collectionQuery || (!legacySearch && legacyCollection ? filterQuery : "all");
+  const selectedModel = legacySearch || legacyCollection ? "all" : filterQuery || "all";
   const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
-  const customSkins = manifest.customSkins?.[actualModel] ?? emptySkins;
-
-  const isNew = selectedModel === "new";
-  const pack = manifest?.packs?.[selectedModel];
-  const isPack = pack != null;
+  const pack = selectedCollection !== "all" && selectedCollection !== "new"
+    ? manifest.packs[selectedCollection] : undefined;
+  const changeFilters = (collection: string, model: string) => {
+    if (collection !== collectionQuery) setCollectionQuery(collection);
+    if (model !== filterQuery) setFilterQuery(model);
+  };
+  const changeSearch = (query: string) => {
+    // Make the visible scope explicit before editing a legacy search URL.
+    changeFilters(selectedCollection, selectedModel);
+    setSearchQuery(query);
+  };
 
   useEffect(() => {
-    return () => {
-      if (pendingSkinDownload.current) pendingSkinDownload.current.canceled = true;
-    };
+    try {
+      const saved = localStorage.getItem("hiResDownload");
+      if (saved === "yes" || saved === "no") setHiResDownload(saved);
+    } catch { /* Keep asking when storage is unavailable. */ }
   }, []);
-
-  useEffect(() => {
-    const savedHiResDownload = localStorage.getItem("hiResDownload");
-    switch (savedHiResDownload) {
-      case "yes":
-      case "no":
-        setHiResDownload(savedHiResDownload);
-        break;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (pack && isPreparingDownload) {
-      let ignore = false;
-
-      const download = async () => {
-        const fileNames = pack.files;
-
-        const hasHiRes = fileNames.some(
-          (fileName) => manifest.sizeMultiplier[fileName] > 1,
-        );
-
-        if (hasHiRes && hiResDownload === "prompt") {
-          window.alert(
-            "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again.",
-          );
-          if (hiResSelectRef.current) {
-            hiResSelectRef.current.focus();
-          }
-          setPreparingDownload(false);
-          return;
-        }
-
-        const collectFileNames =
-          hiResDownload === "yes"
-            ? fileNames
-            : fileNames.map((fileName) => {
-                return manifest.sizeMultiplier[fileName] > 1
-                  ? fileName.replace(/\.png$/, "@1x.png")
-                  : fileName;
-              });
-
-        let zipFileName = `zSkinPack-${selectedModel}-v${pack.version}.vl2`;
-
-        if (hasHiRes && hiResDownload === "no") {
-          zipFileName = zipFileName.replace(/\.vl2$/, "@1x.vl2");
-        }
-
-        const files = await collectFiles(collectFileNames);
-        if (!ignore) {
-          const models = Object.entries(pack.skins)
-            .filter(([, skins]) => skins.length > 0)
-            .map(([model]) => model);
-          const includesHiRes =
-            hiResDownload === "yes" &&
-            files.some(({ name }) => manifest.sizeMultiplier[name] > 1);
-          if (
-            !confirmDownload(
-              selectedModel,
-              models,
-              files.length,
-              includesHiRes,
-            )
-          ) {
-            return;
-          }
-          const zip = createZipFile(files);
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          if (!ignore) {
-            await saveZipFile(zip, zipFileName);
-          }
-        }
-      };
-
-      void download()
-        .catch((error: unknown) => {
-          if (!ignore) reportDownloadError(error);
-        })
-        .finally(() => {
-          if (!ignore) setPreparingDownload(false);
-        });
-
-      return () => {
-        ignore = true;
-        setPreparingDownload(false);
-      };
-    }
-  }, [
-    hiResDownload,
-    isPreparingDownload,
-    manifest.sizeMultiplier,
-    pack,
-    selectedModel,
-  ]);
 
   const packList = useMemo(() => {
     return orderBy(
@@ -272,398 +138,161 @@ function Gallery() {
     );
   }, [manifest]);
 
+  const totalSkinCount = useMemo(() => Object.values(manifest.customSkins)
+    .reduce((count, names) => count + names.length, 0), [manifest.customSkins]);
+
   const selectedSkinList = useMemo(() => {
-    const skinData = isNew
-      ? manifest?.newSkins
-      : isPack
-        ? manifest?.packs?.[selectedModel]?.skins
-        : null;
-    if (skinData) {
-      return skinDataToList(skinData);
-    } else {
-      return [];
-    }
-  }, [isNew, isPack, selectedModel, manifest]);
-
-  const allSkins = useMemo(() => {
-    if (!manifest.customSkins) return [];
-    return skinDataToList(manifest.customSkins);
-  }, [manifest.customSkins]);
-
-  const hasSearchInput = deferredSearchQuery.trim().length > 0;
-
-  const searchResults = useMemo(() => {
-    if (!hasSearchInput) {
-      return [];
-    }
-    return matchSorter(allSkins, deferredSearchQuery, {
-      keys: ["name"],
-    });
-  }, [allSkins, deferredSearchQuery, hasSearchInput]);
-
-  const filteredSkins =
-    browseMode === "search" && hasSearchInput
-      ? searchResults
-      : isNew || isPack
-        ? selectedSkinList
-        : customSkins;
-
-  useEffect(() => {
-    setPreparingDownload(false);
-  }, [selectedModel]);
+    const skinData = selectedCollection === "new" ? manifest.newSkins
+      : selectedCollection === "all" ? manifest.customSkins : pack?.skins ?? {};
+    return skinDataToList(actualModel === "all" ? skinData : { [actualModel]: skinData[actualModel] ?? [] });
+  }, [selectedCollection, actualModel, pack, manifest]);
 
   const searchRef = useRef<HTMLInputElement>(null);
-  const selectRef = useRef<HTMLSelectElement>(null);
-
-  useEffect(() => {
-    switch (browseMode) {
-      case "search":
-        searchRef.current?.focus();
-        break;
-      case "select":
-        selectRef.current?.focus();
-        break;
-    }
-  }, [browseMode]);
 
   return (
     <>
-      <Head>
-        <title>Tribes 2 Skin Gallery</title>
-      </Head>
       <main className={styles.GalleryPage}>
         <header className={styles.Tools}>
-          <Link className={styles.Back} href="../">
-            <FaChevronLeft size={12} className={styles.Icon} />{" "}
-            <span className={styles.Label}>Back to Editor</span>
-          </Link>
           <div className={styles.HeaderMain}>
-            <button
-              className={styles.SearchButton}
-              title={browseMode === "select" ? "Search" : "Close search mode"}
-              onClick={() => {
-                setBrowseMode((mode) =>
-                  mode === "select" ? "search" : "select",
-                );
-                setSearchQuery("");
-              }}
-            >
-              {browseMode === "select" ? <FaSearch /> : <FaTimes />}
+            <div className={styles.Identity}>
+              <Link className={styles.Back} href="../" aria-label="Back to Editor">
+                <FaChevronLeft size={12} aria-hidden="true" /> Editor
+              </Link>
+              <h1>Skin gallery</h1>
+            </div>
+            <button type="button" className={`${styles.DownloadButton} ${styles.DownloadAll}`}
+              aria-label="Download all player skins"
+              disabled={isDownloadBusy} onClick={() => openDownload({ kind: "all" })}>
+              <FiDownload className={styles.DownloadIcon} aria-hidden="true" />
+              <span>Download all player skins</span>
+              <span className={styles.DownloadFormat} aria-hidden="true">.VL2</span>
             </button>
-            <div className={styles.InputContainer}>
-              <input
-                type="text"
-                ref={searchRef}
-                className={styles.SearchInput}
-                hidden={browseMode === "select"}
-                placeholder={`Search ${allSkins.length.toLocaleString()} skins…`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setBrowseMode("select");
-                    setSearchQuery("");
-                  }
-                }}
-              />
-              <select
-                ref={selectRef}
-                id="ModelSelect"
-                aria-label="Player model"
-                onChange={(event) => {
-                  setSelectedModel(event.target.value);
-                }}
-                value={selectedModel}
-                style={{
-                  visibility: browseMode === "search" ? "hidden" : "visible",
-                }}
-              >
-                <option value="new">All new skins ✨</option>
-                <optgroup label="Packs">
-                  {packList.map((packName) => (
-                    <option value={packName} key={packName}>
-                      {packName}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Players" data-model-type="player">
-                  <option value="lmale">Human Male &bull; Light</option>
-                  <option value="mmale">Human Male &bull; Medium</option>
-                  <option value="hmale">Human Male &bull; Heavy</option>
-                  <option value="lfemale">Human Female &bull; Light</option>
-                  <option value="mfemale">Human Female &bull; Medium</option>
-                  <option value="hfemale">Human Female &bull; Heavy</option>
-                  <option value="lbioderm">Bioderm &bull; Light</option>
-                  <option value="mbioderm">Bioderm &bull; Medium</option>
-                  <option value="hbioderm">Bioderm &bull; Heavy</option>
-                </optgroup>
-                <optgroup label="Weapons" data-model-type="weapon">
-                  <option value="disc">Disc Launcher</option>
-                  <option value="chaingun">Chaingun</option>
-                  <option value="grenade_launcher">Grenade Launcher</option>
-                  <option value="sniper">Laser Rifle</option>
-                  <option value="plasmathrower">Plasma Cannon</option>
-                  <option value="energy">Blaster</option>
-                  <option value="shocklance">Shocklance</option>
-                  <option value="elf">ELF Projector</option>
-                  <option value="missile">Missile Launcher</option>
-                  <option value="mortar">Mortar</option>
-                  <option value="repair">Repair Pack</option>
-                  <option value="targeting">Targeting Laser</option>
-                </optgroup>
-                <optgroup label="Vehicles" data-model-type="vehicle">
-                  <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
-                  <option value="vehicle_grav_tank">
-                    Beowulf Assault Tank
-                  </option>
-                  <option value="vehicle_land_mpbbase">
-                    Jericho Mobile Point Base
-                  </option>
-                  <option value="vehicle_air_scout">
-                    Shrike Scout Fighter
-                  </option>
-                  <option value="vehicle_air_bomber">
-                    Thundersword Bomber
-                  </option>
-                  <option value="vehicle_air_hapc">
-                    HAVOC Gunship Transport
-                  </option>
-                </optgroup>
-              </select>
-            </div>
           </div>
-          <div className={styles.HeaderEnd}>
-            {browseMode === "select" && isPack ? (
-              <div className={styles.DownloadSection}>
-                <button
-                  type="button"
-                  className={styles.DownloadButton}
-                  disabled={isDownloadBusy}
-                  onClick={async () => {
-                    setPreparingDownload(true);
-                  }}
-                >
-                  Download
-                </button>{" "}
-                {isPreparingDownload ? (
-                  <CgSpinnerTwo className={styles.DownloadSpinner} />
-                ) : (
-                  <span className={styles.PackVersion}>
-                    v{pack.version} &bull; {pack.files.length.toLocaleString()}{" "}
-                    {pack.files.length === 1 ? "file" : "files"}
-                  </span>
-                )}
+          <div className={styles.Filters} role="search" aria-label="Filter skins">
+            <div className={`${styles.Field} ${styles.SearchField}`}>
+              <label htmlFor="SkinSearch">Search</label>
+              <div className={styles.SearchBox}>
+                <FaSearch aria-hidden="true" />
+                <input id="SkinSearch" type="search" ref={searchRef}
+                  className={styles.SearchInput}
+                  placeholder={isLoaded ? `Search ${totalSkinCount.toLocaleString()} skins…` : "Search skins…"}
+                  value={searchQuery} onChange={(event) => changeSearch(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Escape") changeSearch(""); }} />
+                {searchQuery ? (
+                  <button type="button" className={styles.ClearSearch} aria-label="Clear search"
+                    onClick={() => { changeSearch(""); searchRef.current?.focus(); }}>
+                    <FaTimes aria-hidden="true" />
+                  </button>
+                ) : null}
               </div>
-            ) : null}
-            <div className={styles.DownloadHiRes}>
-              <label htmlFor="hiResSelect">HD support?</label>
-              <select
-                id="hiResSelect"
-                className={styles.HiResSelect}
-                ref={hiResSelectRef}
-                value={hiResDownload}
-                disabled={isDownloadBusy}
-                onChange={(event) => {
-                  switch (event.target.value) {
-                    case "prompt":
-                      setHiResDownload(event.target.value);
-                      localStorage.removeItem("hiResDownload");
-                      break;
-                    case "yes":
-                    case "no":
-                      setHiResDownload(event.target.value);
-                      localStorage.setItem("hiResDownload", event.target.value);
-                      break;
-                  }
-                }}
-              >
-                <option value="prompt">Ask</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
+            </div>
+            <div className={styles.Field}>
+              <label htmlFor="CollectionSelect">Collection</label>
+              <div className={styles.SelectControl}>
+                <select id="CollectionSelect" value={selectedCollection}
+                  onChange={(event) => changeFilters(event.target.value, selectedModel)}>
+                  <option value="all">All skins</option>
+                  <option value="new">New skins</option>
+                  <optgroup label="Packs">
+                    {packList.map((packName) => <option value={packName} key={packName}>{packName}</option>)}
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div className={styles.Field}>
+              <label htmlFor="ModelSelect">Model</label>
+              <div className={styles.SelectControl}>
+                <select
+                  id="ModelSelect"
+                  onChange={(event) => changeFilters(selectedCollection, event.target.value)}
+                  value={selectedModel}
+                >
+                  <option value="all">All models</option>
+                  <optgroup label="Players" data-model-type="player">
+                    <option value="lmale">Human Male &bull; Light</option>
+                    <option value="mmale">Human Male &bull; Medium</option>
+                    <option value="hmale">Human Male &bull; Heavy</option>
+                    <option value="lfemale">Human Female &bull; Light</option>
+                    <option value="mfemale">Human Female &bull; Medium</option>
+                    <option value="hfemale">Human Female &bull; Heavy</option>
+                    <option value="lbioderm">Bioderm &bull; Light</option>
+                    <option value="mbioderm">Bioderm &bull; Medium</option>
+                    <option value="hbioderm">Bioderm &bull; Heavy</option>
+                  </optgroup>
+                  <optgroup label="Weapons" data-model-type="weapon">
+                    <option value="disc">Disc Launcher</option>
+                    <option value="chaingun">Chaingun</option>
+                    <option value="grenade_launcher">Grenade Launcher</option>
+                    <option value="sniper">Laser Rifle</option>
+                    <option value="plasmathrower">Plasma Cannon</option>
+                    <option value="energy">Blaster</option>
+                    <option value="shocklance">Shocklance</option>
+                    <option value="elf">ELF Projector</option>
+                    <option value="missile">Missile Launcher</option>
+                    <option value="mortar">Mortar</option>
+                    <option value="repair">Repair Pack</option>
+                    <option value="targeting">Targeting Laser</option>
+                  </optgroup>
+                  <optgroup label="Vehicles" data-model-type="vehicle">
+                    <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
+                    <option value="vehicle_grav_tank">
+                      Beowulf Assault Tank
+                    </option>
+                    <option value="vehicle_land_mpbbase">
+                      Jericho Mobile Point Base
+                    </option>
+                    <option value="vehicle_air_scout">
+                      Shrike Scout Fighter
+                    </option>
+                    <option value="vehicle_air_bomber">
+                      Thundersword Bomber
+                    </option>
+                    <option value="vehicle_air_hapc">
+                      HAVOC Gunship Transport
+                    </option>
+                  </optgroup>
+                </select>
+              </div>
             </div>
           </div>
+          {pack ? (
+            <section className={styles.PackHeader} aria-label={`${selectedCollection} pack`}>
+              <div className={styles.PackInfo}>
+                <h2>{selectedCollection}</h2>
+                <span className={styles.PackVersion}>
+                  v{pack.version} &bull; {pack.files.length.toLocaleString()}{" "}
+                  {pack.files.length === 1 ? "file" : "files"}
+                </span>
+              </div>
+              <button type="button" className={styles.DownloadButton}
+                aria-label={`Download ${selectedCollection} pack`} disabled={isDownloadBusy}
+                onClick={() => openDownload({ kind: "pack", name: selectedCollection, pack })}>
+                <FiDownload className={styles.DownloadIcon} aria-hidden="true" />
+                <span>Download pack</span>
+                <span className={styles.DownloadFormat} aria-hidden="true">.VL2</span>
+              </button>
+            </section>
+          ) : null}
         </header>
         {isLoaded ? (
-          <div className={styles.Gallery}>
-            {filteredSkins.map((name) => {
-              let skinName;
-              let skinModel;
-              if (typeof name === "string") {
-                skinName = name;
-                skinModel = actualModel;
-              } else {
-                skinName = name.name;
-                skinModel = name.model;
-              }
-              const url = `${SKIN_GALLERY_BASE_URL}/${encodeURIComponent(
-                skinName,
-              )}.${skinModel}.webp`;
-              const skinKey = `${skinName}:${skinModel}`;
-
-              return (
-                <div key={skinKey} className={styles.Skin}>
-                  <img
-                    className={styles.Preview}
-                    loading="lazy"
-                    src={url}
-                    width={680}
-                    height={800}
-                    alt={skinName}
-                  />
-                  <div className={styles.Detail}>
-                    <Link
-                      className={styles.LoadInEditor}
-                      href={`/?m=${skinModel}&s=${encodeURIComponent(
-                        skinName,
-                      )}`}
-                    >
-                      <BsBadge3dFill
-                        title="Load in Editor"
-                        aria-label="Load in Editor"
-                      />
-                    </Link>
-                    <span className={styles.Name}>{skinName}</span>
-                    <button
-                      type="button"
-                      className={styles.DownloadSkin}
-                      title={`Download ${skinName} skin`}
-                      aria-label={`Download ${skinName} skin`}
-                      aria-busy={preparingSkin === skinKey}
-                      disabled={isDownloadBusy}
-                      onClick={async () => {
-                        if (pendingSkinDownload.current || isPreparingDownload) return;
-                        const download = { canceled: false };
-                        pendingSkinDownload.current = download;
-                        setPreparingSkin(skinKey);
-                        try {
-                          const modelType = modelToModelType(skinModel);
-                          if (!modelType) throw new Error("Unknown model");
-                          const camelCaseModelName = skinModel.replace(
-                            /(?:^([a-z])|_([a-z]))/g,
-                            (match, a, b) => (a || b).toUpperCase(),
-                          );
-                          let zipFileName = "";
-                          let fileNames: string[] = [];
-
-                          switch (modelType) {
-                            case "player":
-                              zipFileName = `zPlayerSkin-${skinName}.vl2`;
-                              fileNames = modelTypes.player
-                                .filter((modelName) =>
-                                  manifest.customSkins[modelName]?.includes(
-                                    skinName,
-                                  ),
-                                )
-                                .map(
-                                  (modelName) => `${skinName}.${modelName}.png`,
-                                );
-                              break;
-                            case "weapon":
-                              zipFileName = `zWeapon${camelCaseModelName}-${skinName}.vl2`;
-                              fileNames = modelToFileList(skinModel).map(
-                                (fileName) => `${skinName}/${fileName}`,
-                              );
-                              break;
-                            case "vehicle":
-                              zipFileName = `z${camelCaseModelName}-${skinName}.vl2`;
-                              fileNames = modelToFileList(skinModel).map(
-                                (fileName) => `${skinName}/${fileName}`,
-                              );
-                              break;
-                          }
-                          if (fileNames.length) {
-                            const hasHiRes = fileNames.some(
-                              (fileName) => manifest.sizeMultiplier[fileName] > 1,
-                            );
-
-                            if (hasHiRes && hiResDownload === "prompt") {
-                              window.alert(
-                                "This download contains HD textures, which require the QoL patch. Select “yes” or “no” for HD support, then try again.",
-                              );
-                              if (hiResSelectRef.current) {
-                                hiResSelectRef.current.focus();
-                              }
-                              return;
-                            }
-
-                            const collectFileNames =
-                              hiResDownload === "yes"
-                                ? fileNames
-                                : fileNames.map((fileName) => {
-                                    return manifest.sizeMultiplier[fileName] > 1
-                                      ? fileName.replace(/\.png$/, "@1x.png")
-                                      : fileName;
-                                  });
-
-                            if (hasHiRes && hiResDownload === "no") {
-                              zipFileName = zipFileName.replace(
-                                /\.vl2$/,
-                                "@1x.vl2",
-                              );
-                            }
-
-                            const files = await collectFiles(collectFileNames, {
-                              // An omitted override falls back to the stock texture.
-                              skipNotFound: true,
-                            });
-                            if (download.canceled) return;
-                            const models =
-                              modelType === "player"
-                                ? modelTypes.player.filter((model) =>
-                                    files.some(
-                                      ({ name }) => name === `${skinName}.${model}.png`,
-                                    ),
-                                  )
-                                : files.length > 0
-                                  ? [skinModel]
-                                  : [];
-                            const includesHiRes =
-                              hiResDownload === "yes" &&
-                              files.some(({ name }) => manifest.sizeMultiplier[name] > 1);
-                            if (
-                              !confirmDownload(
-                                skinName,
-                                models,
-                                files.length,
-                                includesHiRes,
-                              )
-                            ) {
-                              return;
-                            }
-                            const zip = createZipFile(
-                              files.map(({ name, data }) => {
-                                return {
-                                  name: name.split("/").slice(-1)[0],
-                                  data,
-                                };
-                              }),
-                            );
-                            await saveZipFile(zip, zipFileName);
-                          }
-                        } catch (error) {
-                          if (!download.canceled) reportDownloadError(error);
-                        } finally {
-                          pendingSkinDownload.current = null;
-                          if (!download.canceled) setPreparingSkin(null);
-                        }
-                      }}
-                    >
-                      {preparingSkin === skinKey ? (
-                        <CgSpinnerTwo className={styles.DownloadSpinner} />
-                      ) : (
-                        <FaDownload />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <GalleryPreviews skins={selectedSkinList} query={deferredSearchQuery}
+            isDownloadBusy={isDownloadBusy} onDownload={openDownload} />
+        ) : manifestError ? (
+          <div className={styles.LoadError} role="alert">
+            <p>Unable to load skins. Check your connection and try again.</p>
+            <button type="button" className={styles.DownloadButton} onClick={retryManifest}>Try again</button>
           </div>
         ) : (
-          <CgSpinnerTwo className={styles.Spinner} />
+          <CgSpinnerTwo className={styles.Spinner} role="status" aria-label="Loading skins" />
         )}
       </main>
+      {downloadTarget?.kind === "all" ? (
+        <AllSkinsDownloadDialog hdPreference={hiResDownload}
+          onHdPreferenceChange={changeHdPreference} onClose={closeDownload} />
+      ) : downloadTarget ? (
+        <DownloadDialog target={downloadTarget} manifest={manifest} hdPreference={hiResDownload}
+          onHdPreferenceChange={changeHdPreference} onClose={closeDownload} />
+      ) : null}
     </>
   );
 }

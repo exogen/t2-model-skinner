@@ -2,6 +2,7 @@ import { ReactNode, useRef } from "react";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
 import { detectFileType, readImageFile } from "./importUtils";
+import useMessageDialog from "./useMessageDialog";
 
 export default function CanvasInteractions({
   children,
@@ -9,6 +10,7 @@ export default function CanvasInteractions({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const { showMessage, messageDialog } = useMessageDialog();
   const {
     activeCanvas,
     activeCanvasType,
@@ -72,10 +74,11 @@ export default function CanvasInteractions({
             }
           }
         } catch (error) {
-          window.alert(
+          showMessage(
             error instanceof Error
               ? error.message
-              : "Unable to load these files"
+              : "Unable to load these files",
+            "Unable to load files",
           );
         }
       }}
@@ -179,6 +182,7 @@ export default function CanvasInteractions({
       }}
     >
       {children}
+      {messageDialog}
     </div>
   );
 }
