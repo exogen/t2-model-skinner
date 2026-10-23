@@ -1,11 +1,8 @@
 import React, { useContext } from "react";
-import { ModelViewerElement } from "@google/model-viewer";
+import type Viewer from "./Viewer";
+import type { LoadedModel } from "./Viewer";
 
-export const ModelViewerContext = React.createContext<{
-  modelViewer: ModelViewerElement;
-  model: NonNullable<ModelViewerElement["model"]>;
-  isLoaded: boolean;
-} | null>(null);
+export const ModelViewerContext = React.createContext<LoadedModel & { viewer: Viewer } | null>(null);
 ModelViewerContext.displayName = "ModelViewerContext";
 
 export default function useModelViewer() {

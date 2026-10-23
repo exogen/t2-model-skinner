@@ -1,0 +1,230 @@
+.Capture {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.Button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid #3c7771;
+  border-radius: 4px;
+  background: #12383d;
+  color: #e0f6ef;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.Button:hover:not(:disabled, [aria-disabled="true"]) {
+  border-color: #72d5bd;
+  background: #1a494b;
+}
+
+.Button:focus-visible {
+  outline: 2px solid #98ffd4;
+  outline-offset: 2px;
+}
+
+.Button:disabled,
+.Button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.Button[data-state="recording"] {
+  border-color: #ff5a5f88;
+  background: #4a1418;
+  color: #ffe3e5;
+}
+
+.Button[data-state="recording"]:hover {
+  border-color: #ff8a8f;
+  background: #5c1a1f;
+}
+
+.IconButton {
+  justify-content: center;
+  width: 30px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.RecordDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff4d5a;
+}
+
+.Number {
+  font-variant-numeric: tabular-nums;
+}
+
+.Playback {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.Label {
+  color: #a3c9c3;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.PlaybackSelect {
+  flex: 0 1 12em;
+}
+
+.Transport {
+  display: flex;
+  flex: 1 1 160px;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.Range {
+  flex: 1;
+  min-width: 80px;
+  margin: 0;
+  accent-color: #4ac1ab;
+}
+
+.Range:focus-visible {
+  outline: 2px solid #98ffd4;
+  outline-offset: 2px;
+}
+
+.Time {
+  color: #a3c9c3;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.Hint {
+  margin: 0;
+  color: #a3c9c3;
+  font-size: 12px;
+}
+
+.StripImage {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(60vh, 560px);
+  margin: 0 auto;
+  border-radius: 4px;
+  box-shadow: 0 6px 24px #0007;
+  transition: opacity 150ms;
+}
+
+/* Drawing the strip over a newly chosen background. */
+.StripImage[data-pending] {
+  opacity: 0.6;
+}
+
+/* The background list, with the strip to its right. When they don't both
+   fit, the strip gets narrower. */
+.StripBody {
+  display: flex;
+  gap: 16px;
+}
+
+.StripColumn {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* As tall as the strip: size containment keeps the list's length out of the
+   row's height. */
+.Backgrounds {
+  display: flex;
+  flex: 1 0 150px;
+  flex-direction: column;
+  gap: 6px;
+  contain: size;
+}
+
+/* Here the strip gets too short to leave room for the list. Only here:
+   elsewhere a minimum would give the list a height before the strip's image
+   has one, and the chosen map would be centered too early. */
+@media (max-width: 340px) {
+  .Backgrounds {
+    min-height: 15rem;
+  }
+}
+
+.BackgroundBox {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px;
+  border: 1px solid #3c7771;
+  border-radius: 6px;
+  background: #08292e;
+  color: #e0f6ef;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Only as tall as its maps, so a status follows them. */
+.BackgroundList {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #427c73 #08292e;
+  scroll-padding-block: 4px;
+}
+
+/* Always there for screen readers, and taking no room when empty. */
+.Status {
+  margin: 0;
+}
+
+.Status:empty {
+  padding: 0;
+}
+
+.TextButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #98ffd4;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* On a line of its own, where its height doesn't spread out the text. */
+@media (pointer: coarse) {
+  .TextButton {
+    display: block;
+    min-height: 44px;
+    margin: 0 auto;
+    padding: 0 8px;
+  }
+}
+
+/* Wraps at the strip's width rather than widening its column. */
+.StripImage + .Hint {
+  margin-top: 10px;
+  text-align: center;
+  contain: inline-size;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,169 @@
+.Trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 8em;
+  max-width: min(22em, calc(100vw - 40px));
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #3c7771;
+  border-radius: 4px;
+  background: #12383d;
+  color: #e0f6ef;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.Trigger:hover:not(:disabled),
+.Trigger[aria-expanded="true"] {
+  border-color: #72d5bd;
+  background: #1a494b;
+}
+
+.Trigger:focus-visible {
+  outline: 2px solid #98ffd4;
+  outline-offset: 2px;
+}
+
+.Trigger:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.Value {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.Arrow {
+  flex: 0 0 auto;
+  color: #83d5c5;
+}
+
+.Popover {
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  min-width: var(--popover-anchor-width);
+  max-width: min(28rem, calc(100vw - 16px));
+  max-height: min(360px, var(--popover-available-height));
+  padding: 4px;
+  border: 1px solid #3c7771;
+  border-radius: 6px;
+  background: #08292e;
+  color: #e0f6ef;
+  box-shadow: 0 6px 24px #0008;
+  font-size: 12px;
+  line-height: 1.4;
+  color-scheme: dark;
+  outline: none;
+}
+
+.Popover[data-searchable] {
+  width: max(var(--popover-anchor-width), min(20rem, calc(100vw - 16px)));
+}
+
+/* Keeps the full height while the options are still mounting. */
+.Popover[data-loading] {
+  height: min(360px, var(--popover-available-height, 360px));
+}
+
+.Search {
+  flex: 0 0 auto;
+  padding: 3px 3px 7px;
+}
+
+.Input {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid #427c73;
+  border-radius: 3px;
+  background: #031d22;
+  color: inherit;
+  font: inherit;
+}
+
+.Input::placeholder {
+  color: #9abbb2;
+}
+
+.Input:focus-visible {
+  outline: 2px solid #98ffd4;
+  outline-offset: -1px;
+}
+
+.List {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #427c73 #08292e;
+  scroll-padding-block: 4px;
+}
+
+.Group + .Group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #2c5054;
+}
+
+.GroupLabel {
+  padding: 6px 8px;
+  color: #9abbb2;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.Item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 29px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  scroll-margin-block: 4px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.Item[data-active-item] {
+  background: #256159;
+  color: #fff;
+}
+
+.Item[aria-selected="true"] {
+  color: #98ffd4;
+}
+
+.Item[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.Check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 12px;
+}
+
+.Empty {
+  padding: 12px 8px;
+  color: #9abbb2;
+  text-align: center;
+}
+
+@media (pointer: coarse) {
+  .Trigger,
+  .Item,
+  .Input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}

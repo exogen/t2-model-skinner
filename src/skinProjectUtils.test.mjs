@@ -533,7 +533,7 @@ test("saving and reopening a texture keeps artwork aligned with the padded atlas
         expect(c.item(0).top).toBe(64);
         expect(c.toDataURL(crop)).toBe(url);
       }
-      expect(app.skin.getColorImageUrl("base", 0)).toBe(url);
+      expect(app.skin.getSkinImages("base").colorImageUrl[0]).toBe(url);
       await act(async () => app.tools.exportSkinProject("aligned"));
       await app.load(await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }));
     }

@@ -13,8 +13,9 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family: Inter, Roboto, "Helvetica Neue", "Arial Nova", "Nimbus Sans",
-    Arial, sans-serif;
+  font-family:
+    Inter, Roboto, "Helvetica Neue", "Arial Nova", "Nimbus Sans", Arial,
+    sans-serif;
   font-size: 100%;
   background-color: #01292e;
   background-image: linear-gradient(to bottom, #124044 0%, #001720 100%);
@@ -45,17 +46,42 @@ main {
   user-select: none;
 }
 
+.ModelViewer {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+}
+.ModelViewerCanvas {
+  position: absolute;
+  inset: 0;
+}
+.ModelViewerCanvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ModelViewerCanvas canvas:focus-visible {
+  outline: 2px solid #72fad1;
+  outline-offset: -3px;
+}
+.ModelViewerStatus {
+  position: absolute;
+  inset: 50% 12px auto;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: #08282ee6;
+}
+.ModelViewerStatus button {
+  margin-left: 10px;
+}
+
 .Toolbar {
   display: flex;
   align-items: flex-start;
   align-self: stretch;
   gap: 20px;
-}
-
-select {
-  min-width: 8em;
-  min-height: 22px;
-  text-overflow: ellipsis;
 }
 
 .CanvasBackgroundColor {
@@ -69,29 +95,6 @@ select {
   width: 0;
   height: 0;
   opacity: 0;
-}
-
-.RangeSwatch {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(128, 128, 128, 0.7);
-  border-radius: 6px;
-  margin: 0 5px;
-  overflow: hidden;
-}
-
-.RangeSwatch[data-color="black"] {
-  background: black;
-}
-
-.RangeSwatch[data-color="white"] {
-  background: white;
-}
-
-.RangeLabels {
-  display: flex;
-  align-items: center;
 }
 
 .rc-slider {
@@ -159,6 +162,16 @@ select {
   justify-content: space-between;
 }
 
+.CanvasToolsRegion {
+  align-self: stretch;
+}
+
+.CanvasViewport[data-mocap-active="true"] .TextureCanvas,
+.CanvasToolsRegion[data-mocap-active="true"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .Export {
   display: flex;
 }
@@ -167,7 +180,9 @@ select {
   font-size: 11px;
 }
 
-.Export button {
+/* :where() skips the Select trigger without raising specificity, so class
+   rules like .ExportOptionsButton and .MetallicButton still override these. */
+.Export button:where(:not([data-select])) {
   display: inline-block;
   border: 1px solid rgb(49, 87, 226);
   border-radius: 3px;
@@ -191,7 +206,7 @@ select {
   margin-top: 2px;
 }
 
-.Export select {
+.Export [data-select] {
   width: 6em;
   min-width: 6em;
   flex: 0 0 auto;
@@ -225,7 +240,7 @@ select {
   padding: 0 10px 0 0;
 }
 
-.ExportOptionsPopup select {
+.ExportOptionsPopup [data-select] {
   margin: 4px;
 }
 
@@ -242,11 +257,15 @@ select {
   width: 100%;
 }
 
-.Buttons select {
-  flex: 1 0 auto;
+.Buttons [data-select] {
+  flex: 1 1 auto;
 }
 
-.Buttons button {
+#SkinSelect {
+  width: 18em;
+}
+
+.Buttons button:where(:not([data-select])) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -263,22 +282,22 @@ select {
   white-space: nowrap;
 }
 
-.Buttons button:hover:not(:disabled),
-.Buttons button[data-active] {
+.Buttons button:where(:not([data-select])):hover:not(:disabled),
+.Buttons button:where(:not([data-select]))[data-active] {
   background: rgb(99, 255, 226);
 }
 
-.Buttons button:active:not(:disabled) {
+.Buttons button:where(:not([data-select])):active:not(:disabled) {
   transform: translate3d(0, 1px, 0);
 }
 
-.Buttons button:disabled {
+.Buttons button:where(:not([data-select])):disabled {
   opacity: 0.5;
 }
 
-.Buttons button[data-locked],
-.Buttons button[data-locked]:hover,
-.Buttons button[data-locked]:active {
+.Buttons button:where(:not([data-select]))[data-locked],
+.Buttons button:where(:not([data-select]))[data-locked]:hover,
+.Buttons button:where(:not([data-select]))[data-locked]:active {
   border-color: rgb(253, 91, 91);
   background: rgb(200, 79, 64);
   color: white;
@@ -375,6 +394,18 @@ select {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+}
+
+.AnimationTools {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* Text for icon buttons, shown only in the phone layout. */
+.ButtonText {
+  display: none;
 }
 
 /* .ModelTools:has(input[type="checkbox"]:checked) {
@@ -605,36 +636,300 @@ h6 {
     padding: 0 10px;
   }
 
-  .ModelTools {
-    position: static;
-    flex-direction: column;
-  }
-
-  .Viewport {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  select {
-    max-width: calc(100vw - 20px);
+  /* Phones get one column: Model and Skin, the 3D view, the model tools, the
+     live mocap preview, then the footer. These two wrappers stop generating
+     boxes, so their children become items of main and can be reordered.
+     Without a box, CanvasInteractions can't take focus and only gets file
+     drops on its children. That's fine: the texture canvas and its tools are
+     hidden on phones. */
+  .Viewport,
+  .CanvasInteractions {
+    display: contents;
   }
 
   .Toolbar {
-    flex-direction: column;
+    order: 1;
   }
 
-  model-viewer {
+  .ModelViewer {
+    order: 2;
+  }
+
+  .ModelTools {
+    order: 3;
+  }
+
+  .CanvasViewport,
+  .CanvasToolsRegion {
+    order: 4;
+  }
+
+  .AppFooter {
+    order: 5;
+  }
+
+  [data-select] {
+    max-width: calc(100vw - 20px);
+  }
+
+  .Toolbar [data-select],
+  .ModelTools [data-select] {
+    max-width: none;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* Model and Skin stacked on the left, Gallery on the right. */
+  .Toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "model gallery"
+      "skin gallery";
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .Toolbar .Field {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .Toolbar .Field > label {
+    line-height: 16px;
+  }
+
+  .ModelField {
+    grid-area: model;
+  }
+
+  .SkinField {
+    grid-area: skin;
+  }
+
+  .Toolbar [data-select],
+  .Toolbar #SkinSelect {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .Toolbar .LoadSkinButton {
+    display: none;
+  }
+
+  /* A row of its own under the selectors, only while it's shown. */
+  .Toolbar > [role="alert"] {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+
+  .Toolbar > [role="alert"] button {
+    min-width: 44px;
+    min-height: 40px;
+    margin-left: 8px;
+  }
+
+  .Toolbar .GalleryField {
+    grid-area: gallery;
+    margin: 0;
+    /* The label line plus the field gap, so the tile lines up with the
+       dropdowns beside it. */
+    padding-top: 20px;
+  }
+
+  .GalleryLink {
+    flex: 1 1 auto;
+    justify-content: center;
+    gap: 8px;
+    min-width: 76px;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid #3c7771;
+    border-radius: 4px;
+    background: #12383d;
+    font-size: 26px;
+  }
+
+  .GalleryLink svg {
+    order: -1;
+    font-size: 32px;
+  }
+
+  .ModelViewer {
     min-width: 100vw;
-    min-height: 100vh;
+    min-height: min(70svh, 720px);
   }
 
-  .CanvasInteractions {
+  /* Animation, then the image and camera buttons side by side, then
+     environment and exposure. */
+  .ModelTools {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
-    padding-bottom: 50px;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .ModelTools .Field {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .AnimationTools,
+  .AnimationTools > div:has(> [aria-controls="MocapPreview"]) {
+    display: contents;
+  }
+
+  .AnimationField,
+  .EnvironmentField,
+  .SliderField {
+    grid-column: 1 / -1;
+  }
+
+  .AnimationField {
+    order: 1;
+  }
+
+  .AnimationTools > button {
+    order: 2;
+  }
+
+  .AnimationTools [aria-controls="MocapPreview"] {
+    order: 3;
+  }
+
+  /* Without the camera button, Save image takes the whole row. */
+  .AnimationTools:not(:has([aria-controls="MocapPreview"])) > button {
+    grid-column: 1 / -1;
+  }
+
+  .EnvironmentField {
+    order: 5;
+  }
+
+  .SliderField {
+    order: 6;
+    margin: 0;
+    gap: 12px;
+  }
+
+  .SliderField > label {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .SliderField input[type="range"] {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+  }
+
+  .AnimationField .Buttons button:where(:not([data-select])) {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .AnimationTools > button,
+  .AnimationTools [aria-controls="MocapPreview"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: auto;
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .AnimationTools > button svg {
+    font-size: 20px;
+  }
+
+  .AnimationTools [aria-controls="MocapPreview"] svg {
+    font-size: 24px;
+  }
+
+  .ModelTools .ButtonText {
+    display: inline;
+    font-weight: bold;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Too narrow for both labels on one row. */
+  @media (max-width: 379px) {
+    .AnimationTools > button,
+    .AnimationTools [aria-controls="MocapPreview"] {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* The camera error gets a row of its own under the buttons instead of
+     covering what's below. */
+  .AnimationTools > div:has(> [aria-controls="MocapPreview"]) > [role="alert"] {
+    order: 4;
+    position: static;
+    grid-column: 1 / -1;
+    width: auto;
+    max-width: none;
+    font-size: 14px;
+  }
+
+  .AnimationSpeed {
+    margin: 0;
+    gap: 0;
+    font-size: 14px;
+  }
+
+  .AnimationSpeed input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .AnimationSpeed label {
+    display: flex;
+    align-items: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding-left: 8px;
   }
 
   .CanvasViewport {
     display: none;
+  }
+
+  .CanvasViewport[data-mocap-active="true"] {
+    display: block;
+    width: auto;
+    min-width: 0;
+    margin: 0 16px 16px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .CanvasViewport[data-mocap-active="true"] .TextureCanvas {
+    display: none;
+  }
+
+  /* The capture, pose debug and playback controls above and below the
+     camera. */
+  #MocapPreview [data-edge] button {
+    min-height: 40px;
+  }
+
+  #MocapPreview [data-edge] button:not([data-select]) {
+    min-width: 40px;
+    font-size: 14px;
+  }
+
+  #MocapPreview [data-edge] input[type="range"] {
+    height: 40px;
   }
 
   .CanvasTools {
@@ -644,12 +939,8 @@ h6 {
     gap: 10px;
   }
 
-  .SliderField {
-    margin-top: 0;
-  }
-
-  .SliderField input[type="range"] {
-    width: 152px;
+  .CanvasToolsRegion {
+    display: none;
   }
 
   .AppFooter {
@@ -658,8 +949,18 @@ h6 {
     margin-top: 20px;
   }
 
-  .GalleryField {
-    margin-left: auto;
-    margin-right: auto;
+  .CanvasInteractions > .AppFooter {
+    margin: 8px 16px 32px;
+  }
+
+  .CanvasInteractions > .AppFooter a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  .CanvasInteractions > .AppFooter .IconLink {
+    min-width: 40px;
+    margin-right: 4px;
   }
 }

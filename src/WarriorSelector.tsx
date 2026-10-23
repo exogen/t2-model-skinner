@@ -1,14 +1,28 @@
 import useWarrior from "./useWarrior";
 import { FaFolderOpen } from "react-icons/fa";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useTools from "./useTools";
 import useManifest from "./useManifest";
 import modelConfig from "./models";
+import Select, { type SelectGroup } from "./Select";
+import { modelOptions } from "./modelOptions";
+import { getLocalProject, localProjects } from "./localProjects";
+import styles from "./WarriorSelector.module.css";
 
 const { defaultSkins, modelDefaults } = modelConfig;
 
 const emptyMap = new Map();
+
+function renderSkinLabel(label: string, value: string) {
+  const separator = value.indexOf("/");
+  const type = value.slice(0, separator);
+  const skin = value.slice(separator + 1);
+  const name = type === "local" ? getLocalProject(skin)?.name : skin;
+  return name === "Thriller" ? (
+    <><span className={styles.Thriller}>{name}</span>{label.slice(name.length)}</>
+  ) : label;
+}
 
 export default function WarriorSelector() {
   const {
@@ -24,10 +38,65 @@ export default function WarriorSelector() {
     setAnimationPaused,
     importedSkins,
   } = useWarrior();
-  const { setSelectedMaterialIndex, loadSkinFiles } = useTools();
+  const {
+    setSelectedMaterialIndex, loadSkinFiles, loadLocalProject,
+    cancelSkinLoad, loadedLocalProject,
+  } = useTools();
   const [importError, setImportError] = useState<string | null>(null);
+  const [failedProject, setFailedProject] = useState<string | null>(null);
+  const [pendingProject, setPendingProject] = useState<string | null>(null);
+  const requestGeneration = useRef(0);
+  const attemptedLocalSelection = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [manifest, isManifestLoaded] = useManifest();
+
+  const openLocalProject = useCallback(async (file: string) => {
+    const generation = ++requestGeneration.current;
+    setPendingProject(file);
+    setImportError(null);
+    setFailedProject(null);
+    try {
+      await loadLocalProject(file);
+    } catch (error) {
+      if (generation !== requestGeneration.current) return;
+      setImportError(error instanceof Error ? error.message : "Unable to open this project");
+      setFailedProject(file);
+    } finally {
+      if (generation === requestGeneration.current) setPendingProject(null);
+    }
+  }, [loadLocalProject]);
+
+  useEffect(() => {
+    if (selectedSkinType !== "local" || !selectedSkin) {
+      attemptedLocalSelection.current = null;
+    } else if (selectedSkin === loadedLocalProject) {
+      attemptedLocalSelection.current = selectedSkin;
+    } else if (attemptedLocalSelection.current !== selectedSkin) {
+      attemptedLocalSelection.current = selectedSkin;
+      void openLocalProject(selectedSkin);
+    }
+  }, [selectedSkinType, selectedSkin, loadedLocalProject, openLocalProject]);
+
+  useEffect(() => () => {
+    requestGeneration.current++;
+    attemptedLocalSelection.current = null;
+  }, []);
+
+  const cancelPendingProject = () => {
+    requestGeneration.current++;
+    cancelSkinLoad();
+    setPendingProject(null);
+    setImportError(null);
+    setFailedProject(null);
+  };
+
+  const cancelOptionalProjectLoad = () => {
+    // A URL project is already the selected editor state. Merely opening the
+    // picker or reselecting its model must not strand that state without a
+    // load (or clear the Retry action after a failure).
+    if (selectedSkinType === "local" && selectedSkin && selectedSkin !== loadedLocalProject) return;
+    cancelPendingProject();
+  };
 
   const importedSkinsForModel = importedSkins.get(actualModel) ?? emptyMap;
 
@@ -49,37 +118,85 @@ export default function WarriorSelector() {
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setImportError(null);
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    cancelPendingProject();
+    const generation = requestGeneration.current;
     try {
-      await loadSkinFiles(Array.from(event.target.files ?? []));
+      await loadSkinFiles(files);
     } catch (error) {
+      if (generation !== requestGeneration.current) return;
       setImportError(
         error instanceof Error ? error.message : "Unable to open this skin"
       );
+      if (selectedSkinType === "local" && selectedSkin && selectedSkin !== loadedLocalProject) {
+        setFailedProject(selectedSkin);
+      }
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const newSkinGroup = newSkins[actualModel]?.length ? (
-    <optgroup label="New Skins ✨" data-skin-type="custom">
-      {newSkins[actualModel].map((name) => (
-        <option key={`new/${name}`} value={`custom/${name}`}>
-          {name} ✨
-        </option>
-      ))}
-    </optgroup>
-  ) : null;
+  const newNames = newSkins[actualModel] ?? [];
+  const skinGroups: SelectGroup[] = [];
+  const projectOptions = localProjects.map((project) => ({
+    value: `local/${project.file}`,
+    label: project.name,
+  }));
+  if (selectedSkinType === "project" && selectedSkin) {
+    projectOptions.push({ value: `project/${selectedSkin}`, label: selectedSkin });
+  }
+  if (defaultNames.length) {
+    skinGroups.push({
+      label: "Default Skins",
+      options: defaultNames.map((name) => ({
+        value: `default/${name}`,
+        label: selectedModelType === "player" ? name : "Default",
+      })),
+    });
+  }
+  if (projectOptions.length) {
+    skinGroups.push({ label: "Projects", options: projectOptions });
+  }
+  if (selectableImportedSkins.length) {
+    skinGroups.push({
+      label: "Imported Skins",
+      options: selectableImportedSkins.map((skin) => ({
+        value: `import/${skin.name ?? "__untitled__"}`,
+        label: skin.name || "Untitled Imported Skin",
+      })),
+    });
+  }
+  if (newNames.length) {
+    skinGroups.push({
+      label: "New Skins ✨",
+      options: newNames.map((name) => ({
+        value: `custom/${name}`, label: `${name} ✨`,
+      })),
+    });
+  }
+  if (selectedModelType === "player" || customSkins[actualModel]?.length) {
+    skinGroups.push({
+      label: "Custom Skins",
+      options: !isManifestLoaded
+        ? [{ value: "__loading__", label: "Loading…", disabled: true }]
+        : (customSkins[actualModel] ?? [])
+          .filter((name) => !newNames.includes(name))
+          .map((name) => ({ value: `custom/${name}`, label: name })),
+    });
+  }
 
   return (
     <div className="Toolbar">
-      <div className="Field">
+      <div className="Field ModelField">
         <label htmlFor="ModelSelect">Model</label>
-        <select
+        <Select
           id="ModelSelect"
+          options={modelOptions}
           value={selectedModel}
-          onChange={(event) => {
-            const newSelectedModel = event.target.value;
+          onReselect={cancelOptionalProjectLoad}
+          onChange={(newSelectedModel) => {
+            cancelPendingProject();
             const newActualModel =
               newSelectedModel === "hfemale" ? "hmale" : newSelectedModel;
             const availableSkins =
@@ -102,114 +219,48 @@ export default function WarriorSelector() {
               setSelectedSkinType("default");
             }
           }}
-        >
-          <optgroup label="Players">
-            <option value="lmale">Human Male &bull; Light</option>
-            <option value="mmale">Human Male &bull; Medium</option>
-            <option value="hmale">Human Male &bull; Heavy</option>
-            <option value="lfemale">Human Female &bull; Light</option>
-            <option value="mfemale">Human Female &bull; Medium</option>
-            <option value="hfemale">Human Female &bull; Heavy</option>
-            <option value="lbioderm">Bioderm &bull; Light</option>
-            <option value="mbioderm">Bioderm &bull; Medium</option>
-            <option value="hbioderm">Bioderm &bull; Heavy</option>
-          </optgroup>
-          <optgroup label="Weapons">
-            <option value="disc">Disc Launcher</option>
-            <option value="chaingun">Chaingun</option>
-            <option value="grenade_launcher">Grenade Launcher</option>
-            <option value="sniper">Laser Rifle</option>
-            <option value="plasmathrower">Plasma Cannon</option>
-            <option value="energy">Blaster</option>
-            <option value="shocklance">Shocklance</option>
-            <option value="elf">ELF Projector</option>
-            <option value="missile">Missile Launcher</option>
-            <option value="mortar">Mortar</option>
-            <option value="repair">Repair Pack</option>
-            <option value="targeting">Targeting Laser</option>
-            <option value="mine">Mine</option>
-          </optgroup>
-          <optgroup label="Vehicles">
-            <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
-            <option value="vehicle_grav_tank">Beowulf Assault Tank</option>
-            <option value="vehicle_land_mpbbase">
-              Jericho Mobile Point Base
-            </option>
-            <option value="vehicle_air_scout">Shrike Scout Fighter</option>
-            <option value="vehicle_air_bomber">Thundersword Bomber</option>
-            <option value="vehicle_air_hapc">HAVOC Gunship Transport</option>
-          </optgroup>
-        </select>
+        />
       </div>
-      <div className="Field">
-        <label htmlFor="SkinSelect">Skin</label>
+      <div className="Field SkinField">
+        <label htmlFor="SkinSelect">
+          Skin
+          {pendingProject ? (
+            <span role="status" style={{ marginLeft: "0.5em", fontSize: "0.8em", textTransform: "none" }}>Loading…</span>
+          ) : null}
+        </label>
         <div className="Buttons">
-          <select
+          <Select
             id="SkinSelect"
+            searchable
+            searchPlaceholder="Search skins…"
             value={skinSelectValue}
-            onChange={(event) => {
-              const parentNode = event.target.selectedOptions[0]
-                .parentNode as HTMLElement;
-              const skinType = event.target.value
-                ? (parentNode.dataset.skinType ?? null)
-                : null;
-              const value = event.target.value;
-              setSelectedSkin(
-                value ? value.slice(value.indexOf("/") + 1) : null
-              );
-              setSelectedSkinType(skinType);
+            onReselect={() => {
+              cancelPendingProject();
+              if (selectedSkinType === "local" && selectedSkin && selectedSkin !== loadedLocalProject) {
+                void openLocalProject(selectedSkin);
+              }
             }}
-          >
-            <option value="">Select a skin…</option>
-            {selectedSkinType === "project" ? (
-              <optgroup label="Project" data-skin-type="project">
-                <option value={`project/${selectedSkin}`}>
-                  {selectedSkin}
-                </option>
-              </optgroup>
-            ) : null}
-            {defaultNames.length ? (
-              <optgroup label="Default Skins" data-skin-type="default">
-                {defaultNames.map((name) => (
-                  <option key={name} value={`default/${name}`}>
-                    {selectedModelType === "player" ? name : "Default"}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            {selectableImportedSkins.length ? (
-              <optgroup label="Imported Skins" data-skin-type="import">
-                {selectableImportedSkins.map((skin) => (
-                  <option
-                    key={skin.name ?? "__untitled__"}
-                    value={`import/${skin.name ?? "__untitled__"}`}
-                  >
-                    {skin.name || "Untitled Imported Skin"}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            {newSkinGroup}
-            {selectedModelType === "player" ||
-            customSkins[actualModel]?.length ? (
-              <optgroup label="Custom Skins" data-skin-type="custom">
-                {!isManifestLoaded ? (
-                  <option value="">Loading…</option>
-                ) : (
-                  customSkins[actualModel]?.map((name) => (
-                    <option key={name} value={`custom/${name}`}>
-                      {name}
-                    </option>
-                  ))
-                )}
-              </optgroup>
-            ) : null}
-          </select>
+            selectedLabel={(selectedSkinType === "local" ? getLocalProject(selectedSkin)?.name : selectedSkin) ?? undefined}
+            renderLabel={renderSkinLabel}
+            options={[{ value: "", label: "Select a skin…" }, ...skinGroups]}
+            onChange={(value) => {
+              const separator = value.indexOf("/");
+              if (value.slice(0, separator) === "local") {
+                void openLocalProject(value.slice(separator + 1));
+                return;
+              }
+              cancelPendingProject();
+              setSelectedSkin(value ? value.slice(separator + 1) : null);
+              setSelectedSkinType(value ? value.slice(0, separator) : null);
+            }}
+          />
           <button
             type="button"
+            className="LoadSkinButton"
             aria-label="Load Skin"
             title="Load a Skin"
             onClick={() => {
+              cancelOptionalProjectLoad();
               if (fileInputRef.current) {
                 fileInputRef.current.click();
               }
@@ -227,7 +278,12 @@ export default function WarriorSelector() {
           />
         </div>
       </div>
-      {importError ? <p role="alert">{importError}</p> : null}
+      {importError ? (
+        <p role="alert">
+          {importError}
+          {failedProject ? <button type="button" onClick={() => void openLocalProject(failedProject)}>Retry</button> : null}
+        </p>
+      ) : null}
       <div className="Field GalleryField">
         <a
           href="gallery/"

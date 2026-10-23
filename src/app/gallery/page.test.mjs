@@ -5,6 +5,7 @@ import Link from "next/link";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import GalleryPage from "./page";
 import { saveZipFile } from "../../exportUtils";
+import { chooseOption } from "../../selectTestUtils.mjs";
 
 const fixture = vi.hoisted(() => ({ query: {}, manifest: null, isLoaded: true, loadError: false, retry: vi.fn() }));
 vi.mock("../../useManifest", () => ({ default: () => [fixture.manifest, fixture.isLoaded, {
@@ -192,11 +193,7 @@ test.each(["Café + #1?100% & Blue", "Literal%23"])("gallery previews and editor
 });
 
 async function selectFilter(id, value) {
-  await act(async () => {
-    const select = host.querySelector(`#${id}`);
-    select.value = value;
-    select.dispatchEvent(new window.Event("change", { bubbles: true }));
-  });
+  await chooseOption(host.querySelector(`#${id}`), value);
 }
 
 async function search(value) {

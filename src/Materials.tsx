@@ -13,12 +13,12 @@ export default function Materials() {
 
   return (
     <>
-      {model.materials.map((material, i) => {
+      {model.materials.map((materials, i) => {
         const materialDef = materialDefs[i];
         return (
           <Material
-            key={material.name}
-            material={material}
+            key={i}
+            materials={materials}
             materialDef={materialDef}
           />
         );

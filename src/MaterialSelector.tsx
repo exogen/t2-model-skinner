@@ -2,6 +2,7 @@ import useTools from "./useTools";
 import useWarrior from "./useWarrior";
 import type { MaterialDefinition } from "./models";
 import modelConfig from "./models";
+import Select from "./Select";
 
 const { materials } = modelConfig;
 
@@ -11,21 +12,19 @@ export default function MaterialSelector() {
   const materialDefs: MaterialDefinition[] = materials[actualModel];
 
   return (
-    <select
-      value={selectedMaterialIndex}
-      onChange={(event) => {
-        setSelectedMaterialIndex(parseInt(event.target.value, 10));
+    <Select
+      aria-label="Material"
+      value={String(selectedMaterialIndex)}
+      onChange={(value) => {
+        setSelectedMaterialIndex(parseInt(value, 10));
       }}
-    >
-      {materialDefs.map((materialDef, i) =>
+      options={materialDefs.flatMap((materialDef, i) =>
         materialDef &&
         !materialDef.hidden &&
-        materialDef.selectable !== false ? (
-          <option key={materialDef.name} value={i}>
-            {materialDef.label ?? materialDef.name}
-          </option>
-        ) : null
+        materialDef.selectable !== false ? [{
+          value: String(i), label: materialDef.label ?? materialDef.name,
+        }] : []
       )}
-    </select>
+    />
   );
 }

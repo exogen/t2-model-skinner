@@ -136,6 +136,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     setSizeMultiplier,
     loadSkinProject,
     loadSkinFiles,
+    loadLocalProject,
+    cancelSkinLoad,
+    loadedLocalProject,
     runTask,
   } = useEditorSession();
   const { backgroundColor, brushColor, brushSize, exportName } = preferences;
@@ -564,6 +567,9 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     exportSkinProject,
     loadSkinProject,
     loadSkinFiles,
+    loadLocalProject,
+    cancelSkinLoad,
+    loadedLocalProject,
     selectedMaterialIndex,
     setSelectedMaterialIndex,
     textureSize,

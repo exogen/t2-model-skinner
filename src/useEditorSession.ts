@@ -24,6 +24,9 @@ export interface EditorSessionValue {
   setSizeMultiplier: (value: number | ((previous: number) => number)) => void;
   loadSkinProject: (file: File | Blob) => Promise<void>;
   loadSkinFiles: (files: File[]) => Promise<void>;
+  loadLocalProject: (file: string) => Promise<void>;
+  cancelSkinLoad: () => void;
+  loadedLocalProject: string | null;
   runTask: ReturnType<typeof useAsyncTask>;
 }
 

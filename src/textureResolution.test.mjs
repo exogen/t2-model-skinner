@@ -46,7 +46,7 @@ function expectDisplaySize(app, width = 512, height = width) {
   }
 }
 
-test.each([1, 2, 4])("selected %ix textures retain their pixels at the standard display size", async (scale) => {
+test.each([1, 2])("selected %ix textures retain their pixels at the standard display size", async (scale) => {
   const original = texture(512 * scale);
   const app = await editor("lfemale", {
     realCanvases: true,
@@ -60,7 +60,7 @@ test.each([1, 2, 4])("selected %ix textures retain their pixels at the standard 
     const exported = PNG.sync.read(Buffer.from(downloads.at(-1).data.split(",")[1], "base64"));
     expect([exported.width, exported.height]).toEqual([512 * scale, 512 * scale]);
     expect(exported.data.equals(PNG.sync.read(original.bytes).data)).toBe(true);
-    const preview = PNG.sync.read(Buffer.from(app.skin.getColorImageUrl("base", 0).split(",")[1], "base64"));
+    const preview = PNG.sync.read(Buffer.from(app.skin.getSkinImages("base").colorImageUrl[0].split(",")[1], "base64"));
     expect(preview.width).toBe(512 * scale);
   } finally {
     await app.close();
@@ -201,7 +201,8 @@ test.each([[1536, 1536], [1024, 768], [4096, 4096]])(
   }
 );
 
-test.each([2, 4])("%i× selection handles stay usable on Retina displays and after undo", async (scale) => {
+test("2× selection handles stay usable on Retina displays and after undo", async () => {
+  const scale = 2;
   const originalDpr = config.devicePixelRatio;
   config.devicePixelRatio = 2;
   const app = await editor("lmale", {

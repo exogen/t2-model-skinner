@@ -1,4 +1,5 @@
 "use client";
+import Select from "./Select";
 import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
 import { FabricImage } from "fabric";
 import { isLockedObject } from "./fabricUtils";
@@ -36,6 +37,28 @@ import modelConfig from "./models";
 import useMessageDialog from "./useMessageDialog";
 
 const { materials } = modelConfig;
+
+function useToolPopup(open: boolean, setOpen: (open: boolean) => void) {
+  const { refs, floatingStyles, context } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    placement: "bottom-end",
+    middleware: [flip(), offset(10)],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const click = useClick(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context);
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    click,
+    dismiss,
+    role,
+  ]);
+
+  return { refs, floatingStyles, context, getReferenceProps, getFloatingProps };
+}
 
 export default function CanvasTools() {
   const { showMessage, messageDialog } = useMessageDialog();
@@ -124,28 +147,15 @@ export default function CanvasTools() {
     refs: brushRefs,
     floatingStyles: brushFloatingStyles,
     context: brushContext,
-  } = useFloating({
-    open: isBrushToolsOpen,
-    onOpenChange: setBrushToolsOpen,
-    placement: "bottom-end",
-    middleware: [flip(), offset(10)],
-    whileElementsMounted: autoUpdate,
-  });
-
-  const brushClick = useClick(brushContext);
-  const brushDismiss = useDismiss(brushContext);
-  const brushRole = useRole(brushContext);
+    getReferenceProps: getBrushReferenceProps,
+    getFloatingProps: getBrushFloatingProps,
+  } = useToolPopup(isBrushToolsOpen, setBrushToolsOpen);
 
   useEffect(() => {
     if (isBrushToolsOpen) {
       setDrawingMode(true);
     }
   }, [isBrushToolsOpen, setDrawingMode]);
-
-  const {
-    getReferenceProps: getBrushReferenceProps,
-    getFloatingProps: getBrushFloatingProps,
-  } = useInteractions([brushClick, brushDismiss, brushRole]);
 
   // Filter popup
   const [isFilterToolsOpen, setFilterToolsOpen] = useState(false);
@@ -154,22 +164,9 @@ export default function CanvasTools() {
     refs: filterRefs,
     floatingStyles: filterFloatingStyles,
     context: filterContext,
-  } = useFloating({
-    open: isFilterToolsOpen,
-    onOpenChange: setFilterToolsOpen,
-    placement: "bottom-end",
-    middleware: [flip(), offset(10)],
-    whileElementsMounted: autoUpdate,
-  });
-
-  const filterClick = useClick(filterContext);
-  const filterDismiss = useDismiss(filterContext);
-  const filterRole = useRole(filterContext);
-
-  const {
     getReferenceProps: getFilterReferenceProps,
     getFloatingProps: getFilterFloatingProps,
-  } = useInteractions([filterClick, filterDismiss, filterRole]);
+  } = useToolPopup(isFilterToolsOpen, setFilterToolsOpen);
 
   // Export popup
   const [isExportOptionsOpen, setExportOptionsOpen] = useState(false);
@@ -177,22 +174,9 @@ export default function CanvasTools() {
     refs: exportRefs,
     floatingStyles: exportFloatingStyles,
     context: exportContext,
-  } = useFloating({
-    open: isExportOptionsOpen,
-    onOpenChange: setExportOptionsOpen,
-    placement: "bottom-end",
-    middleware: [flip(), offset(10)],
-    whileElementsMounted: autoUpdate,
-  });
-
-  const exportClick = useClick(exportContext);
-  const exportDismiss = useDismiss(exportContext);
-  const exportRole = useRole(exportContext);
-
-  const {
     getReferenceProps: getExportReferenceProps,
     getFloatingProps: getExportFloatingProps,
-  } = useInteractions([exportClick, exportDismiss, exportRole]);
+  } = useToolPopup(isExportOptionsOpen, setExportOptionsOpen);
 
   const isSelectionLocked = selectedObjects.length
     ? selectedObjects.every(isLockedObject)
@@ -706,25 +690,26 @@ export default function CanvasTools() {
 
                 <div className="Field">
                   <label htmlFor="ExportFormat">Export Format</label>
-                  <select
+                  <Select
                     id="ExportFormat"
                     value={exportFileType}
-                    onChange={(event) => {
-                      setExportFileType(event.target.value);
+                    onChange={(value) => {
+                      setExportFileType(value);
                       try {
                         localStorage.setItem(
                           "exportFileType",
-                          event.target.value
+                          value
                         );
                       } catch (err) {
                         // Probably blocked. That's okay.
                       }
                     }}
-                  >
-                    <option value="png">.png</option>
-                    <option value="vl2">.vl2</option>
-                    <option value="skin">.skin</option>
-                  </select>
+                    options={[
+                      { value: "png", label: ".png" },
+                      { value: "vl2", label: ".vl2" },
+                      { value: "skin", label: ".skin" },
+                    ]}
+                  />
                 </div>
               </div>
             </div>

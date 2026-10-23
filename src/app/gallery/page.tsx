@@ -15,6 +15,8 @@ import { FiDownload } from "react-icons/fi";
 import { useQueryState } from "nuqs";
 import orderBy from "lodash.orderby";
 import useManifest from "../../useManifest";
+import Select from "../../Select";
+import { modelOptions } from "../../modelOptions";
 import styles from "./gallery.module.css";
 import DownloadDialog from "./DownloadDialog";
 import AllSkinsDownloadDialog from "./AllSkinsDownloadDialog";
@@ -188,71 +190,33 @@ function Gallery() {
             </div>
             <div className={styles.Field}>
               <label htmlFor="CollectionSelect">Collection</label>
-              <div className={styles.SelectControl}>
-                <select id="CollectionSelect" value={selectedCollection}
-                  onChange={(event) => changeFilters(event.target.value, selectedModel)}>
-                  <option value="all">All skins</option>
-                  <option value="new">New skins</option>
-                  <optgroup label="Packs">
-                    {packList.map((packName) => <option value={packName} key={packName}>{packName}</option>)}
-                  </optgroup>
-                </select>
-              </div>
+              <Select
+                id="CollectionSelect"
+                className={styles.SelectControl}
+                value={selectedCollection}
+                onChange={(value) => changeFilters(value, selectedModel)}
+                options={[
+                  { value: "all", label: "All skins" },
+                  { value: "new", label: "New skins" },
+                  { label: "Packs", options: packList.map((name) => ({ value: name, label: name })) },
+                ]}
+              />
             </div>
             <div className={styles.Field}>
               <label htmlFor="ModelSelect">Model</label>
-              <div className={styles.SelectControl}>
-                <select
-                  id="ModelSelect"
-                  onChange={(event) => changeFilters(selectedCollection, event.target.value)}
-                  value={selectedModel}
-                >
-                  <option value="all">All models</option>
-                  <optgroup label="Players" data-model-type="player">
-                    <option value="lmale">Human Male &bull; Light</option>
-                    <option value="mmale">Human Male &bull; Medium</option>
-                    <option value="hmale">Human Male &bull; Heavy</option>
-                    <option value="lfemale">Human Female &bull; Light</option>
-                    <option value="mfemale">Human Female &bull; Medium</option>
-                    <option value="hfemale">Human Female &bull; Heavy</option>
-                    <option value="lbioderm">Bioderm &bull; Light</option>
-                    <option value="mbioderm">Bioderm &bull; Medium</option>
-                    <option value="hbioderm">Bioderm &bull; Heavy</option>
-                  </optgroup>
-                  <optgroup label="Weapons" data-model-type="weapon">
-                    <option value="disc">Disc Launcher</option>
-                    <option value="chaingun">Chaingun</option>
-                    <option value="grenade_launcher">Grenade Launcher</option>
-                    <option value="sniper">Laser Rifle</option>
-                    <option value="plasmathrower">Plasma Cannon</option>
-                    <option value="energy">Blaster</option>
-                    <option value="shocklance">Shocklance</option>
-                    <option value="elf">ELF Projector</option>
-                    <option value="missile">Missile Launcher</option>
-                    <option value="mortar">Mortar</option>
-                    <option value="repair">Repair Pack</option>
-                    <option value="targeting">Targeting Laser</option>
-                  </optgroup>
-                  <optgroup label="Vehicles" data-model-type="vehicle">
-                    <option value="vehicle_grav_scout">Wildcat Grav Cycle</option>
-                    <option value="vehicle_grav_tank">
-                      Beowulf Assault Tank
-                    </option>
-                    <option value="vehicle_land_mpbbase">
-                      Jericho Mobile Point Base
-                    </option>
-                    <option value="vehicle_air_scout">
-                      Shrike Scout Fighter
-                    </option>
-                    <option value="vehicle_air_bomber">
-                      Thundersword Bomber
-                    </option>
-                    <option value="vehicle_air_hapc">
-                      HAVOC Gunship Transport
-                    </option>
-                  </optgroup>
-                </select>
-              </div>
+              <Select
+                id="ModelSelect"
+                className={styles.SelectControl}
+                value={selectedModel}
+                onChange={(value) => changeFilters(selectedCollection, value)}
+                options={[
+                  { value: "all", label: "All models" },
+                  ...modelOptions.map((group) => ({
+                    ...group,
+                    options: group.options.filter((option) => option.value !== "mine"),
+                  })),
+                ]}
+              />
             </div>
           </div>
           {pack ? (

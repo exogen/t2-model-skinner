@@ -1,21 +1,17 @@
 "use client";
-import CanvasTools from "../CanvasTools";
-import AppFooter from "../AppFooter";
+import dynamic from "next/dynamic";
 import EditorProvider from "../EditorProvider";
+import EditorWorkspace from "../EditorWorkspace";
 import ImageWorkerProvider from "../ImageWorkerProvider";
-import CanvasBackdrop from "../CanvasBackdrop";
-import CanvasInteractions from "../CanvasInteractions";
-import CanvasToggle from "../CanvasToggle";
-import WarriorSelector from "../WarriorSelector";
 import WarriorProvider from "../WarriorProvider";
-import WarriorViewer from "../WarriorViewer";
 import EnvironmentSelector from "../EnvironmentSelector";
 import EnvironmentExposure from "../EnvironmentExposure";
 import AnimationSelector from "../AnimationSelector";
 import EnvironmentProvider from "../EnvironmentProvider";
+import MocapProvider, { LiveMocapControls } from "../MocapProvider";
+import SaveModelImage from "../SaveModelImage";
+import ViewerProvider from "../ViewerProvider";
 import SkinProvider from "../SkinProvider";
-import MaterialSelector from "../MaterialSelector";
-import MaterialCanvases from "../MaterialCanvases";
 import ImageLoaderProvider from "../ImageLoaderProvider";
 import {
   QueryClient,
@@ -24,6 +20,17 @@ import {
 } from "@tanstack/react-query";
 import { imageUrlToArrayBuffer } from "../imageUtils";
 import { Suspense } from "react";
+
+// The 3D view's code loads after the page. Until then the same box holds its
+// place, so nothing below it jumps when it arrives.
+const WarriorViewer = dynamic(() => import("../WarriorViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="ModelViewer">
+      <div className="ModelViewerStatus" role="status">Loading model…</div>
+    </div>
+  ),
+});
 
 async function imageFetcher({ queryKey }: { queryKey: QueryKey }) {
   const [imageUrl] = queryKey as [string];
@@ -53,35 +60,31 @@ export default function HomePage() {
                 <EnvironmentProvider>
                   <ImageWorkerProvider>
                     <SkinProvider>
-                      <div className="Viewport">
-                        <div className="ModelTools">
-                          <div className="Field">
-                            <EnvironmentSelector />
-                          </div>
-                          <div className="Field SliderField">
-                            <EnvironmentExposure />
-                          </div>
-                          <div className="Field">
-                            <AnimationSelector />
-                          </div>
-                        </div>
-                        <WarriorViewer />
-                      </div>
-                      <EditorProvider>
-                        <CanvasInteractions>
-                          <WarriorSelector />
-                          <div className="CanvasViewport">
-                            <div className="CanvasSelector">
-                              <CanvasToggle />
-                              <MaterialSelector />
+                      <MocapProvider>
+                        <ViewerProvider>
+                          <div className="Viewport">
+                            <div className="ModelTools">
+                              <div className="Field EnvironmentField">
+                                <EnvironmentSelector />
+                              </div>
+                              <div className="Field SliderField">
+                                <EnvironmentExposure />
+                              </div>
+                              <div className="AnimationTools">
+                                <SaveModelImage />
+                                <LiveMocapControls />
+                                <div className="Field AnimationField">
+                                  <AnimationSelector />
+                                </div>
+                              </div>
                             </div>
-                            <CanvasBackdrop />
-                            <MaterialCanvases />
+                            <WarriorViewer />
                           </div>
-                          <CanvasTools />
-                          <AppFooter />
-                        </CanvasInteractions>
-                      </EditorProvider>
+                        </ViewerProvider>
+                        <EditorProvider>
+                          <EditorWorkspace />
+                        </EditorProvider>
+                      </MocapProvider>
                     </SkinProvider>
                   </ImageWorkerProvider>
                 </EnvironmentProvider>

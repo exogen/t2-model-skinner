@@ -4,6 +4,9 @@ import ToolsProvider from "./ToolsProvider";
 import useWarrior from "./useWarrior";
 import useAsyncTask from "./useAsyncTask";
 import useImageLoader from "./useImageLoader";
+import useSettings from "./useSettings";
+import { getLocalAssetUrl } from "./deployPaths";
+import { getLocalProject } from "./localProjects";
 import { detectTextureSizeMultiplier } from "./textureResolution";
 import { detectFileType, importMultipleFilesToModels } from "./importUtils";
 import {
@@ -22,6 +25,7 @@ type OpenProject = {
   model: string;
   sizeMultiplier: number;
   name: string;
+  localFile?: string;
 };
 
 function sameTextureUrls(
@@ -72,16 +76,17 @@ export default function EditorProvider({
       }
       warrior.setSelectedModel(opened.model);
       warrior.setSelectedAnimation(null);
-      warrior.setSelectedSkinType("project");
-      warrior.setSelectedSkin(opened.name);
+      warrior.setAnimationPaused(false);
+      warrior.setSelectedSkinType(opened.localFile ? "local" : "project");
+      warrior.setSelectedSkin(opened.localFile ?? opened.name);
     },
     [warrior]
   );
 
   const activeProject =
-    warrior.selectedSkinType === "project" &&
     project?.model === warrior.selectedModel &&
-    project.name === warrior.selectedSkin
+    ((warrior.selectedSkinType === "project" && !project.localFile && project.name === warrior.selectedSkin) ||
+      (warrior.selectedSkinType === "local" && project.localFile === warrior.selectedSkin))
       ? project
       : null;
   // A project's dimensions belong to the document, not the default preference.
@@ -118,6 +123,7 @@ export default function EditorProvider({
       preferences={preferences}
       setPreferences={setPreferences}
       project={activeProject?.document ?? null}
+      localProjectFile={activeProject?.localFile ?? null}
       sizeMultiplier={sizeMultiplier}
       setSizeMultiplier={setPreferredSize}
       openProject={openProject}
@@ -133,6 +139,7 @@ function EditorSession({
   preferences,
   setPreferences,
   project,
+  localProjectFile,
   sizeMultiplier: preferredSize,
   setSizeMultiplier,
   openProject,
@@ -141,26 +148,30 @@ function EditorSession({
   source: {
     model: string;
     skin: string | null;
+    skinType: string | null;
     images: Record<string, string[]>;
     defaultImages: Record<string, string[]>;
   };
   preferences: EditorSessionValue["preferences"];
   setPreferences: EditorSessionValue["setPreferences"];
   project: SkinProject | null;
+  localProjectFile: string | null;
   sizeMultiplier: number;
   setSizeMultiplier: (value: number | ((previous: number) => number)) => void;
   openProject: (project: OpenProject) => void;
 }) {
   const warrior = useWarrior();
   const { selectedModel } = warrior;
+  const { basePath } = useSettings();
   const { loadImage } = useImageLoader();
   const [detectedSize, setDetectedSize] = useState<number | undefined | null>(
     null
   );
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const resolveSize = useAsyncTask();
+  const awaitingLocalProject = source.skinType === "local" && !project;
   useEffect(() => {
-    if (project) return;
+    if (project || awaitingLocalProject) return;
     void resolveSize(
       () =>
         detectTextureSizeMultiplier(
@@ -177,35 +188,49 @@ function EditorSession({
           : "Unable to determine texture size"
       );
     });
-  }, [project, source, loadImage, resolveSize]);
-  const isResolvingSize = !project && detectedSize === null && !resolutionError;
+  }, [project, awaitingLocalProject, source, loadImage, resolveSize]);
+  const isResolvingSize = awaitingLocalProject || (!project && detectedSize === null && !resolutionError);
   const sizeMultiplier = project
     ? preferredSize
     : (detectedSize ?? preferredSize);
   const runTask = useAsyncTask();
   const runLoad = useAsyncTask(true);
+  const prepareProject = useCallback(async (file: File | Blob, signal: AbortSignal) => {
+    const document = await readSkinProjectZip(file);
+    signal.throwIfAborted();
+    const target = getProjectTarget(document, selectedModel);
+    // Preflight before replacing the current session. Each mounted canvas
+    // owns its Fabric objects; the document itself stores only snapshots.
+    const prepared = await prepareSkinProject(document, signal);
+    Object.values(prepared).forEach(({ color, metallic }) =>
+      [...color, ...metallic].forEach((object) => object.dispose())
+    );
+    const filename = "name" in file ? String(file.name).replace(/\.skin$/i, "") : "";
+    return {
+      document: { ...document, name: document.name || filename },
+      ...target,
+      name: filename || "Project",
+    };
+  }, [selectedModel]);
   const loadSkinProject = useCallback(
     async (file: File | Blob) => {
-      await runLoad(async (signal) => {
-        const document = await readSkinProjectZip(file);
-        const target = getProjectTarget(document, selectedModel);
-        // Preflight every layer before replacing the current session. Keep only
-        // snapshots in React state; each mounted canvas owns its Fabric objects.
-        const prepared = await prepareSkinProject(document, signal);
-        Object.values(prepared).forEach(({ color, metallic }) =>
-          [...color, ...metallic].forEach((object) => object.dispose())
-        );
-        const filename =
-          "name" in file ? String(file.name).replace(/\.skin$/i, "") : "";
-        return {
-          document: { ...document, name: document.name || filename },
-          ...target,
-          name: filename || "Project",
-        };
-      }, openProject);
+      await runLoad((signal) => prepareProject(file, signal), openProject);
     },
-    [runLoad, openProject, selectedModel]
+    [runLoad, openProject, prepareProject]
   );
+
+  const loadLocalProject = useCallback(async (file: string) => {
+    await runLoad(async (signal) => {
+      const entry = getLocalProject(file);
+      if (!entry) throw new Error("This local project is no longer available.");
+      const response = await fetch(getLocalAssetUrl(basePath, `projects/${entry.file}`), { signal });
+      if (!response.ok) throw new Error(`Unable to load ${entry.name} (${response.status}).`);
+      const bytes = await response.arrayBuffer();
+      signal.throwIfAborted();
+      const opened = await prepareProject(new File([bytes], entry.file.split("/").at(-1)!), signal);
+      return { ...opened, localFile: entry.file };
+    }, openProject);
+  }, [basePath, runLoad, openProject, prepareProject]);
 
   const loadSkinFiles = useCallback(
     async (files: File[]) => {
@@ -232,6 +257,7 @@ function EditorSession({
             warrior.setSelectedSkinType("import");
             warrior.setSelectedSkin(skin.name ?? "__untitled__");
             warrior.setSelectedAnimation(null);
+            warrior.setAnimationPaused(false);
             return;
           }
         }
@@ -252,6 +278,9 @@ function EditorSession({
         setSizeMultiplier,
         loadSkinProject,
         loadSkinFiles,
+        loadLocalProject,
+        cancelSkinLoad: runLoad.cancel,
+        loadedLocalProject: localProjectFile,
         runTask,
       }}
     >

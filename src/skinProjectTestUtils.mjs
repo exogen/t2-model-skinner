@@ -141,6 +141,7 @@ export async function editor(
   let tools, canvases, warrior, skin;
   const changes = [];
   let setBackground;
+  let setInteractionsDisabled;
   function Surface() {
     const currentTools = useTools();
     const session = useEditorSession();
@@ -219,13 +220,15 @@ export async function editor(
     });
   }
   function Warrior() {
+    const [interactionsDisabled, updateInteractionsDisabled] = React.useState(false);
     const [skinImageUrls, setSkinImageUrls] =
       React.useState(initialImageUrls);
     const [selectedModel, setSelectedModel] = React.useState(initialModel);
     const [selectedSkin, setSelectedSkin] = React.useState("Blood Eagle");
     const [selectedSkinType, setSelectedSkinType] = React.useState("default");
     const selectedModelType = modelToModelType(selectedModel);
-    const [, setSelectedAnimation] = React.useState(null);
+    const [selectedAnimation, setSelectedAnimation] = React.useState(null);
+    const [animationPaused, setAnimationPaused] = React.useState(false);
     const [importedSkins, setImportedSkins] = React.useState(new Map());
     const actualModel = selectedModel === "hfemale" ? "hmale" : selectedModel;
     const value = {
@@ -248,12 +251,18 @@ export async function editor(
       selectedSkinType,
       setSelectedSkinType,
       selectedModelType,
+      selectedAnimation,
       setSelectedAnimation,
+      animationPaused,
+      setAnimationPaused,
       actualModel,
     };
     React.useLayoutEffect(() => {
       warrior = value;
     });
+    React.useLayoutEffect(() => {
+      setInteractionsDisabled = updateInteractionsDisabled;
+    }, [updateInteractionsDisabled]);
     return React.createElement(
       WarriorContext.Provider,
       { value },
@@ -265,7 +274,7 @@ export async function editor(
           null,
           React.createElement(
             CanvasInteractions,
-            null,
+            { disabled: interactionsDisabled },
             React.createElement(Surface)
           )
         )
@@ -341,6 +350,9 @@ export async function editor(
     },
     async setBackground(url) {
       await act(async () => setBackground(url));
+    },
+    async setInteractionsDisabled(disabled) {
+      await act(async () => setInteractionsDisabled(disabled));
     },
     async close() {
       await act(async () => root.unmount());

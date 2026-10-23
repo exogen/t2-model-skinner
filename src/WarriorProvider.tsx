@@ -6,6 +6,7 @@ import type { MaterialDefinition } from "./models";
 import type { Skin } from "./importUtils";
 import modelConfig, { modelToModelType } from "./models";
 import { getLocalAssetUrl, getSkinAssetUrl } from "./deployPaths";
+import { getLocalProject } from "./localProjects";
 
 const { materials, modelDefaults, defaultSkins } = modelConfig;
 
@@ -63,7 +64,7 @@ export function getSkinImageUrls({
   importedSkins?: typeof IMPORTED_SKINS;
 }): Record<string, string[]> {
   // Materials omitted from a legacy project use the model's default textures.
-  if (selectedSkinType === "project") {
+  if (selectedSkinType === "project" || selectedSkinType === "local") {
     selectedSkinType = "default";
     selectedSkin = modelDefaults[actualModel] ?? null;
   }
@@ -252,14 +253,20 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
   ]);
 
   if (!searchParamsInitialized) {
-    const modelName = searchParams.get("m");
+    const project = getLocalProject(searchParams.get("p"));
+    const modelName = project?.model && modelToModelType(project.model)
+      ? project.model : searchParams.get("m");
     const skinPath = searchParams.get("s");
+    if (project) {
+      setSelectedSkin(project.file);
+      setSelectedSkinType("local");
+    }
     if (typeof modelName === "string") {
       const modelType = modelToModelType(modelName);
       const actualModel = modelName === "hfemale" ? "hmale" : modelName;
       if (modelType) {
         setSelectedModel(modelName);
-        if (typeof skinPath === "string") {
+        if (!project && typeof skinPath === "string") {
           const skinType = skinToType(actualModel, skinPath);
           setSelectedSkin(skinPath);
           setSelectedSkinType(skinType);
@@ -270,19 +277,22 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (!selectedSkin) {
-      return;
+    if (!searchParamsInitialized) return;
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("m", selectedModel);
+    if (selectedSkinType === "local" && selectedSkin) {
+      newSearchParams.set("p", selectedSkin);
+      newSearchParams.delete("s");
+    } else {
+      newSearchParams.delete("p");
+      if (selectedSkin) newSearchParams.set("s", selectedSkin);
+      else newSearchParams.delete("s");
     }
-    const modelName = searchParams.get("m");
-    const skinPath = searchParams.get("s");
-    if (modelName !== selectedModel || skinPath !== selectedSkin) {
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.set("m", selectedModel);
-      newSearchParams.set("s", selectedSkin);
+    if (newSearchParams.toString() !== searchParams.toString()) {
       const url = `${pathname}?${newSearchParams}`;
       router.replace(url, { scroll: false });
     }
-  }, [pathname, router, searchParams, selectedModel, selectedSkin]);
+  }, [pathname, router, searchParams, searchParamsInitialized, selectedModel, selectedSkin, selectedSkinType]);
 
 
   return (

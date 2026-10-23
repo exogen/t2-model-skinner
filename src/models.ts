@@ -1,43 +1,15 @@
 import modelConfig from "@config/models.json";
+import { modelOptions } from "./modelOptions";
 
-export const modelTypes = {
-  player: [
-    "lmale",
-    "mmale",
-    "hmale",
-    "lfemale",
-    "mfemale",
-    "hfemale",
-    "lbioderm",
-    "mbioderm",
-    "hbioderm",
-  ],
-  weapon: [
-    "disc",
-    "chaingun",
-    "grenade_launcher",
-    "sniper",
-    "plasmathrower",
-    "energy",
-    "shocklance",
-    "elf",
-    "missile",
-    "mortar",
-    "repair",
-    "targeting",
-    "mine",
-  ],
-  vehicle: [
-    "vehicle_grav_scout",
-    "vehicle_grav_tank",
-    "vehicle_land_mpbbase",
-    "vehicle_air_scout",
-    "vehicle_air_bomber",
-    "vehicle_air_hapc",
-  ],
-};
+export type ModelType = "player" | "weapon" | "vehicle";
 
-export type ModelType = keyof typeof modelTypes;
+export const modelTypes = Object.fromEntries(
+  modelOptions.map(({ type, options }) => [
+    type,
+    options.map((option) => option.value),
+  ])
+) as Record<ModelType, string[]>;
+
 const modelGroups = Object.entries(modelTypes) as [ModelType, string[]][];
 
 export function modelToModelType(model: string): ModelType | undefined {

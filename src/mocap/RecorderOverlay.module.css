@@ -1,0 +1,148 @@
+.Overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The viewer can be taller than the window when the editor column is, so
+   keep the playback badge within the first screen. */
+.Overlay[data-placement="viewer"] {
+  bottom: auto;
+  height: min(100%, 100vh);
+  height: min(100%, 100dvh);
+}
+
+/* A pulsing red frame around the camera preview while recording. */
+.Overlay[data-recording]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 4px solid #ff3b47;
+  animation: Pulse 1.6s ease-in-out infinite;
+}
+
+/* In the corner, clear of the video's center. */
+.Hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.Digit {
+  display: grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: #01292ecc;
+  box-shadow: 0 0 0 2px #63ffe2;
+  color: #eafff9;
+  font-size: clamp(36px, 9vmin, 72px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  animation: Pop 180ms ease-out;
+}
+
+.Caption,
+.Rec,
+.Badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.3em 0.8em;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.Caption {
+  background: #001a1fcc;
+  color: #e9fff8;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.Rec {
+  border: 1px solid #ff5a5f66;
+  background: #2a0d10e6;
+  color: #ffe3e5;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.RecDot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: #ff4d55;
+  animation: Blink 1s steps(2, jump-none) infinite;
+}
+
+.Flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  animation: Flash 450ms ease-out;
+}
+
+.Badge {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: #001a1fcc;
+  color: #e9fff8;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media only screen and (max-width: 899px) {
+  .Digit {
+    font-size: min(16vw, 80px);
+  }
+
+  .Caption,
+  .Rec {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Flash {
+    display: none;
+  }
+
+  .Digit,
+  .RecDot,
+  .Overlay[data-recording]::after {
+    animation: none;
+  }
+}
+
+@keyframes Pop {
+  from { transform: scale(0.85); }
+  to { transform: scale(1); }
+}
+
+@keyframes Pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes Blink {
+  from { opacity: 1; }
+  to { opacity: 0.2; }
+}
+
+@keyframes Flash {
+  from { opacity: 0.85; }
+  to { opacity: 0; }
+}

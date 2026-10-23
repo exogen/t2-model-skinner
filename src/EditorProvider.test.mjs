@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { expect, test, vi } from "vitest";
 import { FabricImage, getEnv } from "fabric";
 import JSZip from "jszip";
@@ -15,6 +16,7 @@ import {
 import { readSkinProjectZip } from "./skinProjectUtils";
 
 const { File, Blob } = getEnv().window;
+const { document } = getEnv();
 
 function deferred() {
   let resolve;
@@ -618,5 +620,30 @@ test("an older VL2 load cannot replace a newer project load", async () => {
     readZip.mockRestore();
     await app.close();
     await source.dispose();
+  }
+});
+
+test("loading a skin or a project ends a pause, like choosing another model", async () => {
+  // The play button is off with no animation chosen, so a pause left from a
+  // player's animation would keep a weapon's first clip from playing.
+  const element = document.createElement("canvas");
+  element.width = element.height = 512;
+  const png = Buffer.from(element.toDataURL().split(",")[1], "base64");
+  const app = await editor("lmale");
+  try {
+    await act(async () => {
+      app.warrior.setSelectedAnimation("Celwave");
+      app.warrior.setAnimationPaused(true);
+    });
+    await act(async () => app.tools.loadSkinFiles([new File([png], "mine.png", { type: "image/png" })]));
+    expect(app.warrior.selectedModel).toBe("mine");
+    expect(app.warrior.selectedAnimation).toBeNull();
+    expect(app.warrior.animationPaused).toBe(false);
+    await act(async () => app.warrior.setAnimationPaused(true));
+    await app.load(await archive([input("base", canvas())], "lmale"));
+    expect(app.warrior.selectedModel).toBe("lmale");
+    expect(app.warrior.animationPaused).toBe(false);
+  } finally {
+    await app.close();
   }
 });

@@ -6,8 +6,10 @@ import useMessageDialog from "./useMessageDialog";
 
 export default function CanvasInteractions({
   children,
+  disabled = false,
 }: {
   children: ReactNode;
+  disabled?: boolean;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const { showMessage, messageDialog } = useMessageDialog();
@@ -45,13 +47,14 @@ export default function CanvasInteractions({
   return (
     <div
       className="CanvasInteractions"
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
       ref={ref}
       onDragOver={(event) => {
         event.preventDefault();
       }}
       onDrop={async (event) => {
         event.preventDefault();
+        if (disabled) return;
         if (ref.current) {
           ref.current.focus();
         }
@@ -83,11 +86,11 @@ export default function CanvasInteractions({
         }
       }}
       onKeyDown={async (event) => {
-        if (!canvas || status !== "ready") return;
+        if (disabled || !canvas || status !== "ready") return;
         const target = event.target as HTMLElement;
         if (
           event.defaultPrevented ||
-          target.closest('input, textarea, select, [role="slider"]')
+          target.closest('input, textarea, select, [role="slider"], [role="combobox"], [role="listbox"]')
         ) {
           return;
         }

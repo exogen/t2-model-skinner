@@ -1,0 +1,184 @@
+/* In the camera panel's toolbar, styled like the capture buttons. */
+.Toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid #3c7771;
+  border-radius: 4px;
+  background: #12383d;
+  color: #e0f6ef;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.Toggle:hover {
+  border-color: #72d5bd;
+  background: #1a494b;
+}
+
+.Toggle:focus-visible {
+  outline: 2px solid #98ffd4;
+  outline-offset: 2px;
+}
+
+.Caret {
+  color: #83d5c5;
+}
+
+/* Points up while the panel is open. */
+.Toggle[aria-expanded="true"] .Caret {
+  transform: rotate(180deg);
+}
+
+/* Over the top right of the camera image. */
+.Panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  width: 286px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  border: 1px solid #3e756f;
+  border-radius: 7px;
+  background: #08292ef2;
+  color: #d2f1eb;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 3px 14px #0004;
+}
+
+.Body {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.Field {
+  display: grid;
+  gap: 4px;
+}
+
+.Field > label,
+.Confidence legend {
+  color: #a4c9c0;
+  font-weight: 600;
+}
+
+.Field [data-select] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 29px;
+  padding: 4px 7px;
+  border: 1px solid #366963;
+  border-radius: 4px;
+  background: #12383d;
+  color: #e0f6ef;
+  font: inherit;
+  color-scheme: dark;
+}
+
+.Hint {
+  margin: 0;
+  color: #9bbcb6;
+  font-size: 11px;
+}
+
+.Confidence {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 0 0;
+  border: 0;
+  border-top: 1px solid #37605d;
+}
+
+.Confidence legend {
+  padding: 0 6px 0 0;
+  font-size: 11px;
+}
+
+.Slider label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.Slider output {
+  color: #8ce6d0;
+  font-variant-numeric: tabular-nums;
+}
+
+.Slider input {
+  display: block;
+  width: 100%;
+  margin: 3px 0 0;
+  accent-color: #67d4bd;
+}
+
+.Checkbox {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.Checkbox input {
+  margin: 0;
+  accent-color: #67d4bd;
+}
+
+.Metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 8px;
+  border-radius: 4px;
+  background: #031d2280;
+}
+
+.Metrics dt {
+  color: #92b7ae;
+  font-size: 10px;
+}
+
+.Metrics dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.Footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9bbcb6;
+  font-size: 10px;
+}
+
+.Footer button {
+  padding: 4px 6px;
+  border: 1px solid #42766d;
+  border-radius: 4px;
+  background: transparent;
+  color: #b9e5d9;
+  font: inherit;
+  cursor: pointer;
+}
+
+.Footer button:hover {
+  background: #214c46;
+}
+
+.Body :is(input, button):focus-visible {
+  outline: 2px solid #83f4d5;
+  outline-offset: 2px;
+}

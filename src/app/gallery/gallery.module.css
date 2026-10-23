@@ -64,7 +64,7 @@
   letter-spacing: 0.65px;
 }
 
-.Field select,
+.Field .SelectControl,
 .SearchBox {
   width: 100%;
   min-width: 0;
@@ -78,27 +78,8 @@
   font-size: 13px;
 }
 
-.Field select {
-  appearance: none;
-  padding: 7px 36px 7px 12px;
-}
-
-.SelectControl {
-  position: relative;
-  min-width: 0;
-}
-
-.SelectControl::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-70%) rotate(45deg);
-  pointer-events: none;
+.Field .SelectControl {
+  padding: 7px 12px;
 }
 
 .SearchBox {
@@ -152,7 +133,7 @@
 
 .Tools a:link:focus-visible,
 .Tools button:focus-visible,
-.Tools select:focus-visible {
+.Tools [data-select]:focus-visible {
   outline: 2px solid #98ffd4;
   outline-offset: 3px;
 }
@@ -396,13 +377,13 @@
 
 @media (pointer: coarse) {
   .Tools button,
-  .Field select,
+  .Field .SelectControl,
   .SearchBox,
   .Back {
     min-height: 44px;
   }
   .SearchInput,
-  .Field select {
+  .Field .SelectControl {
     font-size: 16px;
   }
 }

@@ -1,0 +1,31 @@
+/* Matches the camera button beside it. */
+.Button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #179f8a;
+  border-radius: 3px;
+  background: #4ac1ab;
+  color: #05454c;
+  /* 2px smaller than the camera icon, which has padding built in; this one
+     fills its whole box. */
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.Button:hover:not(:disabled) {
+  background: #63ffe2;
+}
+
+.Button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.Button:focus-visible {
+  outline: 2px solid #a3ffe7;
+  outline-offset: 3px;
+}

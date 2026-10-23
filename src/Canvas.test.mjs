@@ -5,6 +5,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { getEnv } from "fabric";
 import Slider from "./Slider";
+import Select from "./Select";
 import {
   act,
   archive,
@@ -143,17 +144,18 @@ test("keyboard input in sliders and dropdowns does not edit selected artwork", a
               sliderValue = value;
             },
           }),
-          React.createElement(
-            "select",
-            null,
-            React.createElement("option", null, "Model")
-          )
+          React.createElement(Select, {
+            "aria-label": "Model",
+            value: "model",
+            options: [{ value: "model", label: "Model" }],
+            onChange() {},
+          })
         )
       );
     });
     for (const target of [
       controls.querySelector('[role="slider"]'),
-      controls.querySelector("select"),
+      controls.querySelector('[data-select]'),
     ]) {
       for (const [key, keyCode] of [["ArrowRight", 39], ["Delete", 46]]) {
         await act(async () =>
@@ -176,6 +178,70 @@ test("keyboard input in sliders and dropdowns does not edit selected artwork", a
   } finally {
     await act(async () => root.unmount());
     controls.remove();
+    await app.close();
+  }
+});
+
+test("disabled canvas interactions preserve artwork and undo history through keyboard input and drops", async () => {
+  const app = await editor();
+  const artwork = image({ left: 100 });
+  const upload = image();
+  const data = upload.getElement().toDataURL("image/png").split(",")[1];
+  const file = new window.File([Buffer.from(data, "base64")], "Artwork.png", { type: "image/png" });
+  upload.dispose();
+  try {
+    const info = app.canvases[app.tools.activeCanvas];
+    await act(async () => {
+      info.canvas.add(artwork);
+      info.canvas.setActiveObject(artwork);
+      info.notifyChange();
+    });
+    await app.settle();
+    await act(async () => {
+      artwork.set("left", 150);
+      info.notifyChange();
+    });
+    await app.settle();
+    expect(app.tools.canUndo).toBe(true);
+    await app.setInteractionsDisabled(true);
+    const surface = app.host.querySelector(".CanvasInteractions");
+    expect(surface.tabIndex).toBe(-1);
+    // Camera controls remain descendants of this wrapper, so bubbling input
+    // must not operate on the retained, hidden texture canvas.
+    const cameraControl = document.createElement("button");
+    surface.append(cameraControl);
+    for (const options of [
+      { key: "ArrowRight" }, { key: "Delete" }, { key: "d" },
+      { key: "z", ctrlKey: true }, { key: "z", metaKey: true },
+      { key: "y", ctrlKey: true }, { key: "z", metaKey: true, shiftKey: true },
+    ]) {
+      await act(async () => cameraControl.dispatchEvent(new window.KeyboardEvent("keydown", {
+        ...options, bubbles: true, cancelable: true,
+      })));
+    }
+    const drop = new window.Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", { value: { files: [file] } });
+    await act(async () => cameraControl.dispatchEvent(drop));
+    expect(drop.defaultPrevented).toBe(true);
+    await app.settle();
+    expect(app.canvases[app.tools.activeCanvas].canvas).toBe(info.canvas);
+    expect(info.canvas.getObjects()).toEqual([artwork]);
+    expect(artwork.left).toBe(150);
+    expect(app.tools.canUndo).toBe(true);
+    expect(app.tools.canRedo).toBe(false);
+    cameraControl.remove();
+
+    await app.setInteractionsDisabled(false);
+    expect(surface.tabIndex).toBe(0);
+    expect(app.canvases[app.tools.activeCanvas].canvas).toBe(info.canvas);
+    await act(async () => app.tools.undo());
+    expect(info.canvas.item(0).left).toBe(100);
+    await act(async () => app.tools.redo());
+    expect(info.canvas.item(0).left).toBe(150);
+    await act(async () => info.canvas.setActiveObject(info.canvas.item(0)));
+    await app.key("ArrowRight");
+    expect(info.canvas.item(0).left).toBe(151);
+  } finally {
     await app.close();
   }
 });

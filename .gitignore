@@ -79,6 +79,7 @@ typings/
 
 # Next.js build output
 .next
+.next-mocap-lab
 
 # Nuxt.js build / generate output
 .nuxt
@@ -105,3 +106,12 @@ dist
 # TernJS port file
 .tern-port
 
+# Unpublished local mocap lab, evaluation suite, datasets, and reports
+/.mocap-benchmark/
+/mocap-lab/
+/src/app/mocap-lab/
+/DEVELOPMENT-mocap.md
+
+
+# Private local projects, only served by the dev server
+/projects/

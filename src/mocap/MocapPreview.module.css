@@ -1,0 +1,120 @@
+.Preview {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #061d23;
+}
+
+.Preview[hidden] {
+  display: none;
+}
+
+/* Capture controls above the camera and playback below it, in the space a
+   4:3 camera leaves in the square panel. */
+.Bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 12px;
+  background: #041a1f;
+}
+
+.Bar[data-edge="top"] {
+  border-bottom: 1px solid #7ae5ce1f;
+}
+
+.Bar[data-edge="bottom"] {
+  border-top: 1px solid #7ae5ce1f;
+}
+
+.Stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.Video,
+.Skeleton {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+}
+
+.Video {
+  object-fit: contain;
+}
+
+.Skeleton {
+  pointer-events: none;
+}
+
+/* The live indicator and pose debug, at the end of the top bar. */
+.End {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.Live {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid #7ae5ce44;
+  border-radius: 6px;
+  background: #06252ded;
+  color: #d6f5ec;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.Live[data-off] {
+  visibility: hidden;
+}
+
+.LiveDot {
+  flex: 0 0 auto;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #77efce;
+}
+
+/* Below the camera, in place of playback. */
+/* Centered in the bar, which it has to itself. */
+.Message {
+  flex: 1 1 100%;
+  margin: 0;
+  color: #d6f5ec;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.Message[role="alert"] {
+  color: #ffd2b0;
+}
+
+/* The panel sits below the viewer here and grows to fit both bars. */
+@media only screen and (max-width: 899px) {
+  .Preview {
+    position: relative;
+    inset: auto;
+  }
+
+  .Stage {
+    flex: none;
+    aspect-ratio: 4 / 3;
+  }
+}

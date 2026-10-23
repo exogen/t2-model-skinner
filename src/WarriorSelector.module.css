@@ -1,0 +1,26 @@
+/* Off until the font's license is sorted out; src/fonts/Breath of the House.ttf
+   isn't committed.
+@font-face {
+  font-family: "Breath of the House";
+  src: url("./fonts/Breath of the House.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+*/
+
+.Thriller {
+  color: #ff2436;
+  /* font-family: "Breath of the House", sans-serif; */
+  font-size: 1.5em;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 11px;
+  vertical-align: bottom;
+  text-shadow: 0 0.05em 0.05em rgba(0, 0, 0, 0.6);
+}
+
+[role="option"] .Thriller {
+  font-size: 2em;
+  line-height: 10px;
+}
