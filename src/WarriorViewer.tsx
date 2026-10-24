@@ -1,3 +1,4 @@
+import ModelLoading from "./ModelLoading";
 import { useEffect, useRef, useState } from "react";
 import useEnvironment from "./useEnvironment";
 import useWarrior from "./useWarrior";
@@ -100,7 +101,7 @@ export default function WarriorViewer() {
           {error}
           {viewer && <button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry</button>}
         </div>
-      ) : !ready ? <div className="ModelViewerStatus" role="status">Loading model…</div> : null}
+      ) : !ready ? <ModelLoading /> : null}
       {!error && environmentError ? (
         <div className="ModelViewerStatus" role="alert">
           {environmentError}

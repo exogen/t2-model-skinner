@@ -182,3 +182,10 @@
   outline: 2px solid #83f4d5;
   outline-offset: 2px;
 }
+
+@media (pointer: coarse), (max-width: 899px) {
+  .Toggle {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}

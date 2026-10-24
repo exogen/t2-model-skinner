@@ -63,6 +63,7 @@
   border-radius: 4px;
   background: transparent;
   color: #8bbdb4;
+  font-size: 20px;
   cursor: pointer;
 }
 
@@ -138,17 +139,32 @@
 }
 
 @media (max-width: 480px) {
+  .Dialog {
+    width: calc(100vw - 16px);
+  }
   .Header {
-    padding: 20px 18px;
+    padding: 12px;
     gap: 10px;
   }
   .Heading h2 {
     font-size: 21px;
   }
   .Body {
-    padding: 20px 18px;
+    padding: 16px 12px;
   }
   .Footer {
-    padding: 16px 18px;
+    padding: 12px;
+  }
+}
+
+@media (pointer: coarse), (max-width: 899px) {
+  .Close {
+    flex-basis: 44px;
+    height: 44px;
+  }
+
+  .Button {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

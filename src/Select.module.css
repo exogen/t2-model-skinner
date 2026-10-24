@@ -159,9 +159,23 @@
   text-align: center;
 }
 
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 899px) {
   .Trigger,
-  .Item,
+  .Item {
+    font-size: 14px;
+  }
+
+  .Trigger {
+    min-height: 44px;
+    padding-block: 2px;
+  }
+
+  .Item {
+    min-height: 36px;
+    padding-block: 3px;
+  }
+
+  /* Keep search fields large enough to avoid zooming on mobile browsers. */
   .Input {
     min-height: 44px;
     font-size: 16px;

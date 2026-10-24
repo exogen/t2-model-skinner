@@ -65,6 +65,30 @@ main {
   outline: 2px solid #72fad1;
   outline-offset: -3px;
 }
+.ModelLoading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ModelLoading svg {
+  width: 32px;
+  height: 32px;
+  animation: model-loading-spin 1s linear infinite;
+}
+
+@keyframes model-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ModelLoading svg {
+    animation: none;
+  }
+}
+
 .ModelViewerStatus {
   position: absolute;
   inset: 50% 12px auto;
@@ -675,8 +699,6 @@ h6 {
   .Toolbar [data-select],
   .ModelTools [data-select] {
     max-width: none;
-    min-height: 44px;
-    font-size: 16px;
   }
 
   /* Model and Skin stacked on the left, Gallery on the right. */
@@ -711,7 +733,6 @@ h6 {
   .Toolbar [data-select],
   .Toolbar #SkinSelect {
     width: 100%;
-    min-height: 48px;
   }
 
   .Toolbar .LoadSkinButton {
@@ -728,7 +749,7 @@ h6 {
 
   .Toolbar > [role="alert"] button {
     min-width: 44px;
-    min-height: 40px;
+    min-height: 44px;
     margin-left: 8px;
   }
 
@@ -896,8 +917,8 @@ h6 {
   .AnimationSpeed label {
     display: flex;
     align-items: center;
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     padding-left: 8px;
   }
 
@@ -915,21 +936,6 @@ h6 {
 
   .CanvasViewport[data-mocap-active="true"] .TextureCanvas {
     display: none;
-  }
-
-  /* The capture, pose debug and playback controls above and below the
-     camera. */
-  #MocapPreview [data-edge] button {
-    min-height: 40px;
-  }
-
-  #MocapPreview [data-edge] button:not([data-select]) {
-    min-width: 40px;
-    font-size: 14px;
-  }
-
-  #MocapPreview [data-edge] input[type="range"] {
-    height: 40px;
   }
 
   .CanvasTools {
@@ -956,11 +962,20 @@ h6 {
   .CanvasInteractions > .AppFooter a {
     display: inline-flex;
     align-items: center;
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .CanvasInteractions > .AppFooter .IconLink {
-    min-width: 40px;
+    min-width: 44px;
     margin-right: 4px;
+  }
+
+  /* Keep capture mode focused while preserving the controls' state. The
+     camera toggle and Save image remain available in ModelTools. */
+  main[data-mocap-active="true"] .Toolbar,
+  main[data-mocap-active="true"] .AnimationField,
+  main[data-mocap-active="true"] .EnvironmentField,
+  main[data-mocap-active="true"] .SliderField {
+    display: none;
   }
 }

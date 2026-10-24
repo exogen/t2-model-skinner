@@ -228,3 +228,54 @@
   contain: inline-size;
   overflow-wrap: anywhere;
 }
+
+.StripActionIcon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+@media (pointer: coarse), (max-width: 899px) {
+  .Button {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .IconButton {
+    width: 44px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 899px) {
+  .Range {
+    height: 40px;
+  }
+
+  .StripActionIcon {
+    font-size: 17px;
+  }
+
+  .Capture {
+    flex-wrap: nowrap;
+  }
+
+  .Capture > .Button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .StripBody {
+    gap: 8px;
+  }
+
+  .Backgrounds {
+    flex-basis: 140px;
+  }
+
+  .BackgroundList [role="option"] {
+    gap: 4px;
+    padding-inline: 4px;
+    font-size: 12px;
+  }
+}

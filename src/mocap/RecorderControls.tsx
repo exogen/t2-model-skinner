@@ -391,13 +391,13 @@ function PhotoStripDialog({ strip, canRetake, onRetake, onDownload, onClose }: {
       </div>
       <footer className={dialogStyles.Footer}>
         <button type="button" className={dialogStyles.Button} disabled={!canRetake} onClick={onRetake}>
-          <FiRotateCcw aria-hidden="true" />Retake
+          <FiRotateCcw className={styles.StripActionIcon} aria-hidden="true" />Retake
         </button>
         {/* Focusable while the strip is drawn, so it keeps the focus it gets
             when the dialog opens. */}
         <button type="button" ref={downloadRef} className={`${dialogStyles.Button} ${dialogStyles.Primary}`}
           aria-disabled={pending || undefined} onClick={() => { if (!pending) onDownload(shown.blob); }}>
-          <FiDownload aria-hidden="true" />{pending ? "Drawing…" : "Download"}
+          <FiDownload className={styles.StripActionIcon} aria-hidden="true" />{pending ? "Drawing…" : "Download"}
         </button>
       </footer>
     </Dialog>

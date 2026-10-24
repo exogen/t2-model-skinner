@@ -1,4 +1,5 @@
 "use client";
+import ModelLoading from "../ModelLoading";
 import dynamic from "next/dynamic";
 import EditorProvider from "../EditorProvider";
 import EditorWorkspace from "../EditorWorkspace";
@@ -8,7 +9,7 @@ import EnvironmentSelector from "../EnvironmentSelector";
 import EnvironmentExposure from "../EnvironmentExposure";
 import AnimationSelector from "../AnimationSelector";
 import EnvironmentProvider from "../EnvironmentProvider";
-import MocapProvider, { LiveMocapControls } from "../MocapProvider";
+import MocapProvider, { LiveMocapControls, useMocap } from "../MocapProvider";
 import SaveModelImage from "../SaveModelImage";
 import ViewerProvider from "../ViewerProvider";
 import SkinProvider from "../SkinProvider";
@@ -27,7 +28,7 @@ const WarriorViewer = dynamic(() => import("../WarriorViewer"), {
   ssr: false,
   loading: () => (
     <div className="ModelViewer">
-      <div className="ModelViewerStatus" role="status">Loading model…</div>
+      <ModelLoading />
     </div>
   ),
 });
@@ -51,48 +52,56 @@ const queryClient = new QueryClient({
 
 export default function HomePage() {
   return (
-    <>
-      <QueryClientProvider client={queryClient}>
-        <main>
-          <ImageLoaderProvider>
-            <Suspense>
-              <WarriorProvider>
-                <EnvironmentProvider>
-                  <ImageWorkerProvider>
-                    <SkinProvider>
-                      <MocapProvider>
-                        <ViewerProvider>
-                          <div className="Viewport">
-                            <div className="ModelTools">
-                              <div className="Field EnvironmentField">
-                                <EnvironmentSelector />
-                              </div>
-                              <div className="Field SliderField">
-                                <EnvironmentExposure />
-                              </div>
-                              <div className="AnimationTools">
-                                <SaveModelImage />
-                                <LiveMocapControls />
-                                <div className="Field AnimationField">
-                                  <AnimationSelector />
-                                </div>
-                              </div>
-                            </div>
-                            <WarriorViewer />
-                          </div>
-                        </ViewerProvider>
-                        <EditorProvider>
-                          <EditorWorkspace />
-                        </EditorProvider>
-                      </MocapProvider>
-                    </SkinProvider>
-                  </ImageWorkerProvider>
-                </EnvironmentProvider>
-              </WarriorProvider>
-            </Suspense>
-          </ImageLoaderProvider>
-        </main>
-      </QueryClientProvider>
-    </>
+    <QueryClientProvider client={queryClient}>
+      <ImageLoaderProvider>
+        <Suspense>
+          <WarriorProvider>
+            <EnvironmentProvider>
+              <ImageWorkerProvider>
+                <SkinProvider>
+                  <MocapProvider>
+                    <Workspace />
+                  </MocapProvider>
+                </SkinProvider>
+              </ImageWorkerProvider>
+            </EnvironmentProvider>
+          </WarriorProvider>
+        </Suspense>
+      </ImageLoaderProvider>
+    </QueryClientProvider>
+  );
+}
+
+// Keep the responsive layout state on the app element, without mutating body
+// or unmounting editor controls when motion capture starts.
+function Workspace() {
+  const { active } = useMocap();
+
+  return (
+    <main data-mocap-active={active}>
+      <ViewerProvider>
+        <div className="Viewport">
+          <div className="ModelTools">
+            <div className="Field EnvironmentField">
+              <EnvironmentSelector />
+            </div>
+            <div className="Field SliderField">
+              <EnvironmentExposure />
+            </div>
+            <div className="AnimationTools">
+              <SaveModelImage />
+              <LiveMocapControls />
+              <div className="Field AnimationField">
+                <AnimationSelector />
+              </div>
+            </div>
+          </div>
+          <WarriorViewer />
+        </div>
+      </ViewerProvider>
+      <EditorProvider>
+        <EditorWorkspace />
+      </EditorProvider>
+    </main>
   );
 }

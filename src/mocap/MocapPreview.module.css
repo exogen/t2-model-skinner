@@ -113,6 +113,16 @@
     inset: auto;
   }
 
+  .Bar[data-edge="top"] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .End {
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
   .Stage {
     flex: none;
     aspect-ratio: 4 / 3;
