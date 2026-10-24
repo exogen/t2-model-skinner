@@ -1,5 +1,7 @@
 .Dialog {
   width: min(560px, calc(100vw - 32px));
+  /* The width above already accounts for the viewport gutter. */
+  max-width: none;
   max-height: calc(100dvh - 32px);
   padding: 0;
   border: 1px solid #33766f;
@@ -23,21 +25,21 @@
 .Header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 16px 12px 16px;
+  gap: 10px;
+  padding: 8px 10px;
   border-bottom: 1px solid #84d5c41c;
 }
 
 .Icon {
   display: grid;
   place-items: center;
-  flex: 0 0 42px;
-  height: 42px;
+  flex: 0 0 32px;
+  height: 32px;
   border: 1px solid #55debf42;
   border-radius: 4px;
   background: #43eac510;
   color: #66efd0;
-  font-size: 19px;
+  font-size: 16px;
 }
 
 .Heading {
@@ -47,7 +49,7 @@
 
 .Heading h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 600;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -73,7 +75,7 @@
 }
 
 .Body {
-  padding: 16px;
+  padding: 12px;
 }
 
 .Message {
@@ -86,7 +88,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 18px 26px;
+  padding: 10px 12px;
   border-top: 1px solid #84d5c41c;
   background: #00161e3b;
 }
@@ -138,33 +140,50 @@
   outline-offset: 4px;
 }
 
-@media (max-width: 480px) {
-  .Dialog {
-    width: calc(100vw - 16px);
-  }
-  .Header {
-    padding: 12px;
-    gap: 10px;
-  }
-  .Heading h2 {
-    font-size: 21px;
-  }
-  .Body {
-    padding: 16px 12px;
-  }
-  .Footer {
-    padding: 12px;
-  }
-}
-
-@media (pointer: coarse), (max-width: 899px) {
+@media (pointer: coarse) {
   .Close {
     flex-basis: 44px;
     height: 44px;
   }
+}
 
+@media (pointer: coarse), (max-width: 899px) {
   .Button {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+@media (max-width: 899px) {
+  .Dialog {
+    width: min(560px, calc(100vw - 16px));
+  }
+
+  .Header {
+    padding: 6px 8px;
+    gap: 8px;
+  }
+
+  .Icon {
+    flex-basis: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+
+  .Heading h2 {
+    font-size: 16px;
+  }
+
+  .Close {
+    flex-basis: 38px;
+    height: 38px;
+  }
+
+  .Body {
+    padding: 12px 8px;
+  }
+
+  .Footer {
+    padding: 8px;
   }
 }

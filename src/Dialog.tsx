@@ -14,8 +14,9 @@ function onBackdrop(event: MouseEvent<HTMLDialogElement>) {
     event.clientY < rect.top || event.clientY > rect.bottom;
 }
 
-export default function Dialog({ title, icon, children, onClose }: {
+export default function Dialog({ title, icon, children, onClose, className = "" }: {
   title: string;
+  className?: string;
   icon?: ReactNode;
   children: ReactNode;
   onClose: () => void;
@@ -51,7 +52,7 @@ export default function Dialog({ title, icon, children, onClose }: {
   return createPortal(
     <dialog
       ref={attach}
-      className={styles.Dialog}
+      className={`${styles.Dialog} ${className}`}
       aria-labelledby={titleId}
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onKeyDown={(event) => event.stopPropagation()}

@@ -243,8 +243,8 @@ function BackgroundPicker({ list: { status, maps, retry }, choice, onChoose }: {
       : !matches.size ? "No matches" : "";
 
   // Scrolls the chosen map into the middle of the list once the list loads. A
-  // list that loads before the strip's image has its size (one loaded for an
-  // earlier strip) has no height yet, so that waits for one.
+  // list mounted before the dialog has been laid out has no height yet, so
+  // that waits for one.
   useEffect(() => {
     const list = listRef.current;
     if (status !== "ready" || !list) return;
@@ -302,7 +302,7 @@ function BackgroundPicker({ list: { status, maps, retry }, choice, onChoose }: {
               autoSelect
               placeholder="Search maps…"
               aria-describedby={chosenLabelId}
-              className={selectStyles.Input}
+              className={`${selectStyles.Input} ${styles.MapSearch}`}
               onFocus={() => {
                 // Arrow keys start at the chosen map, as in a native select.
                 if (search || store.getState().activeId) return;
@@ -380,7 +380,7 @@ function PhotoStripDialog({ strip, canRetake, onRetake, onDownload, onClose }: {
   useEffect(() => { downloadRef.current?.focus(); }, []);
   const mapLabel = (mission: string) => mapList.maps.find((map) => map.mission === mission)?.label ?? mission;
   return (
-    <Dialog title="Photo strip" icon={<FiCamera aria-hidden="true" />} onClose={onClose}>
+    <Dialog className={styles.StripDialog} title="Photo strip" icon={<FiCamera aria-hidden="true" />} onClose={onClose}>
       <div className={`${dialogStyles.Body} ${styles.StripBody}`}>
         <BackgroundPicker list={mapList} choice={choice} onChoose={choose} />
         <div className={styles.StripColumn}>

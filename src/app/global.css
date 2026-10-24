@@ -879,7 +879,9 @@ h6 {
 
   .ModelTools .ButtonText {
     display: inline;
+    font-size: 13px;
     font-weight: bold;
+    letter-spacing: -0.1px;
     text-transform: uppercase;
     white-space: nowrap;
   }
