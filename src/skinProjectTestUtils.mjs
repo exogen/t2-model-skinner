@@ -63,6 +63,16 @@ const { document, window } = fabric.getEnv();
 export const { act } = React;
 export { saved, downloads, workers };
 
+// Lets React and timers run until the assertion passes.
+export async function until(assertion, options) {
+  await vi.waitFor(async () => {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+    assertion();
+  }, options);
+}
+
 export function canvas() {
   return new fabric.Canvas(null, {
     width: 640,
@@ -298,11 +308,8 @@ export async function editor(
     )
   );
   async function waitForCanvases() {
-    await vi.waitFor(
-      async () => {
-        await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 5));
-        });
+    await until(
+      () => {
         if (
           !Object.keys(canvases).length ||
           Object.values(canvases).some(({ status }) => status === "loading")

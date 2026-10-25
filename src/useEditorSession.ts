@@ -4,6 +4,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import type { CanvasClipboard } from "./canvasClipboard";
 import type { SkinProject } from "./skinProjectUtils";
 import type useAsyncTask from "./useAsyncTask";
 
@@ -28,6 +29,7 @@ export interface EditorSessionValue {
   cancelSkinLoad: () => void;
   loadedLocalProject: string | null;
   runTask: ReturnType<typeof useAsyncTask>;
+  clipboard: CanvasClipboard;
 }
 
 export const EditorSessionContext = createContext<EditorSessionValue | null>(

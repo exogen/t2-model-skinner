@@ -24,6 +24,10 @@ interface ToolsContextValue {
   layerMode: string;
   setLayerMode: (layerMode: string) => void;
   deleteSelection: () => void;
+  copySelection: (
+    cut?: boolean
+  ) => { id: string; image: HTMLCanvasElement | null } | null;
+  pasteSelection: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;

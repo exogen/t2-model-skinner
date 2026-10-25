@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { util } from "fabric";
 import modelConfig, { type MaterialDefinition } from "./models";
 
 const materialMap: Record<string, MaterialDefinition[]> = modelConfig.materials;
@@ -36,21 +37,124 @@ export function detectFileType(file: File) {
   }
 }
 
-export async function readImageFile(file: File) {
-  return new Promise<string>((resolve, reject) => {
+// Images can be at most this big, as files and in pixels on each side.
+export const maxImageBytes = 50 * 1024 * 1024;
+export const maxImageSize = 8192;
+
+/** An error whose message is meant for the user. */
+export class ImageError extends Error {}
+
+export const unreadableImage =
+  "This image couldn't be opened. Try saving it as a PNG.";
+export const imageTooBig =
+  "This image is too big. The limit is 8192 × 8192 pixels and 50 MB.";
+
+function readBlob<T extends string | ArrayBuffer>(
+  blob: Blob,
+  method: "readAsDataURL" | "readAsText" | "readAsArrayBuffer"
+) {
+  return new Promise<T>((resolve, reject) => {
     const reader = new FileReader();
-    reader.addEventListener("load", (event) => {
-      if (typeof event.target?.result === "string") {
-        resolve(event.target.result);
-      } else {
-        reject(new Error("Unable to read image data"));
-      }
-    });
+    reader.addEventListener("load", () => resolve(reader.result as T));
     reader.addEventListener("error", () => {
-      reject(reader.error ?? new Error("Unable to read image file"));
+      reject(reader.error ?? new Error("Unable to read file"));
     });
-    reader.readAsDataURL(file);
+    reader[method](blob);
   });
+}
+
+export function blobToDataUrl(blob: Blob) {
+  return readBlob<string>(blob, "readAsDataURL");
+}
+
+function sniffImageType(bytes: Uint8Array) {
+  const head = String.fromCharCode(...Array.from(bytes));
+  if (head.startsWith("\x89PNG\r\n\x1A\n")) return "image/png";
+  if (head.startsWith("\xFF\xD8\xFF")) return "image/jpeg";
+  if (/^GIF8[79]a/.test(head)) return "image/gif";
+  if (head.startsWith("RIFF") && head.slice(8, 12) === "WEBP") return "image/webp";
+  if (head.startsWith("BM")) return "image/bmp";
+}
+
+/** The type of image a file holds, judged by its first bytes, not its label.
+ * SVG has no signature, so it counts by its type or name and is checked when
+ * it's read. */
+export async function imageFileType(file: Blob, name = (file as File).name ?? "") {
+  const head = await readBlob<ArrayBuffer>(file.slice(0, 12), "readAsArrayBuffer");
+  return (
+    sniffImageType(new Uint8Array(head)) ??
+    (file.type === "image/svg+xml" || /\.svg$/i.test(name)
+      ? "image/svg+xml"
+      : undefined)
+  );
+}
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+
+/** SVG markup as an image data URL, or null if it has no SVG. Images need
+ * valid XML, which markup copied from a web page often isn't, and an SVG
+ * sized only by its viewBox has no natural size in some browsers. */
+function svgDataUrl(markup: string) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(markup, "image/svg+xml");
+  let svg: Element | null = xml.documentElement;
+  if (
+    svg.namespaceURI !== svgNamespace ||
+    svg.localName !== "svg" ||
+    xml.getElementsByTagName("parsererror").length
+  ) {
+    svg = parser.parseFromString(markup, "text/html").querySelector("svg");
+  }
+  if (!svg) return null;
+  const viewBox = (svg.getAttribute("viewBox") ?? "").trim().split(/[\s,]+/).map(Number);
+  if (
+    viewBox.length === 4 &&
+    viewBox[2] > 0 &&
+    viewBox[3] > 0 &&
+    !svg.hasAttribute("width") &&
+    !svg.hasAttribute("height")
+  ) {
+    svg.setAttribute("width", String(viewBox[2]));
+    svg.setAttribute("height", String(viewBox[3]));
+  }
+  const source = new XMLSerializer().serializeToString(svg);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+}
+
+// Layers keep SVGs as PNGs, so projects never hold SVG code.
+async function svgToPng(markup: string) {
+  const url = svgDataUrl(markup);
+  if (!url) throw new ImageError(unreadableImage);
+  const image = await util.loadImage(url).catch((error: unknown) => {
+    throw new ImageError(unreadableImage, { cause: error });
+  });
+  const { naturalWidth: width, naturalHeight: height } = image;
+  if (!width || !height) throw new ImageError(unreadableImage);
+  if (width > maxImageSize || height > maxImageSize) {
+    throw new ImageError(imageTooBig);
+  }
+  const canvas = util.createCanvasElement();
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d")?.drawImage(image, 0, 0, width, height);
+  try {
+    // Throws if the browser won't let a page read this SVG's pixels.
+    return canvas.toDataURL("image/png");
+  } catch (error) {
+    throw new ImageError(unreadableImage, { cause: error });
+  }
+}
+
+/** Reads an image file into a data URL for a layer, typed by its contents.
+ * Rejects files that aren't a supported image or are too big. */
+export async function readImageFile(file: Blob, name = (file as File).name ?? "") {
+  if (file.size > maxImageBytes) throw new ImageError(imageTooBig);
+  const type = await imageFileType(file, name);
+  if (!type) throw new ImageError(unreadableImage);
+  if (type === "image/svg+xml") {
+    return svgToPng(await readBlob<string>(file, "readAsText"));
+  }
+  return blobToDataUrl(new Blob([file], { type }));
 }
 
 export async function readMultipleFiles(fileList: FileList | File[]) {
@@ -76,7 +180,7 @@ export async function readMultipleFiles(fileList: FileList | File[]) {
         case "png":
           return {
             path: file.name,
-            imageUrl: await readImageFile(file),
+            imageUrl: await blobToDataUrl(file),
             name: null,
           };
         default:

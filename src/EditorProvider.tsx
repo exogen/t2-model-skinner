@@ -9,6 +9,7 @@ import { getLocalAssetUrl } from "./deployPaths";
 import { getLocalProject } from "./localProjects";
 import { detectTextureSizeMultiplier } from "./textureResolution";
 import { detectFileType, importMultipleFilesToModels } from "./importUtils";
+import { createCanvasClipboard, type CanvasClipboard } from "./canvasClipboard";
 import {
   EditorSessionContext,
   type EditorSessionValue,
@@ -57,6 +58,8 @@ export default function EditorProvider({
     brushSize: 10,
     exportName: "",
   });
+  // Copied layers outlive sessions, so they can be pasted into another skin.
+  const [clipboard] = useState(createCanvasClipboard);
 
   useEffect(() => {
     try {
@@ -127,6 +130,7 @@ export default function EditorProvider({
       sizeMultiplier={sizeMultiplier}
       setSizeMultiplier={setPreferredSize}
       openProject={openProject}
+      clipboard={clipboard}
     >
       {children}
     </EditorSession>
@@ -143,6 +147,7 @@ function EditorSession({
   sizeMultiplier: preferredSize,
   setSizeMultiplier,
   openProject,
+  clipboard,
 }: {
   children: ReactNode;
   source: {
@@ -159,6 +164,7 @@ function EditorSession({
   sizeMultiplier: number;
   setSizeMultiplier: (value: number | ((previous: number) => number)) => void;
   openProject: (project: OpenProject) => void;
+  clipboard: CanvasClipboard;
 }) {
   const warrior = useWarrior();
   const { selectedModel } = warrior;
@@ -282,6 +288,7 @@ function EditorSession({
         cancelSkinLoad: runLoad.cancel,
         loadedLocalProject: localProjectFile,
         runTask,
+        clipboard,
       }}
     >
       <CanvasProvider key={sizeMultiplier}>

@@ -6,6 +6,9 @@ import {
   ActiveSelection,
   filters,
   PencilBrush,
+  util,
+  type Canvas,
+  type TMat2D,
 } from "fabric";
 import { ToolsContext } from "./useTools";
 import useCanvas, { type CanvasInfo } from "./useCanvas";
@@ -13,6 +16,9 @@ import useWarrior from "./useWarrior";
 import {
   createFabricImage,
   isLockedObject,
+  objectBounds,
+  renderObjects,
+  serializeObject,
   SERIALIZED_PROPERTIES,
 } from "./fabricUtils";
 import {
@@ -25,10 +31,19 @@ import useImageWorker from "./useImageWorker";
 import type { MaterialDefinition } from "./models";
 import useSettings from "./useSettings";
 import modelConfig from "./models";
+import {
+  ImageError,
+  imageTooBig,
+  maxImageSize,
+  unreadableImage,
+} from "./importUtils";
 
 const { materials } = modelConfig;
 
 const defaultTextureSize = [512, 512] as [number, number];
+
+// How far duplicates and repeated pastes shift from the original.
+const copyOffset = 20;
 
 function requireReadyCanvas(info: CanvasInfo | undefined) {
   if (info?.status === "error") {
@@ -42,6 +57,22 @@ function requireReadyCanvas(info: CanvasInfo | undefined) {
     );
   }
   return info.canvas;
+}
+
+function removeObjects(canvas: Canvas, objects: FabricObject[]) {
+  canvas.discardActiveObject();
+  canvas.remove(...objects);
+  objects.forEach((object) => object.dispose());
+  canvas.requestRenderAll();
+}
+
+// Metallic textures use one channel, so their layers stay gray.
+function makeGrayscale(image: FabricImage) {
+  if (image.filters.some((filter) => filter instanceof filters.Grayscale)) {
+    return;
+  }
+  image.filters.push(new filters.Grayscale());
+  image.applyFilters();
 }
 
 function setObjectLocked(object: FabricObject, locked: boolean) {
@@ -140,6 +171,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     cancelSkinLoad,
     loadedLocalProject,
     runTask,
+    clipboard,
   } = useEditorSession();
   const { backgroundColor, brushColor, brushSize, exportName } = preferences;
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
@@ -152,10 +184,11 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     boolean[]
   >(() => materialDefs.map(isEditableMaterial));
 
-  const textureSize: [number, number] = useMemo(() => {
-    const [width, height] = materialDef.size ?? defaultTextureSize;
-    return [width * sizeMultiplier, height * sizeMultiplier];
-  }, [materialDef.size, sizeMultiplier]);
+  const baseSize = materialDef.size ?? defaultTextureSize;
+  const textureSize: [number, number] = useMemo(
+    () => [baseSize[0] * sizeMultiplier, baseSize[1] * sizeMultiplier],
+    [baseSize, sizeMultiplier]
+  );
 
   const hasMetallic = !(
     materialDef.metallicFactor === 0 && materialDef.roughnessFactor === 1
@@ -328,20 +361,26 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
           const images: FabricImage[] = [];
           try {
             for (const url of imageUrls) {
-              const image = await createFabricImage(url, signal);
+              let image;
+              try {
+                image = await createFabricImage(url, signal);
+              } catch (error) {
+                signal.throwIfAborted();
+                // Fabric's message includes the whole data URL.
+                throw new ImageError(unreadableImage, { cause: error });
+              }
               images.push(image);
               if (!image.width || !image.height)
-                throw new Error("Zero-height image");
+                throw new ImageError(unreadableImage);
+              if (image.width > maxImageSize || image.height > maxImageSize)
+                throw new ImageError(imageTooBig);
               const scale = Math.min(
                 1,
                 textureSize[0] / image.width,
                 textureSize[1] / image.height
               );
               image.set({ scaleX: scale, scaleY: scale });
-              if (activeCanvasType === "metallic") {
-                image.filters.push(new filters.Grayscale());
-                image.applyFilters();
-              }
+              if (activeCanvasType === "metallic") makeGrayscale(image);
             }
             return images;
           } catch (error) {
@@ -378,7 +417,11 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     await runTask(
       () => object.clone(SERIALIZED_PROPERTIES),
       (copy) => {
-        copy.set({ top: copy.top + 20, left: copy.left + 20, evented: true });
+        copy.set({
+          top: copy.top + copyOffset,
+          left: copy.left + copyOffset,
+          evented: true,
+        });
         canvas.discardActiveObject();
         if (copy instanceof ActiveSelection) {
           copy.canvas = canvas;
@@ -400,11 +443,125 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       .getActiveObjects()
       .filter((object) => !isLockedObject(object));
     if (!objects.length) return;
-    canvas.discardActiveObject();
-    canvas.remove(...objects);
-    objects.forEach((object) => object.dispose());
-    canvas.requestRenderAll();
+    removeObjects(canvas, objects);
   }, [canvas, status]);
+
+  // Copies the selection to the in-app clipboard and returns an image of it
+  // for the system clipboard. Cutting leaves locked layers behind.
+  const copySelection = useCallback(
+    (cut = false) => {
+      if (!canvas || status !== "ready") return null;
+      const order = canvas.getObjects();
+      const objects = canvas
+        .getActiveObjects()
+        .filter(
+          (object) =>
+            object.selectable !== false && !(cut && isLockedObject(object))
+        )
+        .sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      if (!objects.length) return null;
+      const image = renderObjects(canvas, objects);
+      const clip = clipboard.set({
+        objects: objects.map(serializeObject),
+        sizeMultiplier,
+        baseSize,
+        // A copy pasted on its own canvas is offset; a cut is pasted in place.
+        pastes: new WeakMap([[canvas, cut ? 0 : 1]]),
+      });
+      if (cut) removeObjects(canvas, objects);
+      return { id: clip.id, image };
+    },
+    [canvas, status, clipboard, sizeMultiplier, baseSize]
+  );
+
+  const pasteSelection = useCallback(async () => {
+    const clip = clipboard.clip;
+    if (!canvas || status !== "ready" || !clip) return;
+    const toMetallic = activeCanvasType === "metallic";
+    await runTask(
+      async (signal) => {
+        const objects = await util.enlivenObjects<FabricObject>(clip.objects, {
+          signal,
+        });
+        if (toMetallic) {
+          for (const object of objects) {
+            if (object instanceof FabricImage) makeGrayscale(object);
+          }
+        }
+        return objects;
+      },
+      (objects) => {
+        const count = clip.pastes.get(canvas) ?? 0;
+        clip.pastes.set(canvas, count + 1);
+        const offset = copyOffset * count;
+        let transform: TMat2D;
+        if (
+          baseSize[0] === clip.baseSize[0] &&
+          baseSize[1] === clip.baseSize[1]
+        ) {
+          // Same texture layout: paste in place, scaled from the texture's
+          // corner to this resolution.
+          const scale = sizeMultiplier / clip.sizeMultiplier;
+          const shift = canvasPadding * (1 - scale) + offset;
+          transform = [scale, 0, 0, scale, shift, shift];
+        } else {
+          // Another layout: center on the texture, shrinking to fit like
+          // added images.
+          const bounds = objectBounds(objects);
+          const scale = Math.min(
+            sizeMultiplier / clip.sizeMultiplier,
+            textureSize[0] / bounds.width,
+            textureSize[1] / bounds.height
+          );
+          const center = [
+            canvasPadding + textureSize[0] / 2 + offset,
+            canvasPadding + textureSize[1] / 2 + offset,
+          ];
+          transform = [
+            scale,
+            0,
+            0,
+            scale,
+            center[0] - scale * (bounds.left + bounds.width / 2),
+            center[1] - scale * (bounds.top + bounds.height / 2),
+          ];
+        }
+        objects.forEach((object) => {
+          if (transform[0] === 1) {
+            // Moving alone keeps angles and scales exact.
+            object.set({
+              left: object.left + transform[4],
+              top: object.top + transform[5],
+            });
+          } else {
+            util.addTransformToObject(object, transform);
+          }
+          object.setCoords();
+        });
+        if (toMetallic) setDrawingMode(false);
+        canvas.discardActiveObject();
+        canvas.add(...objects);
+        canvas.setActiveObject(
+          objects.length > 1
+            ? new ActiveSelection(objects, { canvas })
+            : objects[0]
+        );
+        canvas.requestRenderAll();
+      },
+      (objects) => objects.forEach((object) => object.dispose())
+    );
+  }, [
+    canvas,
+    status,
+    clipboard,
+    activeCanvasType,
+    runTask,
+    baseSize,
+    sizeMultiplier,
+    canvasPadding,
+    textureSize,
+    setDrawingMode,
+  ]);
 
   const copyToMetallic = useCallback(async () => {
     if (
@@ -426,8 +583,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     await runTask(
       async (signal) => {
         const image = await createFabricImage(colorImageUrl, signal);
-        image.filters.push(new filters.Grayscale());
-        image.applyFilters();
+        makeGrayscale(image);
         return image;
       },
       (image) => {
@@ -558,6 +714,8 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     addImages,
     duplicate,
     deleteSelection,
+    copySelection,
+    pasteSelection,
     undo,
     redo,
     canUndo,

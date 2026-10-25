@@ -373,7 +373,7 @@ export default function CanvasTools() {
               }
             }}
             type="file"
-            accept=".png, image/png"
+            accept="image/png, image/jpeg, image/gif, image/webp, image/bmp, image/svg+xml"
             hidden
           />
           <button

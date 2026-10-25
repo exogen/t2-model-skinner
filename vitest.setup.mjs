@@ -15,6 +15,8 @@ vi.stubGlobal("Element", window.Element);
 vi.stubGlobal("Node", window.Node);
 vi.stubGlobal("Event", window.Event);
 vi.stubGlobal("CustomEvent", window.CustomEvent);
+vi.stubGlobal("DOMParser", window.DOMParser);
+vi.stubGlobal("XMLSerializer", window.XMLSerializer);
 vi.stubGlobal("MouseEvent", window.MouseEvent);
 vi.stubGlobal("KeyboardEvent", window.KeyboardEvent);
 vi.stubGlobal("FocusEvent", window.FocusEvent);
