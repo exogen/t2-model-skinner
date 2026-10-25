@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Keeps the pinned action commits in .github/workflows up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # New releases wait a week, so a compromised one is likely caught first.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

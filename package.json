@@ -9,7 +9,7 @@
   "scripts": {
     "build": "npm run build:models && npm run build:pages",
     "build:models": "node scripts/buildConfig.mjs",
-    "build:pages": "rm -rf docs && next build && touch docs/.nojekyll",
+    "build:pages": "rm -rf docs && next build",
     "build:gh-pages": "NEXT_PUBLIC_BASE_PATH=/t2-model-skinner npm run build",
     "lint": "eslint . && tsc --noEmit",
     "start": "next dev",
