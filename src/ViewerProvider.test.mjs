@@ -14,7 +14,7 @@ vi.mock("./Viewer", async (importOriginal) => ({
 }));
 vi.mock("./useWarrior", () => ({ default: () => fixture.warrior }));
 vi.mock("./useEnvironment", () => ({
-  default: () => ({ environmentImageUrl: null, showEnvironment: false, exposure: 1 }),
+  default: () => ({ environmentImageUrl: null, showEnvironment: false, exposure: 1, renderMode: "skin" }),
 }));
 vi.mock("./MocapProvider", () => ({ useMocap: () => ({ active: false, runtime: null }), LiveMocapPose: () => null }));
 vi.mock("./Materials", () => ({ default: () => null }));
@@ -60,7 +60,7 @@ test("controls outside the model viewer get the viewer only while a model is loa
       loads.push(load);
       return load.promise;
     }),
-    cancelLoad: vi.fn(), setAnimation: vi.fn(), setPoseMode: vi.fn(), setExposure: vi.fn(),
+    cancelLoad: vi.fn(), setAnimation: vi.fn(), setPoseMode: vi.fn(), setExposure: vi.fn(), setRenderMode: vi.fn(),
     setEnvironment: vi.fn(async () => {}), setBackgroundVisible: vi.fn(), dispose: vi.fn(),
   };
   const finishLoad = () => act(async () => loads.at(-1).resolve({ scene: new Group(), model: { materials: [] }, rig: null }));

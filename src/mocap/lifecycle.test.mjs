@@ -31,7 +31,7 @@ function viewerHarness(gltf = null, runtime = poseRuntime) {
     controls: { target: new Vector3(), update: vi.fn() },
     model: gltf, rig: gltf && runtime ? runtime.createPlayerRig(gltf.scene) : null, poseRuntime: runtime,
     mixer: gltf ? new AnimationMixer(gltf.scene) : null,
-    action: null, poseAnimationTime: 0, posing: false, paused: false, originalTextures: new Set(),
+    action: null, poseAnimationTime: 0, posing: false, paused: false, originalTextures: new Set(), renderMode: "skin", randomColorGeometries: new Map(),
     playbackSpeed: 1, disposed: false, modelGeneration: 0,
     invalidate: vi.fn(), resetCamera: vi.fn(), fitModel: vi.fn(),
     subscribeFrame(callback) {

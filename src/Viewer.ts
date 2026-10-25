@@ -1,8 +1,9 @@
 import {
-  ACESFilmicToneMapping, AnimationAction, AnimationMixer, Box3, CustomBlending, EquirectangularReflectionMapping,
-  Group, LoopOnce, LoopRepeat, Material, MathUtils, Mesh, MOUSE, Object3D, PerspectiveCamera, PMREMGenerator,
-  Raycaster, Scene, ShaderMaterial, Skeleton, SkinnedMesh, Sphere, Spherical, SRGBColorSpace,
-  SrcColorFactor, Texture, TOUCH, Vector2, Vector3, Vector4, WebGLRenderer, WebGLRenderTarget, ZeroFactor,
+  ACESFilmicToneMapping, AnimationAction, AnimationMixer, Box3, BufferGeometry, CustomBlending,
+  EquirectangularReflectionMapping, Group, LoopOnce, LoopRepeat, Material, MathUtils, Mesh, MeshBasicMaterial,
+  MeshStandardMaterial, MOUSE, Object3D, PerspectiveCamera, PMREMGenerator, Raycaster, Scene, ShaderMaterial,
+  Skeleton, SkinnedMesh, Sphere, Spherical, SRGBColorSpace, SrcColorFactor, Texture, TOUCH, Vector2, Vector3,
+  Vector4, WebGLRenderer, WebGLRenderTarget, ZeroFactor,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
@@ -14,6 +15,7 @@ import type { createPlayerRig, PlayerRig } from "./mocap/rig";
 import type { PoseLandmark } from "./mocap/poseTracking";
 import type { createPoseFraming } from "./mocap/cameraFraming";
 import { containedVideoRect, pixelBox, type VideoRect } from "./videoRect";
+import { randomColorGeometry, type RenderMode } from "./renderModes";
 
 // What's outside the camera area is drawn at this opacity and brightness while
 // it's faded, and takes this long to fade in or out.
@@ -175,6 +177,16 @@ export default class Viewer {
   private showBackground = false;
   private model: GLTF | null = null;
   private originalTextures = new Set<Texture>();
+  private renderMode: RenderMode = "skin";
+  // Each mesh's own geometry and its Random Colors copy, made the first time
+  // that mode is shown.
+  private randomColorGeometries = new Map<Mesh, { original: BufferGeometry; random: BufferGeometry }>();
+  // These replace every visible material while their mode is on, so hidden
+  // materials stay hidden and the skin's materials are left alone.
+  private readonly randomColorMaterial = new MeshStandardMaterial({
+    vertexColors: true, flatShading: true, metalness: 0, roughness: 1,
+  });
+  private readonly wireframeMaterial = new MeshBasicMaterial({ color: 0x63ffe2, wireframe: true, toneMapped: false });
   private mixer: AnimationMixer | null = null;
   private action: AnimationAction | null = null;
   private rig: PlayerRig | null = null;
@@ -532,7 +544,7 @@ export default class Viewer {
     this.cameraOptions = camera;
     gltf.scene.updateMatrixWorld(true);
     this.fitModel();
-    this.invalidate();
+    this.applyRenderMode();
     return { scene: gltf.scene, model: { materials: collectMaterials(gltf) }, rig: this.rig };
   }
 
@@ -578,6 +590,11 @@ export default class Viewer {
     this.mixer?.uncacheRoot(this.model.scene);
     this.mixer = null;
     this.scene.remove(this.model.scene);
+    this.randomColorGeometries.forEach(({ original, random }, mesh) => {
+      mesh.geometry = original;
+      random.dispose();
+    });
+    this.randomColorGeometries.clear();
     disposeObject(this.model.scene, this.originalTextures);
     this.originalTextures.clear();
     this.model = null;
@@ -762,6 +779,30 @@ export default class Viewer {
       if (this.action) this.resumeAction(this.action, this.poseAnimationTime);
     }
     this.controls.update();
+    this.invalidate();
+  }
+
+  setRenderMode(mode: RenderMode) {
+    this.renderMode = mode;
+    this.applyRenderMode();
+  }
+
+  private applyRenderMode() {
+    const random = this.renderMode === "random";
+    let seed = 0;
+    this.model?.scene.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+      // Separate meshes start at different hues.
+      seed = (seed + 0.37) % 1;
+      let geometries = this.randomColorGeometries.get(object);
+      if (random && !geometries) {
+        geometries = { original: object.geometry, random: randomColorGeometry(object.geometry, seed) };
+        this.randomColorGeometries.set(object, geometries);
+      }
+      if (geometries) object.geometry = random ? geometries.random : geometries.original;
+    });
+    this.scene.overrideMaterial = random ? this.randomColorMaterial
+      : this.renderMode === "wireframe" ? this.wireframeMaterial : null;
     this.invalidate();
   }
 
@@ -1012,6 +1053,8 @@ export default class Viewer {
     document.removeEventListener("visibilitychange", this.handleVisibility);
     this.controls.dispose();
     this.clearModel();
+    this.randomColorMaterial.dispose();
+    this.wireframeMaterial.dispose();
     this.environment?.dispose();
     this.background?.dispose();
     this.defaultEnvironment.dispose();

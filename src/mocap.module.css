@@ -44,7 +44,7 @@
 .Error {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
   z-index: 3;
   width: 260px;
   max-width: calc(100vw - 40px);

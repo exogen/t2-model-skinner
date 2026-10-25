@@ -1,4 +1,3 @@
-import { ImBrightnessContrast } from "react-icons/im";
 import useEnvironment from "./useEnvironment";
 
 export default function EnvironmentExposure() {
@@ -6,11 +5,8 @@ export default function EnvironmentExposure() {
 
   return (
     <>
-      <label htmlFor="EnvExposure">
-        <ImBrightnessContrast size={16} />
-      </label>
+      <label htmlFor="EnvExposure">Brightness</label>
       <input
-        aria-label="Exposure"
         id="EnvExposure"
         type="range"
         min={0.2}

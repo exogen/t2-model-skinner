@@ -20,7 +20,7 @@ export default function WarriorViewer() {
     animationPaused,
     slowModeEnabled,
   } = useWarrior();
-  const { environmentImageUrl, showEnvironment, exposure } = useEnvironment();
+  const { environmentImageUrl, showEnvironment, exposure, renderMode } = useEnvironment();
   const { active: poseMode, runtime } = useMocap();
   const { setViewer: shareViewer } = useViewer();
   const poseRuntime = runtime?.viewerRuntime;
@@ -73,6 +73,7 @@ export default function WarriorViewer() {
 
   useEffect(() => { viewer?.setPoseMode(poseMode); }, [viewer, poseMode, loaded]);
   useEffect(() => { viewer?.setExposure(exposure); }, [viewer, exposure]);
+  useEffect(() => { viewer?.setRenderMode(renderMode); }, [viewer, renderMode]);
   useEffect(() => {
     if (!viewer) return;
     let stale = false;

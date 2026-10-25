@@ -13,7 +13,7 @@ vi.mock("./Viewer", async (importOriginal) => ({
 }));
 vi.mock("./useWarrior", () => ({ default: () => fixture.warrior }));
 vi.mock("./useEnvironment", () => ({
-  default: () => ({ environmentImageUrl: null, showEnvironment: false, exposure: 1 }),
+  default: () => ({ environmentImageUrl: null, showEnvironment: false, exposure: 1, renderMode: "skin" }),
 }));
 vi.mock("./MocapProvider", () => ({ useMocap: () => ({ active: false, runtime: null }), LiveMocapPose: () => null }));
 vi.mock("./Materials", () => ({ default: () => null }));
@@ -30,7 +30,7 @@ afterEach(async () => {
 function fakeViewer() {
   return {
     load: vi.fn(async () => ({ scene: new Group(), model: { materials: [] }, rig: null })),
-    cancelLoad: vi.fn(), setAnimation: vi.fn(), setPoseMode: vi.fn(), setExposure: vi.fn(),
+    cancelLoad: vi.fn(), setAnimation: vi.fn(), setPoseMode: vi.fn(), setExposure: vi.fn(), setRenderMode: vi.fn(),
     setEnvironment: vi.fn(async () => {}), setBackgroundVisible: vi.fn(), dispose: vi.fn(),
   };
 }

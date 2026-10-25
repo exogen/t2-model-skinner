@@ -6,17 +6,7 @@ import { isLockedObject } from "./fabricUtils";
 import { readImageFile } from "./importUtils";
 import useCanvas from "./useCanvas";
 import useTools from "./useTools";
-import {
-  autoUpdate,
-  flip,
-  FloatingFocusManager,
-  offset,
-  useClick,
-  useDismiss,
-  useFloating,
-  useInteractions,
-  useRole,
-} from "@floating-ui/react";
+import { FloatingFocusManager } from "@floating-ui/react";
 import { RiFileCopyFill } from "react-icons/ri";
 import { HiSparkles } from "react-icons/hi";
 import {
@@ -35,30 +25,9 @@ import type { MaterialDefinition } from "./models";
 import Slider from "./Slider";
 import modelConfig from "./models";
 import useMessageDialog from "./useMessageDialog";
+import useToolPopup from "./useToolPopup";
 
 const { materials } = modelConfig;
-
-function useToolPopup(open: boolean, setOpen: (open: boolean) => void) {
-  const { refs, floatingStyles, context } = useFloating({
-    open,
-    onOpenChange: setOpen,
-    placement: "bottom-end",
-    middleware: [flip(), offset(10)],
-    whileElementsMounted: autoUpdate,
-  });
-
-  const click = useClick(context);
-  const dismiss = useDismiss(context);
-  const role = useRole(context);
-
-  const { getReferenceProps, getFloatingProps } = useInteractions([
-    click,
-    dismiss,
-    role,
-  ]);
-
-  return { refs, floatingStyles, context, getReferenceProps, getFloatingProps };
-}
 
 export default function CanvasTools() {
   const { showMessage, messageDialog } = useMessageDialog();

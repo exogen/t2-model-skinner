@@ -2,6 +2,7 @@ import { ReactNode, useMemo, useState } from "react";
 import { EnvironmentContext } from "./useEnvironment";
 import useSettings from "./useSettings";
 import { getLocalAssetUrl } from "./deployPaths";
+import type { RenderMode } from "./renderModes";
 
 export default function EnvironmentProvider({
   children,
@@ -13,6 +14,7 @@ export default function EnvironmentProvider({
   );
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [exposure, setExposure] = useState(1);
+  const [renderMode, setRenderMode] = useState<RenderMode>("skin");
   const { basePath } = useSettings();
 
   const context = useMemo(() => {
@@ -27,8 +29,10 @@ export default function EnvironmentProvider({
       exposure,
       setExposure,
       environmentImageUrl,
+      renderMode,
+      setRenderMode,
     };
-  }, [basePath, selectedEnvironment, showEnvironment, exposure]);
+  }, [basePath, selectedEnvironment, showEnvironment, exposure, renderMode]);
 
   return (
     <EnvironmentContext.Provider value={context}>

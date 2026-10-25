@@ -1,4 +1,5 @@
 import React, { useContext } from "react";
+import type { RenderMode } from "./renderModes";
 
 interface EnvironmentContextValue {
   selectedEnvironment: string | null;
@@ -8,6 +9,8 @@ interface EnvironmentContextValue {
   exposure: number;
   setExposure: (exposure: number) => void;
   environmentImageUrl: string | null;
+  renderMode: RenderMode;
+  setRenderMode: (renderMode: RenderMode) => void;
 }
 
 const EnvironmentContext = React.createContext<EnvironmentContextValue | null>(

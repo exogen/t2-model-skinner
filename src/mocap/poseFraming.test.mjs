@@ -192,7 +192,7 @@ function viewerHarness({ root, camera, gltf, center }) {
     scene, model: gltf, camera, controls: { target: center.clone(), update: vi.fn() },
     rig: createPlayerRig(root), posing: true, poseFraming: null,
     poseRuntime: { createPlayerRig, createPoseFraming },
-    originalTextures: new Set(), action: null, mixer: null,
+    originalTextures: new Set(), renderMode: "skin", randomColorGeometries: new Map(), action: null, mixer: null,
     invalidate: vi.fn(), fitModel: vi.fn(), modelGeneration: 0, disposed: false,
   });
 }

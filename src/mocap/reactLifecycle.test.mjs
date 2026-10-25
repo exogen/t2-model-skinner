@@ -23,7 +23,7 @@ vi.mock("../MocapProvider", () => ({
 }));
 vi.mock("../useWarrior", () => ({ default: () => fixture.warrior }));
 vi.mock("../useEnvironment", () => ({
-  default: () => ({ environmentImageUrl: null, showEnvironment: false, exposure: 1 }),
+  default: () => ({ environmentImageUrl: null, showEnvironment: false, exposure: 1, renderMode: "skin" }),
 }));
 vi.mock("../Materials", () => ({ default: () => null }));
 vi.mock("../Viewer", async (importOriginal) => ({
@@ -55,7 +55,7 @@ async function harness() {
   Object.assign(viewer, {
     scene: new Scene(), camera: new PerspectiveCamera(),
     controls: { target: new Vector3(), update: vi.fn() },
-    model: null, rig: null, poseRuntime: null, mixer: null, action: null, originalTextures: new Set(),
+    model: null, rig: null, poseRuntime: null, mixer: null, action: null, originalTextures: new Set(), renderMode: "skin", randomColorGeometries: new Map(),
     posing: false, paused: false, disposed: false, poseAnimationTime: 0,
     modelGeneration: 0, playbackSpeed: 1,
     fitModel: vi.fn(), invalidate: vi.fn(),

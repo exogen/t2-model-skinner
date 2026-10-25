@@ -5,12 +5,11 @@ import EditorProvider from "../EditorProvider";
 import EditorWorkspace from "../EditorWorkspace";
 import ImageWorkerProvider from "../ImageWorkerProvider";
 import WarriorProvider from "../WarriorProvider";
-import EnvironmentSelector from "../EnvironmentSelector";
-import EnvironmentExposure from "../EnvironmentExposure";
 import AnimationSelector from "../AnimationSelector";
 import EnvironmentProvider from "../EnvironmentProvider";
 import MocapProvider, { LiveMocapControls, useMocap } from "../MocapProvider";
 import SaveModelImage from "../SaveModelImage";
+import SceneSettings from "../SceneSettings";
 import ViewerProvider from "../ViewerProvider";
 import SkinProvider from "../SkinProvider";
 import ImageLoaderProvider from "../ImageLoaderProvider";
@@ -82,19 +81,14 @@ function Workspace() {
       <ViewerProvider>
         <div className="Viewport">
           <div className="ModelTools">
-            <div className="Field EnvironmentField">
-              <EnvironmentSelector />
-            </div>
-            <div className="Field SliderField">
-              <EnvironmentExposure />
-            </div>
             <div className="AnimationTools">
-              <SaveModelImage />
-              <LiveMocapControls />
               <div className="Field AnimationField">
                 <AnimationSelector />
               </div>
+              <LiveMocapControls />
+              <SaveModelImage />
             </div>
+            <SceneSettings />
           </div>
           <WarriorViewer />
         </div>
