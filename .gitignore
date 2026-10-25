@@ -115,3 +115,6 @@ dist
 
 # Private local projects, only served by the dev server
 /projects/
+
+# Built by the deploy workflows, not committed
+/docs/
