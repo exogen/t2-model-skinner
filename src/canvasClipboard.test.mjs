@@ -654,6 +654,7 @@ test.each([
     16,
   ],
   ["its own width", '<svg width="24" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"></svg>', 8],
+  ["its own height in pixels", '<svg height="8px" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"></svg>', 8],
 ])("pasted SVG text with %s becomes a PNG layer at its size", async (_, text, height) => {
   const app = await editor();
   try {

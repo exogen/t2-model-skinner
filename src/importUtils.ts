@@ -91,9 +91,17 @@ export async function imageFileType(file: Blob, name = (file as File).name ?? ""
 
 const svgNamespace = "http://www.w3.org/2000/svg";
 
+/** A width or height in plain pixels, like "24" or "24px". */
+function pixelLength(value: string | null) {
+  const match = value?.trim().match(/^(\d*\.?\d+)(?:px)?$/);
+  return match ? Number(match[1]) : null;
+}
+
 /** SVG markup as an image data URL, or null if it has no SVG. Images need
- * valid XML, which markup copied from a web page often isn't, and an SVG
- * sized only by its viewBox has no natural size in some browsers. */
+ * valid XML, which markup copied from a web page often isn't. An SVG sized
+ * only by its viewBox has no natural size in some browsers, and some SVG
+ * renderers need both a width and a height, so a missing one is filled in
+ * from the viewBox's shape, as browsers do. */
 function svgDataUrl(markup: string) {
   const parser = new DOMParser();
   const xml = parser.parseFromString(markup, "image/svg+xml");
@@ -107,15 +115,20 @@ function svgDataUrl(markup: string) {
   }
   if (!svg) return null;
   const viewBox = (svg.getAttribute("viewBox") ?? "").trim().split(/[\s,]+/).map(Number);
-  if (
-    viewBox.length === 4 &&
-    viewBox[2] > 0 &&
-    viewBox[3] > 0 &&
-    !svg.hasAttribute("width") &&
-    !svg.hasAttribute("height")
-  ) {
-    svg.setAttribute("width", String(viewBox[2]));
-    svg.setAttribute("height", String(viewBox[3]));
+  if (viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0) {
+    const [, , viewWidth, viewHeight] = viewBox;
+    const hasWidth = svg.hasAttribute("width");
+    const hasHeight = svg.hasAttribute("height");
+    const width = pixelLength(svg.getAttribute("width"));
+    const height = pixelLength(svg.getAttribute("height"));
+    if (!hasWidth && !hasHeight) {
+      svg.setAttribute("width", String(viewWidth));
+      svg.setAttribute("height", String(viewHeight));
+    } else if (width != null && !hasHeight) {
+      svg.setAttribute("height", String((width * viewHeight) / viewWidth));
+    } else if (height != null && !hasWidth) {
+      svg.setAttribute("width", String((height * viewWidth) / viewHeight));
+    }
   }
   const source = new XMLSerializer().serializeToString(svg);
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
