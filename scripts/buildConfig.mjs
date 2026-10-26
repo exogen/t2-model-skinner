@@ -14,6 +14,14 @@ const models = [
   "hbioderm",
 ];
 
+const tankTurretMaterials = [
+  {
+    label: "Turret",
+    name: "turret_assaulttank_mortar",
+    file: "turret_assaultTank",
+  },
+];
+
 async function getSkinConfig() {
   const defaultSkins = await Promise.all(
     models.map((name) => globby(`./public/textures/*.${name}.png`)),
@@ -38,9 +46,9 @@ async function getSkinConfig() {
       lfemale: "Blood Eagle",
       mfemale: "Blood Eagle",
       hfemale: "Blood Eagle",
-      lbioderm: "Storm",
-      mbioderm: "Storm",
-      hbioderm: "Storm",
+      lbioderm: "Horde",
+      mbioderm: "Horde",
+      hbioderm: "Horde",
       // Weapons
       chaingun: "weapon_chaingun",
       disc: "weapon_disc",
@@ -158,6 +166,27 @@ async function getSkinConfig() {
       vehicle_air_scout: { orbit: "290deg 60deg 130%" },
       vehicle_air_bomber: { orbit: "290deg 60deg 130%" },
       vehicle_air_hapc: { orbit: "290deg 60deg 130%" },
+    },
+    // Models shown mounted on a node of another, like in the game: the tank's
+    // turret sits on its Mount10. A mounted model's materials come after the
+    // model's own in its list, marked with `mount`, so they're part of its
+    // skin.
+    mounts: {
+      vehicle_grav_tank: [
+        { model: "turret_assaulttank_mortar", node: "Mount10" },
+      ],
+    },
+    // The arm animation a player holding each weapon uses, from its armThread
+    // in the game's scripts. Other weapons use the default, whose level aim
+    // is the models' rest pose.
+    armThreads: {
+      missile: "Lookms",
+      sniper: "Looksn",
+    },
+    // Models whose arm animation has another name. The medium female's
+    // missile launcher pose is named Lookth.
+    armThreadOverrides: {
+      mfemale: { Lookms: "Lookth" },
     },
     animationLabelOverrides: {
       mmale: {
@@ -454,14 +483,14 @@ async function getSkinConfig() {
           name: "vehicle_grav_tank_bodyside1",
           selectable: false,
         },
+        // Tank skins made before the turret was shown don't have it.
+        ...tankTurretMaterials.map((material) => ({
+          ...material,
+          mount: "turret_assaulttank_mortar",
+          optional: true,
+        })),
       ],
-      turret_assaulttank_mortar: [
-        {
-          label: "Turret",
-          name: "turret_assaulttank_mortar",
-          file: "turret_assaultTank",
-        },
-      ],
+      turret_assaulttank_mortar: tankTurretMaterials,
       vehicle_land_mpbbase: [
         {
           label: "Vehicle Front",

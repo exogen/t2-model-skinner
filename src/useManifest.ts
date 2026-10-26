@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { SKIN_MANIFEST_URL } from "./deployPaths";
-import useAsyncTask from "./useAsyncTask";
 
 export type Manifest = {
   customSkins: Record<string, string[]>;
@@ -23,30 +23,32 @@ export const defaultManifest: Manifest = {
   sizeMultiplier: {},
 };
 
+async function fetchManifest({ signal }: { signal: AbortSignal }) {
+  try {
+    const response = await fetch(SKIN_MANIFEST_URL, { signal });
+    if (!response.ok) throw new Error("Unable to load the skin manifest");
+    return (await response.json()) as Manifest;
+  } catch (error) {
+    // Logged once per failed request, not per component. Leaving the page
+    // while it loads isn't a failure.
+    if (!signal.aborted) console.error(error);
+    throw error;
+  }
+}
+
+/** The skin manifest, loaded once per page and shared by everything that
+ * uses it. A failed load waits for `retry`. */
 export default function useManifest(): [Manifest, boolean, { error: boolean; retry: () => void }] {
-  const [manifest, setManifest] = useState<Manifest>(defaultManifest);
-  const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const retry = useCallback(() => {
-    setError(false);
-    setAttempt((value) => value + 1);
-  }, []);
-
-  const load = useAsyncTask(true);
-  useEffect(() => {
-    void load(async (signal) => {
-      const response = await fetch(SKIN_MANIFEST_URL, { signal });
-      if (!response.ok) throw new Error("Unable to load the skin manifest");
-      return (await response.json()) as Manifest;
-    }, (value) => {
-      setManifest(value);
-      setError(false);
-    }).catch((cause: unknown) => {
-      setError(true);
-      console.error(cause);
-    });
-  }, [load, attempt]);
-
-  const isLoaded = manifest !== defaultManifest;
-  return [manifest, isLoaded, { error, retry }];
+  const { data, error, isFetching, refetch } = useQuery({
+    queryKey: [SKIN_MANIFEST_URL],
+    queryFn: fetchManifest,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const retry = useCallback(() => { void refetch(); }, [refetch]);
+  // A retry clears the error while it loads.
+  return [data ?? defaultManifest, data !== undefined, { error: !!error && !isFetching, retry }];
 }

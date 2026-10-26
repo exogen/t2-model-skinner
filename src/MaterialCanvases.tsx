@@ -2,7 +2,7 @@ import React from "react";
 import MaterialCanvas from "./MaterialCanvas";
 import useWarrior from "./useWarrior";
 import type { MaterialDefinition } from "./models";
-import modelConfig from "./models";
+import modelConfig, { hasMetallicMap } from "./models";
 
 const { materials } = modelConfig;
 
@@ -16,10 +16,7 @@ export default function MaterialCanvases() {
         if (!materialDef) {
           return null;
         }
-        const hasMetallic = !(
-          materialDef.metallicFactor === 0 &&
-          materialDef.roughnessFactor === 1
-        );
+        const hasMetallic = hasMetallicMap(materialDef);
         const frameCount = materialDef.frameCount ?? 1;
         const frames = new Array(frameCount).fill(null);
         return (

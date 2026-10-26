@@ -1,6 +1,6 @@
 import {
-  ACESFilmicToneMapping, AnimationAction, AnimationMixer, Box3, BufferGeometry, CustomBlending,
-  EquirectangularReflectionMapping, Group, LoopOnce, LoopRepeat, Material, MathUtils, Mesh, MeshBasicMaterial,
+  ACESFilmicToneMapping, AnimationAction, AnimationClip, AnimationMixer, Box3, BufferGeometry, CustomBlending,
+  EquirectangularReflectionMapping, Group, LoopOnce, LoopRepeat, Material, MathUtils, Matrix4, Mesh, MeshBasicMaterial,
   MeshStandardMaterial, MOUSE, Object3D, PerspectiveCamera, PMREMGenerator, Raycaster, Scene, ShaderMaterial,
   Skeleton, SkinnedMesh, Sphere, Spherical, SRGBColorSpace, SrcColorFactor, Texture, TOUCH, Vector2, Vector3,
   Vector4, WebGLRenderer, WebGLRenderTarget, ZeroFactor,
@@ -31,7 +31,11 @@ type PendingCapture = {
   reject: (error: Error) => void;
 };
 type PoseFrameCallback = (deltaSeconds: number, camera: PerspectiveCamera, imageAspect: number) => void;
-export type LoadedModel = { scene: Group; model: { materials: Material[][] }; rig: PlayerRig | null };
+/** A model shown mounted on a node of another: `scene` holds it there. */
+export type MountedModel = { scene: Object3D; materials: Material[][] };
+export type LoadedModel = {
+  scene: Group; model: { materials: Material[][] }; mounts: MountedModel[]; rig: PlayerRig | null;
+};
 type CameraOptions = { orbit?: string; target?: string; fov?: string };
 export interface PoseRuntime {
   createPlayerRig: typeof createPlayerRig;
@@ -53,6 +57,57 @@ export function collectMaterials(gltf: GLTF): Material[][] {
     }
   });
   return materials;
+}
+
+/** `root`'s own node called `name`, matched without case like the game's
+ * node lookups, skipping models mounted on it. */
+export function findOwnNode(root: Object3D, name: string): Object3D | null {
+  const lowerName = name.toLowerCase();
+  const search = (node: Object3D): Object3D | null => {
+    if (node.name.toLowerCase() === lowerName) return node;
+    for (const child of node.children) {
+      const found = child.userData.mounted ? null : search(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  return search(root);
+}
+
+/** Mounts `part`, a model's scene that's not in another, on `node` the way
+ * the game does: a model with a Mountpoint node, like a weapon, is placed so
+ * that node meets `node`, and one without, like the tank's turret, so its
+ * origin does. Returns what holds it there. */
+export function mountPart(node: Object3D, part: Object3D) {
+  const holder = new Group();
+  holder.userData.mounted = true;
+  const point = findOwnNode(part, "Mountpoint");
+  if (point) {
+    part.updateMatrixWorld(true);
+    new Matrix4().copy(point.matrixWorld).invert().decompose(holder.position, holder.quaternion, holder.scale);
+  }
+  holder.add(part);
+  node.add(holder);
+  return holder;
+}
+
+/** `clips` with the tracks of the same-named clips of models mounted on
+ * them, like the tank's activate clip with its turret's. Those tracks name
+ * their nodes by ID, so a node of the same name elsewhere can't take them. */
+export function withMountedClips(clips: AnimationClip[], mounted: { scene: Object3D; animations: AnimationClip[] }[]) {
+  return clips.map((clip) => {
+    const tracks = mounted.flatMap(({ scene, animations }) => animations
+      .filter((other) => other.name.toLowerCase() === clip.name.toLowerCase())
+      .flatMap((other) => other.tracks.flatMap((track) => {
+        const dot = track.name.lastIndexOf(".");
+        const node = scene.getObjectByName(track.name.slice(0, dot));
+        if (!node) return [];
+        const copy = track.clone();
+        copy.name = `${node.uuid}${track.name.slice(dot)}`;
+        return [copy];
+      })));
+    return tracks.length ? new AnimationClip(clip.name, -1, [...clip.tracks, ...tracks]) : clip;
+  });
 }
 
 /** Multiplies the alpha of what's drawn outside `box` by `opacity`, and its
@@ -189,6 +244,8 @@ export default class Viewer {
   private readonly wireframeMaterial = new MeshBasicMaterial({ color: 0x63ffe2, wireframe: true, toneMapped: false });
   private mixer: AnimationMixer | null = null;
   private action: AnimationAction | null = null;
+  // A held weapon's arm pose, on top of the animation.
+  private armAction: AnimationAction | null = null;
   private rig: PlayerRig | null = null;
   private poseRuntime: PoseRuntime | null = null;
   private poseAnimationTime = 0;
@@ -521,23 +578,28 @@ export default class Viewer {
     return MathUtils.clamp(fov, MIN_FOV, this.adjustedFov(MAX_FOV));
   }
 
-  async load(url: string, camera: CameraOptions): Promise<LoadedModel | null> {
+  /** Shows the model at `url`, with the models at `mounts` mounted on its
+   * nodes, like the tank's turret. */
+  async load(url: string, camera: CameraOptions, mounts: { url: string; node: string }[] = []): Promise<LoadedModel | null> {
     const generation = ++this.modelGeneration;
-    const gltf = await new GLTFLoader().loadAsync(url);
-    if (this.disposed || generation !== this.modelGeneration) {
-      disposeObject(gltf.scene);
+    const loader = new GLTFLoader();
+    const results = await Promise.allSettled([url, ...mounts.map((mount) => mount.url)].map((source) => loader.loadAsync(source)));
+    const failure = results.find((result) => result.status === "rejected");
+    const [gltf, ...parts] = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+    if (failure || this.disposed || generation !== this.modelGeneration) {
+      [gltf, ...parts].forEach((loaded) => { if (loaded) disposeObject(loaded.scene); });
+      if (failure) throw failure.reason;
       return null;
     }
     this.clearModel();
     this.model = gltf;
-    gltf.scene.traverse((object) => {
-      if (!(object instanceof Mesh)) return;
-      // Both recorded and live poses can leave the exported bounds behind.
-      if (object instanceof SkinnedMesh) object.frustumCulled = false;
-      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-        for (const value of Object.values(material)) if (value instanceof Texture) this.originalTextures.add(value);
-      }
-    });
+    // Like the game, a mount on a node the model doesn't have is at its origin.
+    const mounted = parts.map((part, index) => ({
+      scene: mountPart(findOwnNode(gltf.scene, mounts[index].node) ?? gltf.scene, part.scene),
+      materials: collectMaterials(part),
+    }));
+    gltf.animations = withMountedClips(gltf.animations, parts);
+    this.prepareMeshes(gltf.scene, this.originalTextures);
     this.scene.add(gltf.scene);
     this.rig = this.poseRuntime?.createPlayerRig(gltf.scene) ?? null;
     this.mixer = new AnimationMixer(gltf.scene);
@@ -545,10 +607,60 @@ export default class Viewer {
     gltf.scene.updateMatrixWorld(true);
     this.fitModel();
     this.applyRenderMode();
-    return { scene: gltf.scene, model: { materials: collectMaterials(gltf) }, rig: this.rig };
+    return { scene: gltf.scene, model: { materials: collectMaterials(gltf) }, mounts: mounted, rig: this.rig };
   }
 
   cancelLoad() { this.modelGeneration++; }
+
+  /** Adds the textures `root`'s materials came with to `textures`, and keeps
+   * its skinned meshes from being culled: both recorded and live poses can
+   * leave the exported bounds behind. */
+  private prepareMeshes(root: Object3D, textures: Set<Texture>) {
+    root.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+      if (object instanceof SkinnedMesh) object.frustumCulled = false;
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        for (const value of Object.values(material)) if (value instanceof Texture) textures.add(value);
+      }
+    });
+  }
+
+  /** Loads the model at `url` and mounts it on the shown model's `node`, like
+   * a weapon in a player's hand. Resolves null if the shown model changes
+   * first or doesn't have that node. */
+  async mount(url: string, node: string): Promise<MountedModel | null> {
+    const model = this.model;
+    const gltf = await new GLTFLoader().loadAsync(url);
+    const target = !this.disposed && model && model === this.model ? findOwnNode(model.scene, node) : null;
+    if (!target) {
+      disposeObject(gltf.scene);
+      return null;
+    }
+    const textures = new Set<Texture>();
+    this.prepareMeshes(gltf.scene, textures);
+    const scene = mountPart(target, gltf.scene);
+    // Showing another model disposes these with it.
+    textures.forEach((texture) => this.originalTextures.add(texture));
+    scene.userData.originalTextures = textures;
+    this.applyRenderMode();
+    return { scene, materials: collectMaterials(gltf) };
+  }
+
+  /** Takes off and disposes a model from mount(). */
+  unmount({ scene }: MountedModel) {
+    scene.removeFromParent();
+    scene.traverse((object) => {
+      const geometries = object instanceof Mesh && this.randomColorGeometries.get(object);
+      if (!geometries) return;
+      object.geometry = geometries.original;
+      geometries.random.dispose();
+      this.randomColorGeometries.delete(object);
+    });
+    const textures: Set<Texture> = scene.userData.originalTextures ?? new Set();
+    textures.forEach((texture) => this.originalTextures.delete(texture));
+    disposeObject(scene, textures);
+    this.invalidate();
+  }
 
   /** Supplied only after the camera feature is requested. Rest transforms must
    * be recovered before binding when an ordinary animation is already active. */
@@ -566,7 +678,9 @@ export default class Viewer {
     try {
       this.rig = runtime.createPlayerRig(this.model.scene);
     } finally {
+      this.playArmPose();
       if (action && scheduled && !this.posing) this.resumeAction(action, time);
+      else if (!this.posing) this.mixer?.update(0);
     }
     this.invalidate();
     return this.rig;
@@ -586,6 +700,7 @@ export default class Viewer {
     this.rig?.dispose();
     this.rig = null;
     this.action = null;
+    this.armAction = null;
     this.mixer?.stopAllAction();
     this.mixer?.uncacheRoot(this.model.scene);
     this.mixer = null;
@@ -748,6 +863,7 @@ export default class Viewer {
         // starts at its first frame (and waits while posing).
         this.mixer?.stopAllAction();
         if (next && !this.posing) next.play();
+        this.playArmPose();
       }
       this.action = next;
       this.poseAnimationTime = 0;
@@ -756,6 +872,27 @@ export default class Viewer {
     this.playbackSpeed = speed;
     if (!this.posing) this.mixer?.update(0);
     this.invalidate();
+  }
+
+  /** Poses the arms with `clip`, a held weapon's arm pose from armPoseClip,
+   * on top of the animation, or stops. Posing with the camera moves the arms
+   * itself, so it's left out then. */
+  setArmPose(clip: AnimationClip | null) {
+    if (this.armAction?.getClip() === clip) return;
+    if (this.armAction) {
+      this.armAction.stop();
+      this.mixer?.uncacheAction(this.armAction.getClip());
+    }
+    this.armAction = clip && this.mixer ? this.mixer.clipAction(clip) : null;
+    this.playArmPose();
+    if (!this.posing) this.mixer?.update(0);
+    this.invalidate();
+  }
+
+  private playArmPose() {
+    if (!this.armAction || this.posing) return;
+    this.armAction.play();
+    this.armAction.paused = true;
   }
 
   setPoseMode(posing: boolean) {
@@ -776,7 +913,9 @@ export default class Viewer {
     } else {
       this.restoreEditorCamera();
       this.rig?.reset();
+      this.playArmPose();
       if (this.action) this.resumeAction(this.action, this.poseAnimationTime);
+      else this.mixer?.update(0);
     }
     this.controls.update();
     this.invalidate();

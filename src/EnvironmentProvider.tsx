@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import { EnvironmentContext } from "./useEnvironment";
 import useSettings from "./useSettings";
 import { getLocalAssetUrl } from "./deployPaths";
@@ -15,6 +15,13 @@ export default function EnvironmentProvider({
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [exposure, setExposure] = useState(1);
   const [renderMode, setRenderMode] = useState<RenderMode>("skin");
+  const [heldWeapon, setWeapon] = useState<string | null>(null);
+  const [heldWeaponSkin, setHeldWeaponSkin] = useState<string | null>(null);
+  // Each weapon has its own skins.
+  const setHeldWeapon = useCallback((weapon: string | null) => {
+    setWeapon(weapon);
+    setHeldWeaponSkin(null);
+  }, []);
   const { basePath } = useSettings();
 
   const context = useMemo(() => {
@@ -31,8 +38,12 @@ export default function EnvironmentProvider({
       environmentImageUrl,
       renderMode,
       setRenderMode,
+      heldWeapon,
+      setHeldWeapon,
+      heldWeaponSkin,
+      setHeldWeaponSkin,
     };
-  }, [basePath, selectedEnvironment, showEnvironment, exposure, renderMode]);
+  }, [basePath, selectedEnvironment, showEnvironment, exposure, renderMode, heldWeapon, setHeldWeapon, heldWeaponSkin]);
 
   return (
     <EnvironmentContext.Provider value={context}>

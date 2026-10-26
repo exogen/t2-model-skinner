@@ -146,8 +146,8 @@ export function CaptureControls({ recorder, status }: { recorder: Recorder; stat
 type MapList = { status: "loading" | "ready" | "failed"; maps: readonly MapEntry[] };
 
 /** The t2-maps gallery's maps, once they've loaded, and a way to try again
- * after the list failed. Loaded like the skin manifest (useManifest); the
- * list itself is fetched once per page load by loadMaps. */
+ * after the list failed. The list itself is fetched once per page load by
+ * loadMaps. */
 function useMaps() {
   const [attempt, setAttempt] = useState(0);
   const [list, setList] = useState<MapList>({ status: "loading", maps: [] });

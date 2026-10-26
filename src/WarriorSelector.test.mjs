@@ -144,6 +144,20 @@ test("a newly listed weapon skin selects its New Skins entry", async () => {
   expect(popup.querySelectorAll('[data-value="custom/New Weapon Skin"]')).toHaveLength(1);
 });
 
+test("the skin list offers only skins, not a choice of none", async () => {
+  const { select } = await selector("default", "weapon_disc");
+  const popup = await openSelect(select);
+  const values = [...popup.querySelectorAll('[role="option"]')].map((option) => option.dataset.value);
+  expect(values).toContain("default/weapon_disc");
+  expect(values).not.toContain("");
+});
+
+test("every model has a default skin to start from", () => {
+  for (const model of Object.values(modelTypes).flat()) {
+    expect(modelConfig.modelDefaults[model === "hfemale" ? "hmale" : model], model).toBeTruthy();
+  }
+});
+
 test("selecting a skin preserves slashes in its name", async () => {
   const { select, setSelectedSkin } = await selector(
     "custom",

@@ -223,3 +223,43 @@ test("repeated placeholder frame URLs load and dispose one texture per channel",
   app.binding.dispose();
   for (const result of app.loaded) expect(result.dispose).toHaveBeenCalledTimes(1);
 });
+
+test("clearing textures shows the material as it came, frees them, and the same textures can load again", async () => {
+  const app = fixture();
+  const own = texture("own");
+  app.materials.forEach((material) => { material.map = own; });
+  const rebound = createMaterialBinding({
+    materials: app.materials, definition: { name: "base" }, viewer: app.viewer, loadTexture: app.loadTexture,
+  });
+  rebound.setTextures({ colorUrls: ["skin"], metallicUrls: ["packed"], fallbackUrl: "white" });
+  await flush();
+  const [color, metallic] = app.loaded;
+  expect(app.materials[0].map).toBe(color);
+  rebound.clearTextures();
+  for (const material of app.materials) {
+    expect(material.map).toBe(own);
+    expect(material.metalnessMap).toBeNull();
+  }
+  expect(color.dispose).toHaveBeenCalledOnce();
+  expect(metallic.dispose).toHaveBeenCalledOnce();
+  // The same URLs aren't skipped as already shown.
+  rebound.setTextures({ colorUrls: ["skin"], metallicUrls: ["packed"], fallbackUrl: "white" });
+  await flush();
+  expect(app.materials[0].map).toBe(app.loaded[2]);
+  rebound.dispose();
+  expect(own.dispose).not.toHaveBeenCalled();
+});
+
+test("clearing an animated material's textures stops its frames until new ones load", async () => {
+  const app = fixture({ name: "case", frameCount: 2, metallicFactor: 0, roughnessFactor: 1 });
+  app.binding.setTextures({ colorUrls: ["a", "b"], fallbackUrl: "white" });
+  await flush();
+  expect(app.frames.size).toBe(1);
+  app.binding.clearTextures();
+  expect(app.frames.size).toBe(0);
+  app.binding.setTextures({ colorUrls: ["a", "b"], fallbackUrl: "white" });
+  await flush();
+  expect(app.frames.size).toBe(1);
+  app.binding.dispose();
+  expect(app.frames.size).toBe(0);
+});

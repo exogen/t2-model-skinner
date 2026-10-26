@@ -115,3 +115,19 @@ test.each(["lmale", "lfemale", "disc", "vehicle_air_bomber"])("%s bundled projec
     basePath, actualModel: model, selectedSkin: "Opened project", selectedSkinType: "project",
   }));
 });
+
+test.each([
+  ["hbioderm", "Horde"], ["lbioderm", "Horde"], ["lfemale", "Blood Eagle"], ["hfemale", "Blood Eagle"], ["disc", "weapon_disc"],
+])("a %s URL without a skin shows the model's default, %s", async (model, skin) => {
+  await mount({ m: model });
+  expect(warrior.selectedModel).toBe(model);
+  expect(warrior.selectedSkin).toBe(skin);
+  expect(warrior.selectedSkinType).toBe("default");
+  expect(latestUrl().searchParams.get("s")).toBe(skin);
+});
+
+test("a bioderm skin that isn't available falls back to the Horde skin's textures", async () => {
+  await mount({ m: "mbioderm", s: "Blood Eagle" });
+  expect(warrior.selectedSkin).toBe("Blood Eagle");
+  expect(warrior.defaultSkinImageUrls).toEqual({ base: ["/textures/Horde.mbioderm.png"] });
+});

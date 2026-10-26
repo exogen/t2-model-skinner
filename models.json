@@ -64,9 +64,9 @@
     "lfemale": "Blood Eagle",
     "mfemale": "Blood Eagle",
     "hfemale": "Blood Eagle",
-    "lbioderm": "Storm",
-    "mbioderm": "Storm",
-    "hbioderm": "Storm",
+    "lbioderm": "Horde",
+    "mbioderm": "Horde",
+    "hbioderm": "Horde",
     "chaingun": "weapon_chaingun",
     "disc": "weapon_disc",
     "elf": "weapon_elf",
@@ -210,6 +210,23 @@
     },
     "vehicle_air_hapc": {
       "orbit": "290deg 60deg 130%"
+    }
+  },
+  "mounts": {
+    "vehicle_grav_tank": [
+      {
+        "model": "turret_assaulttank_mortar",
+        "node": "Mount10"
+      }
+    ]
+  },
+  "armThreads": {
+    "missile": "Lookms",
+    "sniper": "Looksn"
+  },
+  "armThreadOverrides": {
+    "mfemale": {
+      "Lookms": "Lookth"
     }
   },
   "animationLabelOverrides": {
@@ -677,6 +694,13 @@
       {
         "name": "vehicle_grav_tank_bodyside1",
         "selectable": false
+      },
+      {
+        "label": "Turret",
+        "name": "turret_assaulttank_mortar",
+        "file": "turret_assaultTank",
+        "mount": "turret_assaulttank_mortar",
+        "optional": true
       }
     ],
     "turret_assaulttank_mortar": [

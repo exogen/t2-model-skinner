@@ -13,6 +13,7 @@ import { CgSpinnerTwo } from "react-icons/cg";
 import { FaChevronLeft, FaSearch, FaTimes } from "react-icons/fa";
 import { FiDownload } from "react-icons/fi";
 import { useQueryState } from "nuqs";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import orderBy from "lodash.orderby";
 import useManifest from "../../useManifest";
 import Select from "../../Select";
@@ -261,10 +262,14 @@ function Gallery() {
   );
 }
 
+const queryClient = new QueryClient();
+
 export default function GalleryPage() {
   return (
-    <Suspense>
-      <Gallery />
-    </Suspense>
+    <QueryClientProvider client={queryClient}>
+      <Suspense>
+        <Gallery />
+      </Suspense>
+    </QueryClientProvider>
   );
 }

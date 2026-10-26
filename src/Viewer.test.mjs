@@ -9,6 +9,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import Viewer, { collectMaterials, disposeObject } from "./Viewer";
 import { configureMaterial } from "./materialBinding";
+import { partMaterials } from "./models";
 
 const config = JSON.parse(readFileSync(new URL("../models.json", import.meta.url), "utf8"));
 
@@ -41,7 +42,8 @@ test.each(Object.keys(config.materials))("%s binds every real GLB material to it
     expect(new Set(materials).size).toBe(materials.length);
     for (const material of materials) {
       expect(material.name).toBe(sourceMaterials[index].name);
-      const definition = config.materials[name][index];
+      // A mounted model's definitions, like the tank's turret's, are its own.
+      const definition = partMaterials(name)[index];
       configureMaterial(material, definition);
       expect(material.visible).toBe(definition != null && !definition.hidden);
     }

@@ -35,7 +35,11 @@ export type MaterialDefinition = {
   roughnessFactor?: number;
   frameCount?: number;
   frameTimings?: number[];
+  /** The mounted model this material belongs to, not the model itself. */
+  mount?: string;
 };
+
+export type MountDefinition = { model: string; node: string };
 
 export interface ModelConfig {
   defaultSkins: Record<string, string[]>;
@@ -48,11 +52,35 @@ export interface ModelConfig {
     string,
     { target?: string; fov?: string; orbit?: string }
   >;
+  mounts: Record<string, MountDefinition[]>;
+  armThreads: Record<string, string>;
+  armThreadOverrides: Record<string, Record<string, string>>;
 }
 
 const typedModelConfig = modelConfig as unknown as ModelConfig;
 
 export default typedModelConfig;
+
+/** The definitions for the materials of `model`'s own file, or of the model
+ * mounted on it, in the order of that file's materials. */
+export function partMaterials(model: string, mount?: string) {
+  return typedModelConfig.materials[model].filter(
+    (material) => material.mount === mount
+  );
+}
+
+/** Whether a material has a metallic map, edited on its own canvas. Without
+ * one it's fully rough and not metallic. */
+export function hasMetallicMap(material: MaterialDefinition) {
+  return material.metallicFactor !== 0 || (material.roughnessFactor ?? 1) !== 1;
+}
+
+/** The arm animation `model` uses to hold `weapon`, if it's not the
+ * default. */
+export function armThread(model: string, weapon: string) {
+  const thread = typedModelConfig.armThreads[weapon];
+  return thread && (typedModelConfig.armThreadOverrides[model]?.[thread] ?? thread);
+}
 
 // Prefer an editable canvas for each shared texture, falling back to the first
 // material when none is editable. This prevents late loads of fixed duplicates

@@ -49,3 +49,8 @@ export const modelOptions: (SelectGroup & { type: ModelType })[] = [
     ],
   },
 ];
+
+// Players can hold any weapon but the mine, which isn't held.
+export const heldWeaponOptions = modelOptions
+  .find(({ type }) => type === "weapon")!
+  .options.filter(({ value }) => value !== "mine");

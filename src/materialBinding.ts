@@ -2,7 +2,7 @@ import {
   Material, MeshStandardMaterial, NoColorSpace, RepeatWrapping, SRGBColorSpace,
   Texture, TextureLoader,
 } from "three";
-import type { MaterialDefinition } from "./models";
+import { hasMetallicMap, type MaterialDefinition } from "./models";
 import type Viewer from "./Viewer";
 
 type TextureChannel = "color" | "metallic";
@@ -96,7 +96,7 @@ export function createMaterialBinding({
         changedShader ||= material.metalnessMap == null || material.roughnessMap == null;
         material.metalnessMap = metallic;
         material.roughnessMap = metallic;
-      } else if (definition?.metallicFactor === 0 && (definition.roughnessFactor ?? 1) === 1) {
+      } else if (definition && !hasMetallicMap(definition)) {
         changedShader ||= material.metalnessMap != null || material.roughnessMap != null;
         material.metalnessMap = null;
         material.roughnessMap = null;
@@ -167,6 +167,22 @@ export function createMaterialBinding({
     });
   };
 
+  const clearTextures = () => {
+    unsubscribe?.();
+    unsubscribe = undefined;
+    cancelRequest("color");
+    cancelRequest("metallic");
+    originalMaps.forEach((maps, material) => {
+      Object.assign(material, maps);
+      material.needsUpdate = true;
+    });
+    disposeTextures([...textures.color, ...textures.metallic]);
+    textures.color = [];
+    textures.metallic = [];
+    delete currentUrls.color;
+    delete currentUrls.metallic;
+  };
+
   if (active) applyFrame();
   else viewer.invalidate();
 
@@ -180,24 +196,23 @@ export function createMaterialBinding({
       const frameUrls = (urls?: string[]) => Array.from({ length: frameCount }, (_, index) =>
         urls?.[index] || urls?.[0] || fallbackUrl);
       loadChannel("color", frameUrls(colorUrls));
-      if (definition.metallicFactor !== 0 || (definition.roughnessFactor ?? 1) !== 1) {
+      if (hasMetallicMap(definition)) {
         loadChannel("metallic", frameUrls(metallicUrls));
       }
     },
     setSlowMode(enabled: boolean) {
       speed = enabled ? 0.05 : 1;
     },
+    /** Shows the material with the textures it came with again. */
+    clearTextures() {
+      if (disposed) return;
+      clearTextures();
+      viewer.invalidate();
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
-      unsubscribe?.();
-      cancelRequest("color");
-      cancelRequest("metallic");
-      originalMaps.forEach((maps, material) => {
-        Object.assign(material, maps);
-        material.needsUpdate = true;
-      });
-      disposeTextures([...textures.color, ...textures.metallic]);
+      clearTextures();
       viewer.invalidate();
     },
   };

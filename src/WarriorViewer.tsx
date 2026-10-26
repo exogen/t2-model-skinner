@@ -1,28 +1,35 @@
 import ModelLoading from "./ModelLoading";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useEnvironment from "./useEnvironment";
 import useWarrior from "./useWarrior";
+import useSettings from "./useSettings";
 import Materials from "./Materials";
+import HeldWeapon from "./HeldWeapon";
 import modelConfig from "./models";
 import { LiveMocapPose, useMocap } from "./MocapProvider";
 import { ModelViewerContext } from "./useModelViewer";
 import useViewer from "./useViewer";
 import Viewer, { type LoadedModel } from "./Viewer";
+import { getLocalAssetUrl } from "./deployPaths";
 
-const { cameraOverrides } = modelConfig;
+const { cameraOverrides, mounts: modelMounts } = modelConfig;
 
 export default function WarriorViewer() {
   const {
     selectedModel,
+    actualModel,
     selectedModelUrl: modelUrl,
     selectedModelType,
     selectedAnimation: animationName,
     animationPaused,
     slowModeEnabled,
   } = useWarrior();
-  const { environmentImageUrl, showEnvironment, exposure, renderMode } = useEnvironment();
+  const {
+    environmentImageUrl, showEnvironment, exposure, renderMode, heldWeapon, heldWeaponSkin,
+  } = useEnvironment();
   const { active: poseMode, runtime } = useMocap();
   const { setViewer: shareViewer } = useViewer();
+  const { basePath } = useSettings();
   const poseRuntime = runtime?.viewerRuntime;
   // With no animation chosen, play the model's first clip once.
   const playFirstClip = selectedModelType !== "player";
@@ -31,6 +38,9 @@ export default function WarriorViewer() {
     (selectedModelType === "weapon" ? "315deg 70deg 105%" : undefined);
   const target = cameraOverrides[selectedModel]?.target;
   const fov = cameraOverrides[selectedModel]?.fov;
+  const mounts = useMemo(() => (modelMounts[actualModel] ?? []).map(({ model, node }) => ({
+    url: getLocalAssetUrl(basePath, `${model}.glb`), node,
+  })), [actualModel, basePath]);
   const hostRef = useRef<HTMLDivElement>(null);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [loaded, setLoaded] = useState<(LoadedModel & { url: string }) | null>(null);
@@ -55,11 +65,11 @@ export default function WarriorViewer() {
     let stale = false;
     setLoaded(null);
     setError(null);
-    viewer.load(modelUrl, { orbit, target, fov })
+    viewer.load(modelUrl, { orbit, target, fov }, mounts)
       .then((model) => { if (!stale && model) setLoaded({ ...model, url: modelUrl }); })
       .catch(() => { if (!stale) setError("This model could not be loaded."); });
     return () => { stale = true; viewer.cancelLoad(); };
-  }, [viewer, modelUrl, orbit, target, fov, attempt]);
+  }, [viewer, modelUrl, orbit, target, fov, mounts, attempt]);
 
   useEffect(() => {
     if (loaded?.url === modelUrl) viewer?.setAnimation(animationName, animationPaused, timeScale, playFirstClip);
@@ -112,6 +122,7 @@ export default function WarriorViewer() {
       {ready ? (
         <ModelViewerContext.Provider value={{ viewer, ...loaded }}>
           <Materials />
+          {heldWeapon && selectedModelType === "player" ? <HeldWeapon key={heldWeapon} weapon={heldWeapon} skin={heldWeaponSkin} /> : null}
           <LiveMocapPose />
         </ModelViewerContext.Provider>
       ) : null}

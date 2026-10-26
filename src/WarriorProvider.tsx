@@ -270,6 +270,10 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
           const skinType = skinToType(actualModel, skinPath);
           setSelectedSkin(skinPath);
           setSelectedSkinType(skinType);
+        } else if (!project) {
+          // Without a skin, the model's own default, like choosing the model.
+          setSelectedSkin(modelDefaults[actualModel] ?? null);
+          setSelectedSkinType("default");
         }
       }
     }

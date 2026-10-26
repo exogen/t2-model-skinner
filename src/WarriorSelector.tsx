@@ -8,11 +8,10 @@ import modelConfig from "./models";
 import Select, { type SelectGroup } from "./Select";
 import { modelOptions } from "./modelOptions";
 import { getLocalProject, localProjects } from "./localProjects";
+import { skinOptionGroups } from "./skinOptions";
 import styles from "./WarriorSelector.module.css";
 
 const { defaultSkins, modelDefaults } = modelConfig;
-
-const emptyMap = new Map();
 
 function renderSkinLabel(label: string, value: string) {
   const separator = value.indexOf("/");
@@ -98,13 +97,7 @@ export default function WarriorSelector() {
     cancelPendingProject();
   };
 
-  const importedSkinsForModel = importedSkins.get(actualModel) ?? emptyMap;
-
-  const selectableImportedSkins = Array.from(
-    importedSkinsForModel.values()
-  ).filter((skin) => skin.isComplete);
-
-  const { customSkins, newSkins } = manifest;
+  const { customSkins } = manifest;
   const defaultNames =
     selectedModelType === "player"
       ? (defaultSkins[actualModel] ?? [])
@@ -137,7 +130,6 @@ export default function WarriorSelector() {
     }
   };
 
-  const newNames = newSkins[actualModel] ?? [];
   const skinGroups: SelectGroup[] = [];
   const projectOptions = localProjects.map((project) => ({
     value: `local/${project.file}`,
@@ -158,33 +150,9 @@ export default function WarriorSelector() {
   if (projectOptions.length) {
     skinGroups.push({ label: "Projects", options: projectOptions });
   }
-  if (selectableImportedSkins.length) {
-    skinGroups.push({
-      label: "Imported Skins",
-      options: selectableImportedSkins.map((skin) => ({
-        value: `import/${skin.name ?? "__untitled__"}`,
-        label: skin.name || "Untitled Imported Skin",
-      })),
-    });
-  }
-  if (newNames.length) {
-    skinGroups.push({
-      label: "New Skins ✨",
-      options: newNames.map((name) => ({
-        value: `custom/${name}`, label: `${name} ✨`,
-      })),
-    });
-  }
-  if (selectedModelType === "player" || customSkins[actualModel]?.length) {
-    skinGroups.push({
-      label: "Custom Skins",
-      options: !isManifestLoaded
-        ? [{ value: "__loading__", label: "Loading…", disabled: true }]
-        : (customSkins[actualModel] ?? [])
-          .filter((name) => !newNames.includes(name))
-          .map((name) => ({ value: `custom/${name}`, label: name })),
-    });
-  }
+  skinGroups.push(...skinOptionGroups(actualModel, {
+    importedSkins, manifest, isManifestLoaded, alwaysShowCustom: selectedModelType === "player",
+  }));
 
   return (
     <div className="Toolbar">
@@ -242,16 +210,18 @@ export default function WarriorSelector() {
             }}
             selectedLabel={(selectedSkinType === "local" ? getLocalProject(selectedSkin)?.name : selectedSkin) ?? undefined}
             renderLabel={renderSkinLabel}
-            options={[{ value: "", label: "Select a skin…" }, ...skinGroups]}
+            options={skinGroups}
             onChange={(value) => {
               const separator = value.indexOf("/");
-              if (value.slice(0, separator) === "local") {
-                void openLocalProject(value.slice(separator + 1));
+              const type = value.slice(0, separator);
+              const skin = value.slice(separator + 1);
+              if (type === "local") {
+                void openLocalProject(skin);
                 return;
               }
               cancelPendingProject();
-              setSelectedSkin(value ? value.slice(separator + 1) : null);
-              setSelectedSkinType(value ? value.slice(0, separator) : null);
+              setSelectedSkin(skin);
+              setSelectedSkinType(type);
             }}
           />
           <button

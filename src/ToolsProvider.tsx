@@ -30,7 +30,7 @@ import useEditorSession from "./useEditorSession";
 import useImageWorker from "./useImageWorker";
 import type { MaterialDefinition } from "./models";
 import useSettings from "./useSettings";
-import modelConfig from "./models";
+import modelConfig, { hasMetallicMap } from "./models";
 import {
   ImageError,
   imageTooBig,
@@ -92,11 +92,6 @@ function isEditableMaterial(material: MaterialDefinition | null | undefined) {
   );
 }
 
-// Determines if a material has a metallic component based on its properties.
-function materialHasMetallic(material: MaterialDefinition) {
-  return !(material.metallicFactor === 0 && material.roughnessFactor === 1);
-}
-
 function getExportCanvases(
   materialDefs: MaterialDefinition[],
   canvases: Record<string, CanvasInfo>,
@@ -118,7 +113,7 @@ function getExportCanvases(
         colorCanvas: requireReadyCanvas(
           canvases[`${material.name}:color:${frameIndex}:${sizeMultiplier}`]
         ),
-        metallicCanvas: materialHasMetallic(material)
+        metallicCanvas: hasMetallicMap(material)
           ? requireReadyCanvas(
               canvases[
                 `${material.name}:metallic:${frameIndex}:${sizeMultiplier}`
@@ -190,9 +185,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
     [baseSize, sizeMultiplier]
   );
 
-  const hasMetallic = !(
-    materialDef.metallicFactor === 0 && materialDef.roughnessFactor === 1
-  );
+  const hasMetallic = hasMetallicMap(materialDef);
 
   const [activeCanvasType, setActiveCanvasType] = useState("color");
 

@@ -11,6 +11,13 @@ interface EnvironmentContextValue {
   environmentImageUrl: string | null;
   renderMode: RenderMode;
   setRenderMode: (renderMode: RenderMode) => void;
+  /** The weapon players hold, or null for none. */
+  heldWeapon: string | null;
+  setHeldWeapon: (heldWeapon: string | null) => void;
+  /** The held weapon's skin, as its type and name like "custom/Name", or
+   * null for its default skin. */
+  heldWeaponSkin: string | null;
+  setHeldWeaponSkin: (heldWeaponSkin: string | null) => void;
 }
 
 const EnvironmentContext = React.createContext<EnvironmentContextValue | null>(
