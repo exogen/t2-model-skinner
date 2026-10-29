@@ -127,7 +127,9 @@ test("shared export supports a full transparent frame and requested encoding", a
   const frame = document.createElement("canvas");
   frame.width = 680;
   frame.height = 800;
-  frame.getContext("2d").fillRect(100, 100, 100, 100);
+  const readPixels = vi.spyOn(frame, "getContext").mockImplementation(() => {
+    throw new Error("An untrimmed export must not read or copy pixels.");
+  });
   let format, quality;
   frame.toBlob = (callback, type, q) => {
     format = type;
@@ -143,6 +145,7 @@ test("shared export supports a full transparent frame and requested encoding", a
     },
     { type: "image/webp", quality: 0.75, trim: false },
   );
+  expect(readPixels).not.toHaveBeenCalled();
   expect([format, quality, blob.type]).toEqual([
     "image/webp",
     0.75,

@@ -173,7 +173,7 @@ function EditorSession({
     null,
   );
   const [resolutionError, setResolutionError] = useState<string | null>(null);
-  const resolveSize = useAsyncTask();
+  const resolveSize = useAsyncTask(false, { captureErrors: true });
   const awaitingLocalProject = source.skinType === "local" && !project;
   useEffect(() => {
     if (project || awaitingLocalProject) return;

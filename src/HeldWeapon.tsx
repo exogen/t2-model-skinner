@@ -1,3 +1,4 @@
+import { captureActivity } from "./captureActivity";
 import { useEffect, useRef, useState } from "react";
 import { createMaterialBinding } from "./materialBinding";
 import modelConfig, {
@@ -48,10 +49,15 @@ export default function HeldWeapon({
     let stale = false;
     let mounted: MountedModel | null = null;
     let created: Binding[] = [];
+    const activity = captureActivity.register(`Held weapon ${weapon}`);
+    activity.update(1);
     viewer
       .mount(getLocalAssetUrl(basePath, `${weapon}.glb`), "Mount0")
       .then((model) => {
-        if (!model) return;
+        if (!model) {
+          activity.update(0);
+          return;
+        }
         if (stale) {
           viewer.unmount(model);
           return;
@@ -69,10 +75,15 @@ export default function HeldWeapon({
         });
         bindingsRef.current = created;
         setBindings(created);
+        activity.update(0);
       })
-      .catch((error: unknown) => console.error("Unable to load weapon", error));
+      .catch((error: unknown) => {
+        activity.update(0, error);
+        console.error("Unable to load weapon", error);
+      });
     return () => {
       stale = true;
+      activity.dispose();
       created.forEach((binding) => binding.dispose());
       bindingsRef.current = [];
       setBindings(null);
@@ -127,46 +138,51 @@ export default function HeldWeapon({
       }
     }
     const definitions = partMaterials(weapon);
-    bindings.forEach((binding, index) => {
-      const definition = definitions[index];
-      if (!definition) return;
-      const file = definition.file ?? definition.name;
-      // A skin can leave out a texture, like the disc's case: the default
-      // shows instead. Some, like the laser rifle's lights, have no default,
-      // and then the material shows as it came.
-      const load = async () => {
-        const candidates = Array.from(
-          new Set([chosen[file], defaults[file]]),
-        ).filter((urls) => urls != null);
-        for (let attempt = 0; attempt < candidates.length; attempt++) {
-          try {
-            return await loadTextures(definition, candidates[attempt]);
-          } catch (error) {
-            if (
-              attempt === candidates.length - 1 &&
-              definition.hasDefault !== false
-            )
-              throw error;
+    const activity = captureActivity.register(`Held weapon skin ${weapon}`);
+    activity.update(1);
+    void Promise.all(
+      bindings.map(async (binding, index) => {
+        const definition = definitions[index];
+        if (!definition) return;
+        const file = definition.file ?? definition.name;
+        // A skin can leave out a texture, like the disc's case: the default
+        // shows instead. Some, like the laser rifle's lights, have no default,
+        // and then the material shows as it came.
+        const load = async () => {
+          const candidates = Array.from(
+            new Set([chosen[file], defaults[file]]),
+          ).filter((urls) => urls != null);
+          for (let attempt = 0; attempt < candidates.length; attempt++) {
+            try {
+              return await loadTextures(definition, candidates[attempt]);
+            } catch (error) {
+              if (
+                attempt === candidates.length - 1 &&
+                definition.hasDefault !== false
+              )
+                throw error;
+            }
           }
-        }
-        return null;
-      };
-      load()
-        .then((textures) => {
-          if (stale) return;
-          if (textures)
-            binding.setTextures({
-              ...textures,
-              fallbackUrl: `${basePath}/white.png`,
-            });
-          else binding.clearTextures();
-        })
-        .catch((error: unknown) =>
-          console.error("Unable to load weapon texture", error),
-        );
-    });
+          return null;
+        };
+        const textures = await load();
+        if (stale) return;
+        if (textures)
+          binding.setTextures({
+            ...textures,
+            fallbackUrl: `${basePath}/white.png`,
+          });
+        else binding.clearTextures();
+      }),
+    )
+      .then(() => activity.update(0))
+      .catch((error: unknown) => {
+        activity.update(0, error);
+        console.error("Unable to load weapon texture", error);
+      });
     return () => {
       stale = true;
+      activity.dispose();
     };
   }, [
     bindings,
@@ -186,18 +202,23 @@ export default function HeldWeapon({
   useEffect(() => {
     if (!arm) return;
     let stale = false;
+    const activity = captureActivity.register(`Held weapon pose ${weapon}`);
+    activity.update(1);
     loadArmPoses(getLocalAssetUrl(basePath, `${actualModel}.anim.glb`))
       .then((poses) => {
         if (!stale) viewer.setArmPose(poses.get(arm) ?? null);
+        activity.update(0);
       })
-      .catch((error: unknown) =>
-        console.error("Unable to load arm pose", error),
-      );
+      .catch((error: unknown) => {
+        activity.update(0, error);
+        console.error("Unable to load arm pose", error);
+      });
     return () => {
       stale = true;
+      activity.dispose();
       viewer.setArmPose(null);
     };
-  }, [viewer, scene, actualModel, arm, basePath]);
+  }, [viewer, scene, actualModel, arm, basePath, weapon]);
 
   useEffect(() => {
     slowModeRef.current = slowModeEnabled;

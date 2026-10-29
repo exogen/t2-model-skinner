@@ -277,9 +277,6 @@ export function createMaterialBinding({
       disposed = true;
       activity.dispose();
       clearTextures();
-      delete errors.color;
-      delete errors.metallic;
-      publish();
       viewer.invalidate();
     },
   };

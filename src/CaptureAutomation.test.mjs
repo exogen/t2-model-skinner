@@ -1,6 +1,14 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { createCaptureApi } from "./CaptureAutomation";
 import { captureActivity } from "./captureActivity";
+import { exportModelImage } from "./modelImage";
+
+vi.mock("./modelImage", async (original) => ({
+  ...(await original()),
+  exportModelImage: vi.fn(),
+}));
+
+afterEach(() => vi.clearAllMocks());
 
 function harness() {
   const warrior = {
@@ -14,9 +22,15 @@ function harness() {
     setSelectedSkin: vi.fn(),
     setSelectedModel: vi.fn(),
   };
+  let angle = 17;
+  const getCaptureCamera = () => ({ width: 680, height: 800, theta: angle });
   const viewer = {
     animationSettled: true,
-    getCaptureCamera: () => ({ width: 680, height: 800 }),
+    getCaptureCamera,
+    setCaptureCamera: vi.fn((options) => {
+      if (options?.orbit) angle = Number.parseFloat(options.orbit);
+      return getCaptureCamera();
+    }),
     captureFrame: vi.fn(),
   };
   const live = {
@@ -84,4 +98,54 @@ test("failed assets reject an export and a changed session cannot capture", asyn
   close();
   await expect(pending).rejects.toThrow("selection changed");
   expect(viewer.captureFrame).not.toHaveBeenCalled();
+});
+
+test("concurrent exports keep their requested camera until each image is encoded", async () => {
+  const { api, viewer } = harness();
+  const frame = Promise.withResolvers();
+  exportModelImage.mockImplementation(async () => {
+    await frame.promise;
+    return new globalThis.Blob([String(viewer.getCaptureCamera().theta)]);
+  });
+  const first = api.exportImage({ camera: { orbit: "0deg 75deg 105%" } });
+  const second = api.exportImage({ camera: { orbit: "90deg 75deg 105%" } });
+  await vi.waitFor(() => expect(exportModelImage).toHaveBeenCalledOnce());
+  expect(viewer.setCaptureCamera).toHaveBeenCalledTimes(1);
+  frame.resolve();
+  const images = await Promise.all([first, second]);
+  expect(images.map((image) => image.camera.theta)).toEqual([0, 90]);
+  expect(images[0].dataUrl).not.toBe(images[1].dataUrl);
+});
+
+test("camera changes wait for an active export", async () => {
+  const { api, viewer } = harness();
+  const frame = Promise.withResolvers();
+  exportModelImage.mockImplementation(async () => {
+    await frame.promise;
+    return new globalThis.Blob(["image"]);
+  });
+  const image = api.exportImage({ camera: { orbit: "37deg 75deg 105%" } });
+  await vi.waitFor(() => expect(exportModelImage).toHaveBeenCalledOnce());
+  const camera = api.setCamera({ orbit: "90deg 75deg 105%" });
+  expect(viewer.setCaptureCamera).toHaveBeenCalledTimes(1);
+  frame.resolve();
+  expect((await image).camera.theta).toBe(37);
+  expect((await camera).theta).toBe(90);
+});
+
+test("a failed export releases the camera for subsequent requests", async () => {
+  const { api } = harness();
+  exportModelImage.mockRejectedValueOnce(new Error("encoding failed"));
+  exportModelImage.mockResolvedValueOnce(new globalThis.Blob(["next image"]));
+  const first = api.exportImage();
+  const next = api.exportImage();
+  await expect(first).rejects.toThrow("encoding failed");
+  await expect(next).resolves.toHaveProperty("dataUrl");
+});
+
+test("an export without camera overrides preserves the current view", async () => {
+  const { api, viewer } = harness();
+  exportModelImage.mockResolvedValueOnce(new globalThis.Blob(["image"]));
+  expect((await api.exportImage()).camera.theta).toBe(17);
+  expect(viewer.setCaptureCamera).not.toHaveBeenCalled();
 });

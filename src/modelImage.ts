@@ -112,10 +112,8 @@ export async function exportModelImage(
   } = {},
 ) {
   const frame = await viewer.captureFrame({ background: false });
-  const trimmed = trimTransparent(frame, 8);
-  if (!trimmed)
+  const image = trim ? trimTransparent(frame, 8) : frame;
+  if (!image)
     throw new Error("The model is out of view, so there is nothing to save.");
-  const image = trim ? trimmed : frame;
-  const blob = await canvasBlob(image, type, quality);
-  return blob;
+  return canvasBlob(image, type, quality);
 }

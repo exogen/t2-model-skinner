@@ -11,8 +11,12 @@ interface Scope {
 // Work belongs to the mounted owner and is aborted on unmount. With `latest`,
 // starting a run aborts the previous ones; otherwise independent runs (like
 // separate edits in the same session) may all complete. `cancel` aborts every
-// pending run.
-export default function useAsyncTask(latest = false) {
+// pending run. Only asset initialization should retain capture errors: a failed
+// command or import can leave the currently displayed document unchanged.
+export default function useAsyncTask(
+  latest = false,
+  { captureErrors = false }: { captureErrors?: boolean } = {},
+) {
   const scopeRef = useRef<Scope | null>(null);
 
   useLayoutEffect(() => {
@@ -28,8 +32,6 @@ export default function useAsyncTask(latest = false) {
       scope.activity.dispose();
       scope.pending.forEach((controller) => controller.abort());
       scope.pending.clear();
-      scope.error = null;
-      scope.activity.update(0);
     };
   }, []);
 
@@ -60,7 +62,7 @@ export default function useAsyncTask(latest = false) {
         return true;
       } catch (error) {
         if (!signal.aborted) {
-          scope.error = error;
+          if (captureErrors) scope.error = error;
           throw error;
         }
         return false;
@@ -79,5 +81,5 @@ export default function useAsyncTask(latest = false) {
       scope.activity.update(0);
     };
     return run;
-  }, [latest]);
+  }, [latest, captureErrors]);
 }

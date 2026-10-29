@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { getEnv } from "fabric";
 import { expect, test, vi } from "vitest";
 import useAsyncTask from "./useAsyncTask";
+import { captureActivity } from "./captureActivity";
 
 function deferred() {
   let resolve, reject;
@@ -13,12 +14,12 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-async function mount(latest = true) {
+async function mount(latest = true, captureErrors = false) {
   const host = getEnv().document.createElement("div");
   const root = createRoot(host);
   let run;
   function Harness() {
-    const task = useAsyncTask(latest);
+    const task = useAsyncTask(latest, { captureErrors });
     useLayoutEffect(() => {
       run = task;
     }, [task]);
@@ -138,4 +139,39 @@ test("unmount aborts work even after cancellation and a later request", async ()
   expect(commit).not.toHaveBeenCalled();
   expect(dispose).toHaveBeenCalledExactlyOnceWith("late");
   expect(await owner.run(async () => "unmounted", commit)).toBe(false);
+});
+
+test("a failed operation leaves the unchanged document ready for capture", async () => {
+  const owner = await mount();
+  const before = captureActivity.snapshot();
+  try {
+    const result = deferred();
+    const loading = owner.run(() => result.promise, vi.fn());
+    expect(captureActivity.snapshot().pending).toBe(before.pending + 1);
+    result.reject(new Error("invalid archive"));
+    await expect(loading).rejects.toThrow("invalid archive");
+    expect(captureActivity.snapshot().pending).toBe(before.pending);
+    expect(captureActivity.snapshot().errors).toEqual(before.errors);
+  } finally {
+    await owner.close();
+  }
+});
+
+test("failed asset initialization still prevents capture until retried", async () => {
+  const owner = await mount(true, true);
+  const before = captureActivity.snapshot();
+  try {
+    await expect(
+      owner.run(async () => {
+        throw new Error("texture failed");
+      }, vi.fn()),
+    ).rejects.toThrow("texture failed");
+    expect(captureActivity.snapshot().errors).toContain(
+      "Editor: texture failed",
+    );
+    await owner.run(async () => "ready", vi.fn());
+    expect(captureActivity.snapshot().errors).toEqual(before.errors);
+  } finally {
+    await owner.close();
+  }
 });

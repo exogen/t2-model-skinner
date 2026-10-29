@@ -50,6 +50,17 @@ export function createCaptureApi(
   live: { current: LiveState | null },
   isClosed: () => boolean,
 ) {
+  // Camera changes and exports share the viewer; keep each requested view
+  // in place until its image and metadata have been collected.
+  let cameraTask: Promise<void> = Promise.resolve();
+  function withCamera<T>(operation: () => Promise<T>): Promise<T> {
+    const result = cameraTask.then(operation);
+    cameraTask = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
   function getLive() {
     if (isClosed() || !live.current)
       throw new Error(
@@ -164,36 +175,40 @@ export function createCaptureApi(
       fitCurrentPose = false,
       expected: ExpectedSelection = {},
     ) {
-      await whenReady(expected);
-      return getLive().viewer!.setCaptureCamera(camera, fitCurrentPose);
+      return withCamera(async () => {
+        await whenReady(expected);
+        return getLive().viewer!.setCaptureCamera(camera, fitCurrentPose);
+      });
     },
     async exportImage(options: ExportOptions = {}) {
-      const state = await whenReady(options);
-      const viewer = getLive().viewer!;
-      // The mine's deployed pose extends past its original bounds. Other models
-      // keep the historical presets unless the caller explicitly requests a fit.
-      viewer.setCaptureCamera(
-        options.camera,
-        options.fitCurrentPose ?? state.actualModel === "mine",
-      );
-      const blob = await exportModelImage(viewer, {
-        type: options.type ?? "image/webp",
-        quality: options.quality ?? 0.75,
-        trim: options.trim ?? false,
+      return withCamera(async () => {
+        const state = await whenReady(options);
+        const viewer = getLive().viewer!;
+        // The mine's deployed pose extends past its original bounds. Other models
+        // keep their current view unless the caller requests an override or fit.
+        const fitCurrentPose =
+          options.fitCurrentPose ?? state.actualModel === "mine";
+        if (options.camera || fitCurrentPose)
+          viewer.setCaptureCamera(options.camera, fitCurrentPose);
+        const blob = await exportModelImage(viewer, {
+          type: options.type ?? "image/webp",
+          quality: options.quality ?? 0.75,
+          trim: options.trim ?? false,
+        });
+        assertSelection({ ...options, revision: state.revision });
+        if (!getState().ready)
+          throw new Error(
+            "The skin changed while its image was being captured. Retry the export.",
+          );
+        const dataUrl = await blobToDataUrl(blob);
+        assertSelection({ ...options, revision: state.revision });
+        return {
+          dataUrl,
+          revision: state.revision,
+          model: state.model,
+          camera: viewer.getCaptureCamera(),
+        };
       });
-      assertSelection({ ...options, revision: state.revision });
-      if (!getState().ready)
-        throw new Error(
-          "The skin changed while its image was being captured. Retry the export.",
-        );
-      const dataUrl = await blobToDataUrl(blob);
-      assertSelection({ ...options, revision: state.revision });
-      return {
-        dataUrl,
-        revision: state.revision,
-        model: state.model,
-        camera: viewer.getCaptureCamera(),
-      };
     },
   };
 }

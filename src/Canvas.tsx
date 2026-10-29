@@ -126,7 +126,7 @@ export default function Canvas({
   );
   const [loadError, setLoadError] = useState<string | null>(null);
   const { loadImage } = useImageLoader();
-  const initialize = useAsyncTask(true);
+  const initialize = useAsyncTask(true, { captureErrors: true });
   useEffect(() => {
     handleChangeRef.current = onChange;
   }, [onChange]);

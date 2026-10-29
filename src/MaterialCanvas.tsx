@@ -28,7 +28,7 @@ export default function MaterialCanvas({
     convertArrayBufferAlphaToGrayscale,
     convertGrayscaleImageUrlToMetallicRoughness,
   } = useImageWorker();
-  const updatePreview = useAsyncTask(true);
+  const updatePreview = useAsyncTask(true, { captureErrors: true });
   const [previewError, setPreviewError] = useState<string | null>(null);
   const file = materialDef.file ?? materialDef.name;
   const ownsTexture = isTextureSourceMaterial(materialDef, actualModel);
