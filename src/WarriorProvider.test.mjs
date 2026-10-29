@@ -130,7 +130,9 @@ test.each(["default", "custom", "project", "import", null])(
       warrior.setSelectedSkinType(type);
     });
     expect(latestUrl().searchParams.has("p")).toBe(false);
-    expect(latestUrl().searchParams.get("s")).toBe(name);
+    expect(latestUrl().searchParams.get("s")).toBe(
+      type === "default" || type === "custom" ? name : null,
+    );
   },
 );
 
@@ -192,3 +194,38 @@ test("a bioderm skin that isn't available falls back to the Horde skin's texture
     base: ["/textures/Horde.mbioderm.png"],
   });
 });
+
+test("capture mode reads the initial selection without navigating on changes", async () => {
+  await mount({ capture: "1", m: "mmale", s: "Blood Eagle" });
+  expect(warrior.selectedModel).toBe("mmale");
+  expect(warrior.selectedSkin).toBe("Blood Eagle");
+  expect(routing.router.replace).not.toHaveBeenCalled();
+  await act(async () => {
+    warrior.setSelectedModel("lmale");
+    warrior.setSelectedSkinType("import");
+    warrior.setSelectedSkin("Skelebro");
+  });
+  expect(warrior.selectedModel).toBe("lmale");
+  expect(warrior.selectedSkin).toBe("Skelebro");
+  expect(routing.router.replace).not.toHaveBeenCalled();
+});
+
+test("normal editor URL updates still run when capture mode is disabled", async () => {
+  await mount({ capture: "0", m: "lmale" });
+  await act(async () => warrior.setSelectedSkin("Changed skin"));
+  expect(latestUrl().searchParams.get("s")).toBe("Changed skin");
+});
+
+test.each(["import", "project"])(
+  "%s skin names are not written as remotely loadable skins",
+  async (type) => {
+    await mount({ m: "lmale", s: "Blood Eagle" });
+    await act(async () => {
+      warrior.setSelectedModel("mmale");
+      warrior.setSelectedSkin("Skelebro");
+      warrior.setSelectedSkinType(type);
+    });
+    expect(latestUrl().searchParams.get("m")).toBe("mmale");
+    expect(latestUrl().searchParams.has("s")).toBe(false);
+  },
+);

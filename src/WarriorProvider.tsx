@@ -289,7 +289,9 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (!searchParamsInitialized) return;
+    // Capture selects models and imported skins through the API. Updating the
+    // route here can trigger a full navigation if a page-data request fails.
+    if (!searchParamsInitialized || searchParams.get("capture") === "1") return;
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set("m", selectedModel);
     if (selectedSkinType === "local" && selectedSkin) {
@@ -297,7 +299,11 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       newSearchParams.delete("s");
     } else {
       newSearchParams.delete("p");
-      if (selectedSkin) newSearchParams.set("s", selectedSkin);
+      if (
+        selectedSkin &&
+        (selectedSkinType === "default" || selectedSkinType === "custom")
+      )
+        newSearchParams.set("s", selectedSkin);
       else newSearchParams.delete("s");
     }
     if (newSearchParams.toString() !== searchParams.toString()) {
