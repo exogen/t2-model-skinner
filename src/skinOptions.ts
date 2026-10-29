@@ -17,11 +17,12 @@ export function skinOptionGroups(
     manifest: Manifest;
     isManifestLoaded: boolean;
     alwaysShowCustom?: boolean;
-  }
+  },
 ) {
   const groups: SelectGroup[] = [];
-  const imported = Array.from(importedSkins.get(model)?.values() ?? [])
-    .filter((skin) => skin.isComplete);
+  const imported = Array.from(importedSkins.get(model)?.values() ?? []).filter(
+    (skin) => skin.isComplete,
+  );
   const newNames = newSkins[model] ?? [];
   if (imported.length) {
     groups.push({
@@ -36,7 +37,8 @@ export function skinOptionGroups(
     groups.push({
       label: "New Skins ✨",
       options: newNames.map((name) => ({
-        value: `custom/${name}`, label: `${name} ✨`,
+        value: `custom/${name}`,
+        label: `${name} ✨`,
       })),
     });
   }
@@ -46,8 +48,8 @@ export function skinOptionGroups(
       options: !isManifestLoaded
         ? [{ value: "__loading__", label: "Loading…", disabled: true }]
         : (customSkins[model] ?? [])
-          .filter((name) => !newNames.includes(name))
-          .map((name) => ({ value: `custom/${name}`, label: name })),
+            .filter((name) => !newNames.includes(name))
+            .map((name) => ({ value: `custom/${name}`, label: name })),
     });
   }
   return groups;

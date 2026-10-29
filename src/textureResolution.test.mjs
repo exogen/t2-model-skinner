@@ -4,7 +4,14 @@ import { ActiveSelection, config, getEnv } from "fabric";
 import { PNG } from "pngjs";
 import JSZip from "jszip";
 import {
-  act, archive, canvas, downloads, editor, image, input, saved,
+  act,
+  archive,
+  canvas,
+  downloads,
+  editor,
+  image,
+  input,
+  saved,
 } from "./skinProjectTestUtils.mjs";
 import { readSkinProjectZip } from "./skinProjectUtils";
 import { detectTextureSizeMultiplier } from "./textureResolution";
@@ -24,56 +31,98 @@ function texture(width, height = width) {
   context.fillRect(321, 234, 1, 1);
   const url = element.toDataURL();
   const bytes = Buffer.from(url.split(",")[1], "base64");
-  return { url, bytes, buffer: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
+  return {
+    url,
+    bytes,
+    buffer: bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ),
+  };
 }
 
 async function ready(app) {
-  await vi.waitFor(async () => {
-    await act(async () => {
-      await new Promise((resolve) => window.setTimeout(resolve, 5));
-    });
-    expect(Object.values(app.canvases).length).toBeGreaterThan(0);
-    expect(Object.values(app.canvases).every(({ status }) => status === "ready")).toBe(true);
-  }, { timeout: 5000 });
+  await vi.waitFor(
+    async () => {
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 5));
+      });
+      expect(Object.values(app.canvases).length).toBeGreaterThan(0);
+      expect(
+        Object.values(app.canvases).every(({ status }) => status === "ready"),
+      ).toBe(true);
+    },
+    { timeout: 5000 },
+  );
 }
 
 function expectDisplaySize(app, width = 512, height = width) {
   const current = app.canvases[app.tools.activeCanvas].canvas;
-  const padding = parseFloat(app.host.querySelector('.CanvasContainer[data-active="true"]').style.padding);
-  for (const element of [current.lowerCanvasEl, current.upperCanvasEl, current.wrapperEl]) {
+  const padding = parseFloat(
+    app.host.querySelector('.CanvasContainer[data-active="true"]').style
+      .padding,
+  );
+  for (const element of [
+    current.lowerCanvasEl,
+    current.upperCanvasEl,
+    current.wrapperEl,
+  ]) {
     expect(parseFloat(element.style.width) + padding * 2).toBe(width + 128);
     expect(parseFloat(element.style.height) + padding * 2).toBe(height + 128);
   }
 }
 
-test.each([1, 2])("selected %ix textures retain their pixels at the standard display size", async (scale) => {
-  const original = texture(512 * scale);
-  const app = await editor("lfemale", {
-    realCanvases: true,
-    initialImageUrls: { base: [original.url] },
-  });
-  try {
-    expect(app.tools.sizeMultiplier).toBe(scale);
-    expectDisplaySize(app);
-    expect(app.canvases[app.tools.activeCanvas].canvas.item(0).scaleX).toBe(1);
-    await act(async () => app.tools.exportSkin({ name: "Selected", format: "png" }));
-    const exported = PNG.sync.read(Buffer.from(downloads.at(-1).data.split(",")[1], "base64"));
-    expect([exported.width, exported.height]).toEqual([512 * scale, 512 * scale]);
-    expect(exported.data.equals(PNG.sync.read(original.bytes).data)).toBe(true);
-    const preview = PNG.sync.read(Buffer.from(app.skin.getSkinImages("base").colorImageUrl[0].split(",")[1], "base64"));
-    expect(preview.width).toBe(512 * scale);
-  } finally {
-    await app.close();
-  }
-});
+test.each([1, 2])(
+  "selected %ix textures retain their pixels at the standard display size",
+  async (scale) => {
+    const original = texture(512 * scale);
+    const app = await editor("lfemale", {
+      realCanvases: true,
+      initialImageUrls: { base: [original.url] },
+    });
+    try {
+      expect(app.tools.sizeMultiplier).toBe(scale);
+      expectDisplaySize(app);
+      expect(app.canvases[app.tools.activeCanvas].canvas.item(0).scaleX).toBe(
+        1,
+      );
+      await act(async () =>
+        app.tools.exportSkin({ name: "Selected", format: "png" }),
+      );
+      const exported = PNG.sync.read(
+        Buffer.from(downloads.at(-1).data.split(",")[1], "base64"),
+      );
+      expect([exported.width, exported.height]).toEqual([
+        512 * scale,
+        512 * scale,
+      ]);
+      expect(exported.data.equals(PNG.sync.read(original.bytes).data)).toBe(
+        true,
+      );
+      const preview = PNG.sync.read(
+        Buffer.from(
+          app.skin.getSkinImages("base").colorImageUrl[0].split(",")[1],
+          "base64",
+        ),
+      );
+      expect(preview.width).toBe(512 * scale);
+    } finally {
+      await app.close();
+    }
+  },
+);
 
 test("Load a Skin detects an HD PNG, preserves project saves, and resets on an SD selection", async () => {
   const original = texture(1024);
   const app = await editor("lfemale", { realCanvases: true });
   try {
-    await act(async () => app.tools.loadSkinFiles([
-      new window.File([original.bytes], "Aurora.lfemale.png", { type: "image/png" }),
-    ]));
+    await act(async () =>
+      app.tools.loadSkinFiles([
+        new window.File([original.bytes], "Aurora.lfemale.png", {
+          type: "image/png",
+        }),
+      ]),
+    );
     await ready(app);
     expect(app.warrior.selectedSkinType).toBe("import");
     expect(app.tools.sizeMultiplier).toBe(2);
@@ -85,13 +134,21 @@ test("Load a Skin detects an HD PNG, preserves project saves, and resets on an S
     await app.load(bytes);
     expect(app.tools.sizeMultiplier).toBe(2);
     expectDisplaySize(app);
-    await act(async () => app.tools.exportSkin({ name: "Aurora", format: "vl2" }));
-    const exportedZip = await JSZip.loadAsync(await new Promise((resolve) => {
-      const reader = new window.FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.readAsArrayBuffer(downloads.at(-1).data);
-    }));
-    const png = PNG.sync.read(await exportedZip.file("textures/skins/Aurora.lfemale.png").async("nodebuffer"));
+    await act(async () =>
+      app.tools.exportSkin({ name: "Aurora", format: "vl2" }),
+    );
+    const exportedZip = await JSZip.loadAsync(
+      await new Promise((resolve) => {
+        const reader = new window.FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsArrayBuffer(downloads.at(-1).data);
+      }),
+    );
+    const png = PNG.sync.read(
+      await exportedZip
+        .file("textures/skins/Aurora.lfemale.png")
+        .async("nodebuffer"),
+    );
     expect(png.data.equals(PNG.sync.read(original.bytes).data)).toBe(true);
     await act(async () => {
       app.warrior.setSelectedSkinType("custom");
@@ -111,19 +168,34 @@ test("HD projects keep layer coordinates and map displayed pointer positions to 
   source.add(image({ left: 864, top: 721 }));
   const app = await editor("lfemale", { realCanvases: true });
   try {
-    await app.load(await archive([input("base", source, null, [1024, 1024])], "lfemale"));
+    await app.load(
+      await archive([input("base", source, null, [1024, 1024])], "lfemale"),
+    );
     expect(app.tools.sizeMultiplier).toBe(2);
     expectDisplaySize(app);
     const current = app.canvases[app.tools.activeCanvas].canvas;
     expect(current.item(0).left).toBe(864);
     expect(current.item(0).top).toBe(721);
-    const rect = { left: 100, top: 200, width: 576, height: 576, right: 676, bottom: 776 };
-    vi.spyOn(current.upperCanvasEl, "getBoundingClientRect").mockReturnValue(rect);
-    vi.spyOn(current.lowerCanvasEl, "getBoundingClientRect").mockReturnValue(rect);
-    const point = current.getScenePoint(new window.MouseEvent("mousemove", {
-      clientX: 100 + 32 + 100,
-      clientY: 200 + 32 + 150,
-    }));
+    const rect = {
+      left: 100,
+      top: 200,
+      width: 576,
+      height: 576,
+      right: 676,
+      bottom: 776,
+    };
+    vi.spyOn(current.upperCanvasEl, "getBoundingClientRect").mockReturnValue(
+      rect,
+    );
+    vi.spyOn(current.lowerCanvasEl, "getBoundingClientRect").mockReturnValue(
+      rect,
+    );
+    const point = current.getScenePoint(
+      new window.MouseEvent("mousemove", {
+        clientX: 100 + 32 + 100,
+        clientY: 200 + 32 + 150,
+      }),
+    );
     expect([point.x, point.y]).toEqual([64 + 200, 64 + 300]);
   } finally {
     await app.close();
@@ -133,18 +205,23 @@ test("HD projects keep layer coordinates and map displayed pointer positions to 
 
 test("late HD detection cannot resize a newer skin or discard its edits", async () => {
   let resolve;
-  const slow = new Promise((done) => { resolve = done; });
+  const slow = new Promise((done) => {
+    resolve = done;
+  });
   const standard = texture(512);
   const app = await editor("lmale", {
     realCanvases: true,
     initialImageUrls: { base: ["slow.png"] },
-    imageLoad: (url) => url === "slow.png" ? slow : Promise.resolve(standard.buffer),
+    imageLoad: (url) =>
+      url === "slow.png" ? slow : Promise.resolve(standard.buffer),
     waitForInitialCanvases: false,
   });
   try {
     expect(app.canvases[app.tools.activeCanvas].status).toBe("loading");
     await expect(app.tools.exportSkinProject("unfinished")).rejects.toThrow();
-    await act(async () => app.warrior.setSkinImageUrls({ base: ["standard.png"] }));
+    await act(async () =>
+      app.warrior.setSkinImageUrls({ base: ["standard.png"] }),
+    );
     await ready(app);
     const current = app.canvases[app.tools.activeCanvas].canvas;
     await act(async () => current.add(image({ left: 444 })));
@@ -160,24 +237,56 @@ test("late HD detection cannot resize a newer skin or discard its edits", async 
 test("resolution detection uses material dimensions, all frames, and fallback textures", async () => {
   const hd = texture(1024, 512);
   const load = vi.fn(async () => hd.buffer);
-  expect(await detectTextureSizeMultiplier("vehicle_grav_scout", {
-    Vehicle_grav_scout: ["body.png"],
-  }, {}, load)).toBe(2);
-  expect(await detectTextureSizeMultiplier("disc", {
-    dcase00: ["sd.png", "hd.png"],
-  }, {}, async (url) => texture(url === "hd.png" ? 512 : 256).buffer)).toBe(2);
-  expect(await detectTextureSizeMultiplier("shocklance", {
-    weapon_shocklance: ["Neon/weapon_shocklance.png"],
-  }, {}, async () => texture(512, 512).buffer)).toBe(2);
-  expect(await detectTextureSizeMultiplier("lmale", { base: ["missing.png"] }, {
-    base: ["fallback.png"],
-  }, async (url) => {
-    if (url === "missing.png") throw new Error("404");
-    return texture(1024).buffer;
-  })).toBe(2);
+  expect(
+    await detectTextureSizeMultiplier(
+      "vehicle_grav_scout",
+      {
+        Vehicle_grav_scout: ["body.png"],
+      },
+      {},
+      load,
+    ),
+  ).toBe(2);
+  expect(
+    await detectTextureSizeMultiplier(
+      "disc",
+      {
+        dcase00: ["sd.png", "hd.png"],
+      },
+      {},
+      async (url) => texture(url === "hd.png" ? 512 : 256).buffer,
+    ),
+  ).toBe(2);
+  expect(
+    await detectTextureSizeMultiplier(
+      "shocklance",
+      {
+        weapon_shocklance: ["Neon/weapon_shocklance.png"],
+      },
+      {},
+      async () => texture(512, 512).buffer,
+    ),
+  ).toBe(2);
+  expect(
+    await detectTextureSizeMultiplier(
+      "lmale",
+      { base: ["missing.png"] },
+      {
+        base: ["fallback.png"],
+      },
+      async (url) => {
+        if (url === "missing.png") throw new Error("404");
+        return texture(1024).buffer;
+      },
+    ),
+  ).toBe(2);
 });
 
-test.each([[1536, 1536], [1024, 768], [4096, 4096]])(
+test.each([
+  [1536, 1536],
+  [1024, 768],
+  [4096, 4096],
+])(
   "oversized %i × %i textures fail visibly instead of exporting at 1×",
   async (width, height) => {
     // Detection only needs a header; an unsupported source must never decode.
@@ -191,14 +300,16 @@ test.each([[1536, 1536], [1024, 768], [4096, 4096]])(
       imageLoad: async () => header,
     });
     try {
-      expect(app.host.textContent).toContain(`Unsupported texture size: ${width} × ${height}`);
+      expect(app.host.textContent).toContain(
+        `Unsupported texture size: ${width} × ${height}`,
+      );
       expect(app.canvases[app.tools.activeCanvas].status).toBe("error");
       await expect(app.tools.exportSkin({ format: "png" })).rejects.toThrow();
       expect(downloads).toHaveLength(0);
     } finally {
       await app.close();
     }
-  }
+  },
 );
 
 test("2× selection handles stay usable on Retina displays and after undo", async () => {
@@ -213,7 +324,8 @@ test("2× selection handles stay usable on Retina displays and after undo", asyn
     const current = app.canvases[app.tools.activeCanvas].canvas;
     // HD already supplies at least two source pixels per CSS pixel.
     expect(current.lowerCanvasEl.width).toBe(512 * scale + 128);
-    const first = image(), second = image({ left: 300 });
+    const first = image(),
+      second = image({ left: 300 });
     await act(async () => {
       current.add(first, second);
       current.setActiveObject(first);
@@ -226,7 +338,9 @@ test("2× selection handles stay usable on Retina displays and after undo", asyn
     };
     expectControls(first);
     await act(async () => {
-      current.setActiveObject(new ActiveSelection([first, second], { canvas: current }));
+      current.setActiveObject(
+        new ActiveSelection([first, second], { canvas: current }),
+      );
     });
     expectControls(current.getActiveObject());
     await act(async () => app.tools.undo());

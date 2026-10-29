@@ -6,7 +6,9 @@ import { loadPlayer } from "./mocap/playerTestUtils.mjs";
 
 function meshes(root) {
   const found = [];
-  root.traverse((object) => { if (object.isMesh) found.push(object); });
+  root.traverse((object) => {
+    if (object.isMesh) found.push(object);
+  });
   return found;
 }
 
@@ -27,16 +29,24 @@ test("a real player's Random Colors copy gives every triangle one color and keep
     const copy = randomColorGeometry(geometry);
     expect(copy.index).toBeNull();
     expect(copy.attributes.position.count).toBe(geometry.index.count);
-    expect(copy.attributes.skinIndex.count).toBe(copy.attributes.position.count);
-    expect(copy.attributes.skinWeight.count).toBe(copy.attributes.position.count);
+    expect(copy.attributes.skinIndex.count).toBe(
+      copy.attributes.position.count,
+    );
+    expect(copy.attributes.skinWeight.count).toBe(
+      copy.attributes.position.count,
+    );
     expect(copy.groups).toEqual(geometry.groups);
     const colors = copy.attributes.color;
     const first = new Color();
     const corner = new Color();
     for (let vertex = 0; vertex < colors.count; vertex += 3) {
       first.fromBufferAttribute(colors, vertex);
-      expect(corner.fromBufferAttribute(colors, vertex + 1).equals(first)).toBe(true);
-      expect(corner.fromBufferAttribute(colors, vertex + 2).equals(first)).toBe(true);
+      expect(corner.fromBufferAttribute(colors, vertex + 1).equals(first)).toBe(
+        true,
+      );
+      expect(corner.fromBufferAttribute(colors, vertex + 2).equals(first)).toBe(
+        true,
+      );
     }
     // The model's own geometry is left as it was.
     expect(geometry.attributes.color).toBe(ownColors);
@@ -47,8 +57,11 @@ test("a real player's Random Colors copy gives every triangle one color and keep
 
 function renderModeHarness(scene) {
   return Object.assign(Object.create(Viewer.prototype), {
-    scene: new Scene(), invalidate: vi.fn(), renderMode: "skin",
-    model: { scene }, randomColorGeometries: new Map(),
+    scene: new Scene(),
+    invalidate: vi.fn(),
+    renderMode: "skin",
+    model: { scene },
+    randomColorGeometries: new Map(),
     randomColorMaterial: new MeshStandardMaterial({ vertexColors: true }),
     wireframeMaterial: new MeshBasicMaterial({ wireframe: true }),
   });
@@ -57,8 +70,12 @@ function renderModeHarness(scene) {
 test("render modes swap in their material and geometry, and Skin restores the model's own", async () => {
   const gltf = await loadPlayer("lmale");
   const viewer = renderModeHarness(gltf.scene);
-  const originals = new Map(meshes(gltf.scene).map((mesh) => [mesh, mesh.geometry]));
-  const materials = new Map(meshes(gltf.scene).map((mesh) => [mesh, mesh.material]));
+  const originals = new Map(
+    meshes(gltf.scene).map((mesh) => [mesh, mesh.geometry]),
+  );
+  const materials = new Map(
+    meshes(gltf.scene).map((mesh) => [mesh, mesh.material]),
+  );
 
   viewer.setRenderMode("random");
   expect(viewer.scene.overrideMaterial).toBe(viewer.randomColorMaterial);
@@ -72,7 +89,8 @@ test("render modes swap in their material and geometry, and Skin restores the mo
 
   viewer.setRenderMode("wireframe");
   expect(viewer.scene.overrideMaterial).toBe(viewer.wireframeMaterial);
-  for (const [mesh, original] of originals) expect(mesh.geometry).toBe(original);
+  for (const [mesh, original] of originals)
+    expect(mesh.geometry).toBe(original);
 
   // Coming back reuses the copies made the first time.
   viewer.setRenderMode("random");
@@ -80,7 +98,8 @@ test("render modes swap in their material and geometry, and Skin restores the mo
 
   viewer.setRenderMode("skin");
   expect(viewer.scene.overrideMaterial).toBeNull();
-  for (const [mesh, original] of originals) expect(mesh.geometry).toBe(original);
+  for (const [mesh, original] of originals)
+    expect(mesh.geometry).toBe(original);
   expect(viewer.invalidate).toHaveBeenCalledTimes(4);
   disposeObject(gltf.scene);
 });
@@ -88,12 +107,20 @@ test("render modes swap in their material and geometry, and Skin restores the mo
 test("clearing a model shown in Random Colors disposes the copies and the model's own geometry", async () => {
   const gltf = await loadPlayer("lmale");
   const viewer = Object.assign(renderModeHarness(gltf.scene), {
-    rig: null, mixer: null, originalTextures: new Set(),
+    rig: null,
+    mixer: null,
+    originalTextures: new Set(),
   });
   viewer.scene.add(gltf.scene);
-  const originals = meshes(gltf.scene).map((mesh) => [mesh, mesh.geometry, vi.spyOn(mesh.geometry, "dispose")]);
+  const originals = meshes(gltf.scene).map((mesh) => [
+    mesh,
+    mesh.geometry,
+    vi.spyOn(mesh.geometry, "dispose"),
+  ]);
   viewer.setRenderMode("random");
-  const copies = meshes(gltf.scene).map((mesh) => vi.spyOn(mesh.geometry, "dispose"));
+  const copies = meshes(gltf.scene).map((mesh) =>
+    vi.spyOn(mesh.geometry, "dispose"),
+  );
   viewer.clearModel();
   for (const [mesh, original, dispose] of originals) {
     expect(dispose).toHaveBeenCalledTimes(1);

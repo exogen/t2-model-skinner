@@ -5,25 +5,81 @@ import type { VideoRect } from "../videoRect";
 // MediaPipe's 33-point Pose Landmarker connections. Keep the small topology here
 // so showing the preview does not import the inference runtime on the main thread.
 const connections = [
-  [0, 1], [1, 2], [2, 3], [3, 7], [0, 4], [4, 5], [5, 6], [6, 8], [9, 10],
-  [11, 12], [11, 13], [13, 15], [15, 17], [15, 19], [15, 21], [17, 19],
-  [12, 14], [14, 16], [16, 18], [16, 20], [16, 22], [18, 20],
-  [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28],
-  [27, 29], [28, 30], [29, 31], [30, 32], [27, 31], [28, 32],
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 7],
+  [0, 4],
+  [4, 5],
+  [5, 6],
+  [6, 8],
+  [9, 10],
+  [11, 12],
+  [11, 13],
+  [13, 15],
+  [15, 17],
+  [15, 19],
+  [15, 21],
+  [17, 19],
+  [12, 14],
+  [14, 16],
+  [16, 18],
+  [16, 20],
+  [16, 22],
+  [18, 20],
+  [11, 23],
+  [12, 24],
+  [23, 24],
+  [23, 25],
+  [24, 26],
+  [25, 27],
+  [26, 28],
+  [27, 29],
+  [28, 30],
+  [29, 31],
+  [30, 32],
+  [27, 31],
+  [28, 32],
 ] as const;
 
 const handConnections = [
-  [0, 1], [1, 2], [2, 3], [3, 4],
-  [0, 5], [5, 6], [6, 7], [7, 8],
-  [5, 9], [9, 10], [10, 11], [11, 12],
-  [9, 13], [13, 14], [14, 15], [15, 16],
-  [13, 17], [0, 17], [17, 18], [18, 19], [19, 20],
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 4],
+  [0, 5],
+  [5, 6],
+  [6, 7],
+  [7, 8],
+  [5, 9],
+  [9, 10],
+  [10, 11],
+  [11, 12],
+  [9, 13],
+  [13, 14],
+  [14, 15],
+  [15, 16],
+  [13, 17],
+  [0, 17],
+  [17, 18],
+  [18, 19],
+  [19, 20],
 ] as const;
-const faceConnections = [[4, 0], [0, 1], [1, 5], [0, 2], [1, 2], [2, 3]] as const;
+const faceConnections = [
+  [4, 0],
+  [0, 1],
+  [1, 5],
+  [0, 2],
+  [1, 2],
+  [2, 3],
+] as const;
 
 export function previewPoint(point: PoseLandmark | undefined, rect: VideoRect) {
   if (!isConfident(point)) return null;
-  return { x: rect.x + point.x * rect.width, y: rect.y + point.y * rect.height };
+  return {
+    x: rect.x + point.x * rect.width,
+    y: rect.y + point.y * rect.height,
+  };
 }
 
 export function drawPoseSkeleton(
@@ -36,25 +92,45 @@ export function drawPoseSkeleton(
   // Detailed hands replace the coarse fingertip triangles, retaining the body
   // wrist so elbow-to-wrist connections remain visible.
   const hidden = new Set<number>();
-  if (confidentFace(face)) for (let index = 0; index < 11; index++) hidden.add(index);
+  if (confidentFace(face))
+    for (let index = 0; index < 11; index++) hidden.add(index);
   for (const hand of hands) {
     if (!confidentHand(hand)) continue;
-    for (const index of hand.side === "left" ? [17, 19, 21] : [18, 20, 22]) hidden.add(index);
+    for (const index of hand.side === "left" ? [17, 19, 21] : [18, 20, 22])
+      hidden.add(index);
   }
-  const body = hidden.size ? landmarks.map((point, index) => hidden.has(index) ? undefined : point) : landmarks;
-  drawSkeleton(context, body, rect, connections, 3, (index) => index < 11 ? 2.5 : 4.5);
+  const body = hidden.size
+    ? landmarks.map((point, index) => (hidden.has(index) ? undefined : point))
+    : landmarks;
+  drawSkeleton(context, body, rect, connections, 3, (index) =>
+    index < 11 ? 2.5 : 4.5,
+  );
 }
 
 function confidentHand(hand: TrackedHand) {
-  return Number.isFinite(hand.confidence) && hand.confidence >= MIN_CONFIDENCE && hand.landmarks.length === 21;
+  return (
+    Number.isFinite(hand.confidence) &&
+    hand.confidence >= MIN_CONFIDENCE &&
+    hand.landmarks.length === 21
+  );
 }
 
 function confidentFace(face: TrackedFace | undefined): face is TrackedFace {
-  return !!face && Number.isFinite(face.confidence) && face.confidence >= MIN_CONFIDENCE && face.landmarks.length === 6;
+  return (
+    !!face &&
+    Number.isFinite(face.confidence) &&
+    face.confidence >= MIN_CONFIDENCE &&
+    face.landmarks.length === 6
+  );
 }
 
-export function drawFaceSkeleton(context: CanvasRenderingContext2D, face: TrackedFace | undefined, rect: VideoRect) {
-  if (confidentFace(face)) drawSkeleton(context, face.landmarks, rect, faceConnections, 2, () => 3);
+export function drawFaceSkeleton(
+  context: CanvasRenderingContext2D,
+  face: TrackedFace | undefined,
+  rect: VideoRect,
+) {
+  if (confidentFace(face))
+    drawSkeleton(context, face.landmarks, rect, faceConnections, 2, () => 3);
 }
 
 export function drawHandSkeletons(

@@ -85,7 +85,12 @@ export function getSkinImageUrls({
       switch (selectedSkinType) {
         case "default":
           return {
-            base: [getLocalAssetUrl(basePath, `textures/${selectedSkin}.${actualModel}.png`)],
+            base: [
+              getLocalAssetUrl(
+                basePath,
+                `textures/${selectedSkin}.${actualModel}.png`,
+              ),
+            ],
           };
         case "custom":
           return {
@@ -109,7 +114,9 @@ export function getSkinImageUrls({
                     getFrameNames(
                       materialDef.file ?? materialDef.name,
                       frameCount,
-                    ).map((name) => getLocalAssetUrl(basePath, `textures/${name}.png`));
+                    ).map((name) =>
+                      getLocalAssetUrl(basePath, `textures/${name}.png`),
+                    );
                 }
                 break;
               case "custom":
@@ -117,9 +124,8 @@ export function getSkinImageUrls({
                   getFrameNames(
                     materialDef.file ?? materialDef.name,
                     frameCount,
-                  ).map(
-                    (name) =>
-                      getSkinAssetUrl(`${selectedSkin}/${name}.png`),
+                  ).map((name) =>
+                    getSkinAssetUrl(`${selectedSkin}/${name}.png`),
                   );
                 break;
             }
@@ -254,8 +260,10 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
 
   if (!searchParamsInitialized) {
     const project = getLocalProject(searchParams.get("p"));
-    const modelName = project?.model && modelToModelType(project.model)
-      ? project.model : searchParams.get("m");
+    const modelName =
+      project?.model && modelToModelType(project.model)
+        ? project.model
+        : searchParams.get("m");
     const skinPath = searchParams.get("s");
     if (project) {
       setSelectedSkin(project.file);
@@ -296,8 +304,15 @@ export default function WarriorProvider({ children }: { children: ReactNode }) {
       const url = `${pathname}?${newSearchParams}`;
       router.replace(url, { scroll: false });
     }
-  }, [pathname, router, searchParams, searchParamsInitialized, selectedModel, selectedSkin, selectedSkinType]);
-
+  }, [
+    pathname,
+    router,
+    searchParams,
+    searchParamsInitialized,
+    selectedModel,
+    selectedSkin,
+    selectedSkinType,
+  ]);
 
   return (
     <WarriorContext.Provider value={context}>

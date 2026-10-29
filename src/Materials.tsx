@@ -13,7 +13,10 @@ export default function Materials() {
     { materials: model.materials, definitions: partMaterials(actualModel) },
     ...mounts.map(({ materials }, index) => ({
       materials,
-      definitions: partMaterials(actualModel, modelMounts[actualModel]?.[index]?.model),
+      definitions: partMaterials(
+        actualModel,
+        modelMounts[actualModel]?.[index]?.model,
+      ),
     })),
   ];
 
@@ -26,7 +29,7 @@ export default function Materials() {
             materials={materials}
             materialDef={definitions[i]}
           />
-        ))
+        )),
       )}
     </>
   );

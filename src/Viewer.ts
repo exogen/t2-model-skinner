@@ -1,9 +1,42 @@
 import {
-  ACESFilmicToneMapping, AnimationAction, AnimationClip, AnimationMixer, Box3, BufferGeometry, CustomBlending,
-  EquirectangularReflectionMapping, Group, LoopOnce, LoopRepeat, Material, MathUtils, Matrix4, Mesh, MeshBasicMaterial,
-  MeshStandardMaterial, MOUSE, Object3D, PerspectiveCamera, PMREMGenerator, Raycaster, Scene, ShaderMaterial,
-  Skeleton, SkinnedMesh, Sphere, Spherical, SRGBColorSpace, SrcColorFactor, Texture, TOUCH, Vector2, Vector3,
-  Vector4, WebGLRenderer, WebGLRenderTarget, ZeroFactor,
+  ACESFilmicToneMapping,
+  AnimationAction,
+  AnimationClip,
+  AnimationMixer,
+  Box3,
+  BufferGeometry,
+  CustomBlending,
+  EquirectangularReflectionMapping,
+  Group,
+  LoopOnce,
+  LoopRepeat,
+  Material,
+  MathUtils,
+  Matrix4,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  MOUSE,
+  Object3D,
+  PerspectiveCamera,
+  PMREMGenerator,
+  Raycaster,
+  Scene,
+  ShaderMaterial,
+  Skeleton,
+  SkinnedMesh,
+  Sphere,
+  Spherical,
+  SRGBColorSpace,
+  SrcColorFactor,
+  Texture,
+  TOUCH,
+  Vector2,
+  Vector3,
+  Vector4,
+  WebGLRenderer,
+  WebGLRenderTarget,
+  ZeroFactor,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
@@ -30,13 +63,20 @@ type PendingCapture = {
   resolve: (frame: HTMLCanvasElement) => void;
   reject: (error: Error) => void;
 };
-type PoseFrameCallback = (deltaSeconds: number, camera: PerspectiveCamera, imageAspect: number) => void;
+type PoseFrameCallback = (
+  deltaSeconds: number,
+  camera: PerspectiveCamera,
+  imageAspect: number,
+) => void;
 /** A model shown mounted on a node of another: `scene` holds it there. */
 export type MountedModel = { scene: Object3D; materials: Material[][] };
 export type LoadedModel = {
-  scene: Group; model: { materials: Material[][] }; mounts: MountedModel[]; rig: PlayerRig | null;
+  scene: Group;
+  model: { materials: Material[][] };
+  mounts: MountedModel[];
+  rig: PlayerRig | null;
 };
-type CameraOptions = { orbit?: string; target?: string; fov?: string };
+export type CameraOptions = { orbit?: string; target?: string; fov?: string };
 export interface PoseRuntime {
   createPlayerRig: typeof createPlayerRig;
   createPoseFraming: typeof createPoseFraming;
@@ -45,11 +85,14 @@ export interface PoseRuntime {
 // Configuration uses original glTF indices; names and runtime clones can differ.
 export function collectMaterials(gltf: GLTF): Material[][] {
   const materials: Material[][] = Array.from(
-    { length: gltf.parser.json.materials?.length ?? 0 }, () => [],
+    { length: gltf.parser.json.materials?.length ?? 0 },
+    () => [],
   );
   gltf.scene.traverse((object) => {
     if (!(object instanceof Mesh)) return;
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+    for (const material of Array.isArray(object.material)
+      ? object.material
+      : [object.material]) {
       const index = gltf.parser.associations.get(material)?.materials;
       if (index === undefined) continue;
       const group = materials[index] ?? (materials[index] = []);
@@ -84,7 +127,10 @@ export function mountPart(node: Object3D, part: Object3D) {
   const point = findOwnNode(part, "Mountpoint");
   if (point) {
     part.updateMatrixWorld(true);
-    new Matrix4().copy(point.matrixWorld).invert().decompose(holder.position, holder.quaternion, holder.scale);
+    new Matrix4()
+      .copy(point.matrixWorld)
+      .invert()
+      .decompose(holder.position, holder.quaternion, holder.scale);
   }
   holder.add(part);
   node.add(holder);
@@ -94,19 +140,28 @@ export function mountPart(node: Object3D, part: Object3D) {
 /** `clips` with the tracks of the same-named clips of models mounted on
  * them, like the tank's activate clip with its turret's. Those tracks name
  * their nodes by ID, so a node of the same name elsewhere can't take them. */
-export function withMountedClips(clips: AnimationClip[], mounted: { scene: Object3D; animations: AnimationClip[] }[]) {
+export function withMountedClips(
+  clips: AnimationClip[],
+  mounted: { scene: Object3D; animations: AnimationClip[] }[],
+) {
   return clips.map((clip) => {
-    const tracks = mounted.flatMap(({ scene, animations }) => animations
-      .filter((other) => other.name.toLowerCase() === clip.name.toLowerCase())
-      .flatMap((other) => other.tracks.flatMap((track) => {
-        const dot = track.name.lastIndexOf(".");
-        const node = scene.getObjectByName(track.name.slice(0, dot));
-        if (!node) return [];
-        const copy = track.clone();
-        copy.name = `${node.uuid}${track.name.slice(dot)}`;
-        return [copy];
-      })));
-    return tracks.length ? new AnimationClip(clip.name, -1, [...clip.tracks, ...tracks]) : clip;
+    const tracks = mounted.flatMap(({ scene, animations }) =>
+      animations
+        .filter((other) => other.name.toLowerCase() === clip.name.toLowerCase())
+        .flatMap((other) =>
+          other.tracks.flatMap((track) => {
+            const dot = track.name.lastIndexOf(".");
+            const node = scene.getObjectByName(track.name.slice(0, dot));
+            if (!node) return [];
+            const copy = track.clone();
+            copy.name = `${node.uuid}${track.name.slice(dot)}`;
+            return [copy];
+          }),
+        ),
+    );
+    return tracks.length
+      ? new AnimationClip(clip.name, -1, [...clip.tracks, ...tracks])
+      : clip;
   });
 }
 
@@ -116,10 +171,16 @@ export function withMountedClips(clips: AnimationClip[], mounted: { scene: Objec
  * by `brightness`. `box` is left, bottom, right and top, in device pixels from
  * the drawing buffer's bottom left, like `gl_FragCoord`. */
 function createOutsideFade() {
-  return new FullScreenQuad(new ShaderMaterial({
-    uniforms: { box: { value: new Vector4() }, opacity: { value: 1 }, brightness: { value: 1 } },
-    vertexShader: "void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }",
-    fragmentShader: `
+  return new FullScreenQuad(
+    new ShaderMaterial({
+      uniforms: {
+        box: { value: new Vector4() },
+        opacity: { value: 1 },
+        brightness: { value: 1 },
+      },
+      vertexShader:
+        "void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }",
+      fragmentShader: `
       uniform vec4 box;
       uniform float opacity;
       uniform float brightness;
@@ -128,18 +189,22 @@ function createOutsideFade() {
         gl_FragColor = vec4(vec3(opacity * brightness), opacity);
       }
     `,
-    // The new pixel is the old one times this color.
-    blending: CustomBlending,
-    blendSrc: ZeroFactor,
-    blendDst: SrcColorFactor,
-    depthTest: false,
-    depthWrite: false,
-  }));
+      // The new pixel is the old one times this color.
+      blending: CustomBlending,
+      blendSrc: ZeroFactor,
+      blendDst: SrcColorFactor,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
 }
 
 /** Dispose everything a model owns, plus `extraTextures` that are no longer
  * attached to its materials (like embedded textures replaced in the editor). */
-export function disposeObject(root: Object3D, extraTextures: Iterable<Texture> = []) {
+export function disposeObject(
+  root: Object3D,
+  extraTextures: Iterable<Texture> = [],
+) {
   const geometries = new Set<Mesh["geometry"]>();
   const materials = new Set<Material>();
   const textures = new Set<Texture>(extraTextures);
@@ -148,14 +213,21 @@ export function disposeObject(root: Object3D, extraTextures: Iterable<Texture> =
     if (!(object instanceof Mesh)) return;
     geometries.add(object.geometry);
     if (object instanceof SkinnedMesh) skeletons.add(object.skeleton);
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+    for (const material of Array.isArray(object.material)
+      ? object.material
+      : [object.material]) {
       materials.add(material);
-      for (const value of Object.values(material)) if (value instanceof Texture) textures.add(value);
+      for (const value of Object.values(material))
+        if (value instanceof Texture) textures.add(value);
     }
   });
   textures.forEach((texture) => {
     texture.dispose();
-    if (typeof ImageBitmap !== "undefined" && texture.image instanceof ImageBitmap) texture.image.close();
+    if (
+      typeof ImageBitmap !== "undefined" &&
+      texture.image instanceof ImageBitmap
+    )
+      texture.image.close();
   });
   materials.forEach((material) => material.dispose());
   geometries.forEach((geometry) => geometry.dispose());
@@ -169,7 +241,7 @@ const CAMERA_SMOOTHING_SECONDS = 0.05;
 // As in model-viewer, the camera stays 22.5° away from straight above or below
 // the model. Straight underneath, the view spins around it.
 const MIN_POLAR_ANGLE = Math.PI / 8;
-const MAX_POLAR_ANGLE = Math.PI * 7 / 8;
+const MAX_POLAR_ANGLE = (Math.PI * 7) / 8;
 
 // Models are framed for this field of view, like model-viewer did. A field of
 // view from the camera overrides only changes the lens afterwards, at the same
@@ -197,7 +269,11 @@ export class FrameOrbitControls extends OrbitControls {
   dragging = false;
   private readonly applyInput: () => boolean;
 
-  constructor(camera: PerspectiveCamera, canvas: HTMLCanvasElement, requestFrame: () => void) {
+  constructor(
+    camera: PerspectiveCamera,
+    canvas: HTMLCanvasElement,
+    requestFrame: () => void,
+  ) {
     super(camera, canvas);
     // OrbitControls creates update() per instance, and its handlers call this.update().
     const update = this.update;
@@ -207,8 +283,12 @@ export class FrameOrbitControls extends OrbitControls {
       requestFrame();
       return false;
     };
-    this.addEventListener("start", () => { this.dragging = true; });
-    this.addEventListener("end", () => { this.dragging = false; });
+    this.addEventListener("start", () => {
+      this.dragging = true;
+    });
+    this.addEventListener("end", () => {
+      this.dragging = false;
+    });
   }
 
   /** Moves the camera `deltaSeconds` closer to where the input put it. */
@@ -235,13 +315,23 @@ export default class Viewer {
   private renderMode: RenderMode = "skin";
   // Each mesh's own geometry and its Random Colors copy, made the first time
   // that mode is shown.
-  private randomColorGeometries = new Map<Mesh, { original: BufferGeometry; random: BufferGeometry }>();
+  private randomColorGeometries = new Map<
+    Mesh,
+    { original: BufferGeometry; random: BufferGeometry }
+  >();
   // These replace every visible material while their mode is on, so hidden
   // materials stay hidden and the skin's materials are left alone.
   private readonly randomColorMaterial = new MeshStandardMaterial({
-    vertexColors: true, flatShading: true, metalness: 0, roughness: 1,
+    vertexColors: true,
+    flatShading: true,
+    metalness: 0,
+    roughness: 1,
   });
-  private readonly wireframeMaterial = new MeshBasicMaterial({ color: 0x63ffe2, wireframe: true, toneMapped: false });
+  private readonly wireframeMaterial = new MeshBasicMaterial({
+    color: 0x63ffe2,
+    wireframe: true,
+    toneMapped: false,
+  });
   private mixer: AnimationMixer | null = null;
   private action: AnimationAction | null = null;
   // A held weapon's arm pose, on top of the animation.
@@ -250,13 +340,15 @@ export default class Viewer {
   private poseRuntime: PoseRuntime | null = null;
   private poseAnimationTime = 0;
   private readonly frames = new Set<FrameCallback>();
+  private textureAnimationPaused = false;
   private readonly poseFrames = new Set<PoseFrameCallback>();
   private captures: PendingCapture[] = [];
   private fadeOutside = false;
   // How far the outside of the camera area has faded, from 0 to 1.
   private outsideFade = 0;
   private readonly outsideFadeQuad = createOutsideFade();
-  private readonly reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
+  private readonly reducedMotion =
+    window.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
   private contextLost = false;
   private frameId: number | null = null;
   private previousTime: number | null = null;
@@ -291,10 +383,19 @@ export default class Viewer {
   // and `goals` are what it saw and set last: if something else changes the
   // goals, or the height changes, it carries on from there instead.
   private pinch: {
-    from: number; height: number; logFov: number; radius: number; separation: number; goals: [number, number];
+    from: number;
+    height: number;
+    logFov: number;
+    radius: number;
+    separation: number;
+    goals: [number, number];
   } | null = null;
   private poseFraming: ReturnType<typeof createPoseFraming> | null = null;
-  private editorCamera: { position: Vector3; target: Vector3; fov: number } | null = null;
+  private editorCamera: {
+    position: Vector3;
+    target: Vector3;
+    fov: number;
+  } | null = null;
   private readonly frameSize = new Vector2();
   private resizeObserver: ResizeObserver;
   private intersectionObserver: IntersectionObserver | null = null;
@@ -309,7 +410,10 @@ export default class Viewer {
     const canvas = this.renderer.domElement;
     canvas.tabIndex = 0;
     canvas.setAttribute("role", "img");
-    canvas.setAttribute("aria-label", "Tribes 2 model. Drag or use arrow keys to rotate; right-drag to move; scroll or use plus and minus to zoom. Home resets the view.");
+    canvas.setAttribute(
+      "aria-label",
+      "Tribes 2 model. Drag or use arrow keys to rotate; right-drag to move; scroll or use plus and minus to zoom. Home resets the view.",
+    );
     canvas.addEventListener("keydown", this.handleKey);
     canvas.addEventListener("webglcontextlost", this.handleContextLost);
     canvas.addEventListener("webglcontextrestored", this.handleContextRestored);
@@ -319,7 +423,11 @@ export default class Viewer {
     canvas.addEventListener("pointerup", this.handlePointerUp);
     canvas.addEventListener("pointercancel", this.handlePointerUp);
     host.appendChild(canvas);
-    this.controls = new FrameOrbitControls(this.camera, canvas, this.invalidate);
+    this.controls = new FrameOrbitControls(
+      this.camera,
+      canvas,
+      this.invalidate,
+    );
     this.controls.enableDamping = true;
     this.controls.minPolarAngle = MIN_POLAR_ANGLE;
     this.controls.maxPolarAngle = MAX_POLAR_ANGLE;
@@ -329,8 +437,12 @@ export default class Viewer {
     this.controls.mouseButtons.MIDDLE = MOUSE.ROTATE;
     this.controls.addEventListener("change", this.invalidate);
     // An open hand over the view, and a closed one while dragging.
-    this.controls.addEventListener("start", () => { canvas.style.cursor = "grabbing"; });
-    this.controls.addEventListener("end", () => { canvas.style.cursor = "grab"; });
+    this.controls.addEventListener("start", () => {
+      canvas.style.cursor = "grabbing";
+    });
+    this.controls.addEventListener("end", () => {
+      canvas.style.cursor = "grab";
+    });
     canvas.style.cursor = "grab";
     canvas.style.touchAction = "pan-y";
     this.pmrem = new PMREMGenerator(this.renderer);
@@ -341,7 +453,10 @@ export default class Viewer {
     // Off screen, nothing is drawn and animations don't advance. At a threshold
     // of 0, a view that only touches the viewport's edge counts as on screen.
     if (typeof IntersectionObserver !== "undefined") {
-      this.intersectionObserver = new IntersectionObserver(this.handleIntersection, { threshold: 0.00001 });
+      this.intersectionObserver = new IntersectionObserver(
+        this.handleIntersection,
+        { threshold: 0.00001 },
+      );
       this.intersectionObserver.observe(host);
     }
     document.addEventListener("visibilitychange", this.handleVisibility);
@@ -352,8 +467,11 @@ export default class Viewer {
    * motion of 0.001 world units or more, a few percent of these models. */
   private viewMoved() {
     const epsilon = this.bounds.radius * 1e-5;
-    const moved = this.camera.position.distanceToSquared(this.drawnPosition) > epsilon * epsilon
-      || this.controls.target.distanceToSquared(this.drawnTarget) > epsilon * epsilon;
+    const moved =
+      this.camera.position.distanceToSquared(this.drawnPosition) >
+        epsilon * epsilon ||
+      this.controls.target.distanceToSquared(this.drawnTarget) >
+        epsilon * epsilon;
     this.drawnPosition.copy(this.camera.position);
     this.drawnTarget.copy(this.controls.target);
     return moved;
@@ -368,10 +486,13 @@ export default class Viewer {
     let radius = MathUtils.lerp(offset.length(), this.goalRadius, k);
     let logFov = MathUtils.lerp(Math.log(this.camera.fov), this.goalLogFov, k);
     // The rest wouldn't show.
-    const settled = Math.abs(this.goalRadius - radius) < this.bounds.radius * 1e-5
-      && Math.abs(this.goalLogFov - logFov) < 1e-5;
+    const settled =
+      Math.abs(this.goalRadius - radius) < this.bounds.radius * 1e-5 &&
+      Math.abs(this.goalLogFov - logFov) < 1e-5;
     if (settled) [radius, logFov] = [this.goalRadius, this.goalLogFov];
-    this.camera.position.copy(this.controls.target).add(offset.setLength(radius));
+    this.camera.position
+      .copy(this.controls.target)
+      .add(offset.setLength(radius));
     const fov = Math.exp(logFov);
     if (fov !== this.camera.fov) {
       this.camera.fov = fov;
@@ -382,19 +503,26 @@ export default class Viewer {
 
   invalidate = () => {
     if (this.disposed || document.hidden || this.frameId !== null) return;
-    if (this.onScreen || this.drawsOffScreen()) this.frameId = requestAnimationFrame(this.renderFrame);
+    if (this.onScreen || this.drawsOffScreen())
+      this.frameId = requestAnimationFrame(this.renderFrame);
   };
 
   /** Whether to keep drawing while the view is off screen. Captures and mocap
    * still need frames while a phone shows the camera panel instead. */
   private drawsOffScreen() {
-    return this.captures.length > 0 || this.poseFrames.size > 0 || (this.posing && this.frames.size > 0);
+    return (
+      this.captures.length > 0 ||
+      this.poseFrames.size > 0 ||
+      (this.posing && this.frames.size > 0)
+    );
   }
 
   subscribeFrame = (callback: FrameCallback) => {
     this.frames.add(callback);
     this.invalidate();
-    return () => { this.frames.delete(callback); };
+    return () => {
+      this.frames.delete(callback);
+    };
   };
 
   /** Screen-space pose work must use the same final camera as the draw, after
@@ -402,7 +530,9 @@ export default class Viewer {
   subscribePoseFrame = (callback: PoseFrameCallback) => {
     this.poseFrames.add(callback);
     this.invalidate();
-    return () => { this.poseFrames.delete(callback); };
+    return () => {
+      this.poseFrames.delete(callback);
+    };
   };
 
   /** While `fade` is set, what's outside the camera image's area is drawn at
@@ -422,9 +552,19 @@ export default class Viewer {
    * copy is made right after the draw and the promise settles in the same
    * task: code awaiting it runs before another frame can move a bone.
    * Captures of one area settled by one draw share a canvas; don't draw on it. */
-  captureFrame({ background = true, cameraArea = false }: { background?: boolean; cameraArea?: boolean } = {}): Promise<HTMLCanvasElement> {
-    if (this.disposed) return Promise.reject(new Error("The 3D view has closed."));
-    if (this.contextLost) return Promise.reject(new Error("The 3D view lost its graphics context."));
+  captureFrame({
+    background = true,
+    cameraArea = false,
+  }: {
+    background?: boolean;
+    cameraArea?: boolean;
+  } = {}): Promise<HTMLCanvasElement> {
+    if (this.disposed)
+      return Promise.reject(new Error("The 3D view has closed."));
+    if (this.contextLost)
+      return Promise.reject(
+        new Error("The 3D view lost its graphics context."),
+      );
     return new Promise((resolve, reject) => {
       this.captures.push({ background, cameraArea, resolve, reject });
       this.invalidate();
@@ -434,8 +574,12 @@ export default class Viewer {
   /** Settles the pending captures, or with `withoutBackground` only those
    * that leave the background out, from what was just drawn. */
   private copyFrame(cameraArea: VideoRect | null, withoutBackground = false) {
-    const captures = this.captures.filter((capture) => !withoutBackground || !capture.background);
-    this.captures = this.captures.filter((capture) => !captures.includes(capture));
+    const captures = this.captures.filter(
+      (capture) => !withoutBackground || !capture.background,
+    );
+    this.captures = this.captures.filter(
+      (capture) => !captures.includes(capture),
+    );
     const copies = new Map<VideoRect | null, HTMLCanvasElement | Error>();
     for (const capture of captures) {
       const area = capture.cameraArea ? cameraArea : null;
@@ -451,18 +595,36 @@ export default class Viewer {
     try {
       const source = this.renderer.domElement;
       const box = area
-        ? pixelBox(area, this.renderer.getPixelRatio(), source.width, source.height)
+        ? pixelBox(
+            area,
+            this.renderer.getPixelRatio(),
+            source.width,
+            source.height,
+          )
         : { x: 0, y: 0, width: source.width, height: source.height };
-      if (!box.width || !box.height) throw new Error("The 3D view has no visible area.");
+      if (!box.width || !box.height)
+        throw new Error("The 3D view has no visible area.");
       const frame = document.createElement("canvas");
       frame.width = box.width;
       frame.height = box.height;
       const context = frame.getContext("2d");
       if (!context) throw new Error("The 3D view could not be copied.");
-      context.drawImage(source, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+      context.drawImage(
+        source,
+        box.x,
+        box.y,
+        box.width,
+        box.height,
+        0,
+        0,
+        box.width,
+        box.height,
+      );
       return frame;
     } catch (error) {
-      return error instanceof Error ? error : new Error("The 3D view could not be copied.");
+      return error instanceof Error
+        ? error
+        : new Error("The 3D view could not be copied.");
     }
   }
 
@@ -473,23 +635,35 @@ export default class Viewer {
   private renderFrame = (time: number) => {
     this.frameId = null;
     if (this.disposed || document.hidden) return;
-    const delta = this.previousTime === null ? 0 : Math.min((time - this.previousTime) / 1000, 0.1);
+    const delta =
+      this.previousTime === null
+        ? 0
+        : Math.min((time - this.previousTime) / 1000, 0.1);
     this.previousTime = time;
     // A clip played once pauses itself on its last frame.
-    const playing = !!this.action && !this.action.paused && !this.paused && !this.posing;
+    const playing =
+      !!this.action && !this.action.paused && !this.paused && !this.posing;
     if (playing) this.mixer?.update(delta * this.playbackSpeed);
-    this.frames.forEach((callback) => callback(delta));
+    if (!this.textureAnimationPaused)
+      this.frames.forEach((callback) => callback(delta));
     this.controls.step(delta || 1 / 60);
     const zooming = this.stepZoom(delta || 1 / 60);
     const moving = this.viewMoved();
-    const camera = this.posing ? this.poseFraming?.update(this.camera, delta) : null;
+    const camera = this.posing
+      ? this.poseFraming?.update(this.camera, delta)
+      : null;
     const imageAspect = this.poseFraming?.imageAspect;
     const renderCamera = camera ?? this.camera;
-    this.poseFrames.forEach((callback) => callback(delta, renderCamera, imageAspect ?? renderCamera.aspect));
+    this.poseFrames.forEach((callback) =>
+      callback(delta, renderCamera, imageAspect ?? renderCamera.aspect),
+    );
     // Pose framing places the model as if the view were cropped to the camera
     // image, contained like the preview's, but the whole view is drawn.
     const { x: width, y: height } = this.renderer.getSize(this.frameSize);
-    const cameraArea = camera && imageAspect ? containedVideoRect(width, height, imageAspect, 1) : null;
+    const cameraArea =
+      camera && imageAspect
+        ? containedVideoRect(width, height, imageAspect, 1)
+        : null;
     const background = this.scene.background;
     if (background && this.captures.some((capture) => !capture.background)) {
       // Captures without the background need a draw of their own. Only the
@@ -506,7 +680,16 @@ export default class Viewer {
     // The drawing buffer is not preserved, so copy it before this task ends.
     if (this.captures.length) this.copyFrame(cameraArea);
     const fading = this.drawOutsideFade(cameraArea, delta);
-    if (playing || moving || zooming || this.controls.dragging || fading || this.frames.size || this.poseFrames.size) this.invalidate();
+    if (
+      playing ||
+      moving ||
+      zooming ||
+      this.controls.dragging ||
+      fading ||
+      (!this.textureAnimationPaused && this.frames.size) ||
+      this.poseFrames.size
+    )
+      this.invalidate();
     // Time doesn't pass while no frames are drawn, like off screen, so
     // animations continue from where they stopped.
     if (this.frameId === null) this.previousTime = null;
@@ -518,15 +701,35 @@ export default class Viewer {
   private drawOutsideFade(cameraArea: VideoRect | null, delta: number) {
     const target = this.fadeOutside ? 1 : 0;
     const step = this.reducedMotion?.matches ? 1 : delta / OUTSIDE_FADE_SECONDS;
-    this.outsideFade = target ? Math.min(1, this.outsideFade + step) : Math.max(0, this.outsideFade - step);
+    this.outsideFade = target
+      ? Math.min(1, this.outsideFade + step)
+      : Math.max(0, this.outsideFade - step);
     if (this.outsideFade && cameraArea) {
       const canvas = this.renderer.domElement;
       // The same pixels a capture of the camera area copies.
-      const box = pixelBox(cameraArea, this.renderer.getPixelRatio(), canvas.width, canvas.height);
+      const box = pixelBox(
+        cameraArea,
+        this.renderer.getPixelRatio(),
+        canvas.width,
+        canvas.height,
+      );
       const { uniforms } = this.outsideFadeQuad.material as ShaderMaterial;
-      uniforms.box.value.set(box.x, canvas.height - box.y - box.height, box.x + box.width, canvas.height - box.y);
-      uniforms.opacity.value = MathUtils.lerp(1, OUTSIDE_OPACITY, this.outsideFade);
-      uniforms.brightness.value = MathUtils.lerp(1, OUTSIDE_BRIGHTNESS, this.outsideFade);
+      uniforms.box.value.set(
+        box.x,
+        canvas.height - box.y - box.height,
+        box.x + box.width,
+        canvas.height - box.y,
+      );
+      uniforms.opacity.value = MathUtils.lerp(
+        1,
+        OUTSIDE_OPACITY,
+        this.outsideFade,
+      );
+      uniforms.brightness.value = MathUtils.lerp(
+        1,
+        OUTSIDE_BRIGHTNESS,
+        this.outsideFade,
+      );
       // Rendering clears the frame first unless told not to.
       const autoClear = this.renderer.autoClear;
       this.renderer.autoClear = false;
@@ -544,7 +747,10 @@ export default class Viewer {
   private updatePixelRatio = () => {
     if (this.disposed) return;
     this.pixelRatioQuery?.removeEventListener("change", this.updatePixelRatio);
-    this.pixelRatioQuery = window.matchMedia?.(`(resolution: ${window.devicePixelRatio || 1}dppx)`) ?? null;
+    this.pixelRatioQuery =
+      window.matchMedia?.(
+        `(resolution: ${window.devicePixelRatio || 1}dppx)`,
+      ) ?? null;
     this.pixelRatioQuery?.addEventListener("change", this.updatePixelRatio);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.resize();
@@ -564,14 +770,23 @@ export default class Viewer {
     this.camera.updateProjectionMatrix();
     this.goalLogFov = Math.log(this.camera.fov);
     // So does the editor's view, restored after posing.
-    if (this.editorCamera) this.editorCamera.fov = this.clampFov(this.editorCamera.fov * scale);
+    if (this.editorCamera)
+      this.editorCamera.fov = this.clampFov(this.editorCamera.fov * scale);
     this.invalidate();
   };
 
   /** `fov` widened as much as the view is narrower than the model needs, like
    * model-viewer's, so the model still fits from any side. */
   private adjustedFov(fov: number) {
-    return 2 * Math.atan(Math.tan(fov * Math.PI / 360) * Math.max(1, this.idealAspect / this.camera.aspect)) * 180 / Math.PI;
+    return (
+      (2 *
+        Math.atan(
+          Math.tan((fov * Math.PI) / 360) *
+            Math.max(1, this.idealAspect / this.camera.aspect),
+        ) *
+        180) /
+      Math.PI
+    );
   }
 
   private clampFov(fov: number) {
@@ -580,14 +795,26 @@ export default class Viewer {
 
   /** Shows the model at `url`, with the models at `mounts` mounted on its
    * nodes, like the tank's turret. */
-  async load(url: string, camera: CameraOptions, mounts: { url: string; node: string }[] = []): Promise<LoadedModel | null> {
+  async load(
+    url: string,
+    camera: CameraOptions,
+    mounts: { url: string; node: string }[] = [],
+  ): Promise<LoadedModel | null> {
     const generation = ++this.modelGeneration;
     const loader = new GLTFLoader();
-    const results = await Promise.allSettled([url, ...mounts.map((mount) => mount.url)].map((source) => loader.loadAsync(source)));
+    const results = await Promise.allSettled(
+      [url, ...mounts.map((mount) => mount.url)].map((source) =>
+        loader.loadAsync(source),
+      ),
+    );
     const failure = results.find((result) => result.status === "rejected");
-    const [gltf, ...parts] = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+    const [gltf, ...parts] = results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : [],
+    );
     if (failure || this.disposed || generation !== this.modelGeneration) {
-      [gltf, ...parts].forEach((loaded) => { if (loaded) disposeObject(loaded.scene); });
+      [gltf, ...parts].forEach((loaded) => {
+        if (loaded) disposeObject(loaded.scene);
+      });
       if (failure) throw failure.reason;
       return null;
     }
@@ -595,7 +822,10 @@ export default class Viewer {
     this.model = gltf;
     // Like the game, a mount on a node the model doesn't have is at its origin.
     const mounted = parts.map((part, index) => ({
-      scene: mountPart(findOwnNode(gltf.scene, mounts[index].node) ?? gltf.scene, part.scene),
+      scene: mountPart(
+        findOwnNode(gltf.scene, mounts[index].node) ?? gltf.scene,
+        part.scene,
+      ),
       materials: collectMaterials(part),
     }));
     gltf.animations = withMountedClips(gltf.animations, parts);
@@ -607,10 +837,17 @@ export default class Viewer {
     gltf.scene.updateMatrixWorld(true);
     this.fitModel();
     this.applyRenderMode();
-    return { scene: gltf.scene, model: { materials: collectMaterials(gltf) }, mounts: mounted, rig: this.rig };
+    return {
+      scene: gltf.scene,
+      model: { materials: collectMaterials(gltf) },
+      mounts: mounted,
+      rig: this.rig,
+    };
   }
 
-  cancelLoad() { this.modelGeneration++; }
+  cancelLoad() {
+    this.modelGeneration++;
+  }
 
   /** Adds the textures `root`'s materials came with to `textures`, and keeps
    * its skinned meshes from being culled: both recorded and live poses can
@@ -619,8 +856,11 @@ export default class Viewer {
     root.traverse((object) => {
       if (!(object instanceof Mesh)) return;
       if (object instanceof SkinnedMesh) object.frustumCulled = false;
-      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-        for (const value of Object.values(material)) if (value instanceof Texture) textures.add(value);
+      for (const material of Array.isArray(object.material)
+        ? object.material
+        : [object.material]) {
+        for (const value of Object.values(material))
+          if (value instanceof Texture) textures.add(value);
       }
     });
   }
@@ -631,7 +871,10 @@ export default class Viewer {
   async mount(url: string, node: string): Promise<MountedModel | null> {
     const model = this.model;
     const gltf = await new GLTFLoader().loadAsync(url);
-    const target = !this.disposed && model && model === this.model ? findOwnNode(model.scene, node) : null;
+    const target =
+      !this.disposed && model && model === this.model
+        ? findOwnNode(model.scene, node)
+        : null;
     if (!target) {
       disposeObject(gltf.scene);
       return null;
@@ -650,7 +893,8 @@ export default class Viewer {
   unmount({ scene }: MountedModel) {
     scene.removeFromParent();
     scene.traverse((object) => {
-      const geometries = object instanceof Mesh && this.randomColorGeometries.get(object);
+      const geometries =
+        object instanceof Mesh && this.randomColorGeometries.get(object);
       if (!geometries) return;
       object.geometry = geometries.original;
       geometries.random.dispose();
@@ -720,26 +964,46 @@ export default class Viewer {
     const box = new Box3().setFromObject(this.model.scene, true);
     if (box.isEmpty()) return;
     box.getBoundingSphere(this.bounds);
-    this.baseFov = this.cameraOptions.fov == null ? FRAMING_FOV : Number.parseFloat(this.cameraOptions.fov);
-    const target = this.cameraOptions.target?.split(/\s+/).map(Number.parseFloat);
-    if (target?.length === 3 && target.every(Number.isFinite)) this.bounds.center.fromArray(target);
+    this.baseFov =
+      this.cameraOptions.fov == null
+        ? FRAMING_FOV
+        : Number.parseFloat(this.cameraOptions.fov);
+    const target = this.cameraOptions.target
+      ?.split(/\s+/)
+      .map(Number.parseFloat);
+    if (target?.length === 3 && target.every(Number.isFinite))
+      this.bounds.center.fromArray(target);
     let radius = 0.00001;
-    this.forEachVertex((v) => { radius = Math.max(radius, v.length()); });
+    this.forEachVertex((v) => {
+      radius = Math.max(radius, v.length());
+    });
     this.bounds.radius = radius;
-    const halfFov = FRAMING_FOV * Math.PI / 360;
+    const halfFov = (FRAMING_FOV * Math.PI) / 360;
     const idealDistance = radius / Math.sin(halfFov);
     let tanFov = 0;
     this.forEachVertex((v) => {
-      tanFov = Math.max(tanFov, Math.hypot(v.x, v.z) / Math.max(idealDistance - Math.abs(v.y), 0.00001));
+      tanFov = Math.max(
+        tanFov,
+        Math.hypot(v.x, v.z) / Math.max(idealDistance - Math.abs(v.y), 0.00001),
+      );
     });
     this.idealAspect = tanFov / Math.tan(halfFov);
-    const distance = idealDistance * Number.parseFloat(this.cameraOptions.orbit?.split(/\s+/)[2] ?? "105%") / 100;
+    const distance =
+      (idealDistance *
+        Number.parseFloat(
+          this.cameraOptions.orbit?.split(/\s+/)[2] ?? "105%",
+        )) /
+      100;
     // Zooming out stops at model-viewer's default maximum orbit radius, 105%
     // of the framing distance. As there, the zoom limits also limit where the
     // camera starts.
     this.minRadius = radius * MIN_RADIUS_RATIO;
     this.maxRadius = idealDistance * 1.05;
-    this.initialDistance = MathUtils.clamp(distance, this.minRadius, this.maxRadius);
+    this.initialDistance = MathUtils.clamp(
+      distance,
+      this.minRadius,
+      this.maxRadius,
+    );
     this.camera.near = this.bounds.radius / 100;
     this.camera.far = this.bounds.radius * 100;
     // Panning can move the orbit target anywhere within the model's bounds.
@@ -757,16 +1021,110 @@ export default class Viewer {
       if (!(object instanceof Mesh)) return;
       const count = object.geometry.attributes.position?.count ?? 0;
       for (let i = 0; i < count; i++) {
-        callback(object.getVertexPosition(i, vertex).applyMatrix4(object.matrixWorld).sub(this.bounds.center));
+        callback(
+          object
+            .getVertexPosition(i, vertex)
+            .applyMatrix4(object.matrixWorld)
+            .sub(this.bounds.center),
+        );
       }
     });
   }
 
+  /** Apply reproducible logical camera settings without exposing Three.js state. */
+  setCaptureCamera(options: CameraOptions = {}, fitCurrentPose = false) {
+    const specified = Object.fromEntries(
+      Object.entries(options).filter(([, value]) => value != null),
+    );
+    if (
+      specified.orbit &&
+      !/^-?\d+(?:\.\d+)?deg\s+\d+(?:\.\d+)?deg\s+\d+(?:\.\d+)?%$/.test(
+        specified.orbit,
+      )
+    )
+      throw new Error(
+        "Invalid camera orbit. Use degrees, degrees, and a percentage.",
+      );
+    if (
+      specified.target &&
+      !specified.target
+        .split(/\s+/)
+        .every(
+          (value, index, all) =>
+            all.length === 3 && /^-?\d+(?:\.\d+)?m$/.test(value),
+        )
+    )
+      throw new Error("Invalid camera target. Use three distances in meters.");
+    if (
+      specified.fov &&
+      (!/^\d+(?:\.\d+)?deg$/.test(specified.fov) ||
+        Number.parseFloat(specified.fov) <= 0 ||
+        Number.parseFloat(specified.fov) >= 180)
+    )
+      throw new Error("Invalid camera field of view.");
+    const previousTarget = this.cameraOptions.target;
+    this.cameraOptions = { ...this.cameraOptions, ...specified };
+    if (fitCurrentPose || this.cameraOptions.target !== previousTarget) {
+      this.fitModel();
+    } else {
+      this.baseFov = Number.parseFloat(this.cameraOptions.fov ?? "30deg");
+      const distance =
+        this.bounds.radius / Math.sin((FRAMING_FOV * Math.PI) / 360);
+      this.initialDistance = MathUtils.clamp(
+        (distance *
+          Number.parseFloat(
+            this.cameraOptions.orbit?.split(/\s+/)[2] ?? "105%",
+          )) /
+          100,
+        this.minRadius,
+        this.maxRadius,
+      );
+      this.resetCamera();
+    }
+    return this.getCaptureCamera();
+  }
+
+  getCaptureCamera() {
+    const orbit = new Spherical().setFromVector3(
+      this.camera.position.clone().sub(this.controls.target),
+    );
+    return {
+      theta: (orbit.theta * 180) / Math.PI,
+      phi: (orbit.phi * 180) / Math.PI,
+      radius: orbit.radius,
+      target: this.controls.target.toArray(),
+      fov: this.camera.fov,
+      width: this.renderer.domElement.width,
+      height: this.renderer.domElement.height,
+    };
+  }
+
+  setTextureAnimationPaused(paused: boolean) {
+    this.textureAnimationPaused = paused;
+    this.invalidate();
+  }
+
+  get animationSettled() {
+    return !this.action || this.action.paused || this.paused;
+  }
+
   resetCamera() {
-    const [theta, phi] = (this.cameraOptions.orbit ?? "0deg 75deg 105%").split(/\s+/).map(Number.parseFloat);
-    const orbit = new Spherical(this.initialDistance, phi * Math.PI / 180, theta * Math.PI / 180);
-    const position = new Vector3().setFromSpherical(orbit).add(this.bounds.center);
-    this.placeCamera(this.bounds.center, position, this.clampFov(this.adjustedFov(this.baseFov)));
+    const [theta, phi] = (this.cameraOptions.orbit ?? "0deg 75deg 105%")
+      .split(/\s+/)
+      .map(Number.parseFloat);
+    const orbit = new Spherical(
+      this.initialDistance,
+      (phi * Math.PI) / 180,
+      (theta * Math.PI) / 180,
+    );
+    const position = new Vector3()
+      .setFromSpherical(orbit)
+      .add(this.bounds.center);
+    this.placeCamera(
+      this.bounds.center,
+      position,
+      this.clampFov(this.adjustedFov(this.baseFov)),
+    );
     if (this.posing) this.startPoseCamera();
     this.invalidate();
   }
@@ -774,7 +1132,11 @@ export default class Viewer {
   /** Replaces the view. Pending orbit damping is drained first, so an old drag
    * cannot tilt the new view, and the new view is the zoom goal, so nothing
    * eases it elsewhere. */
-  private placeCamera(target: Vector3, position: Vector3, fov = this.camera.fov) {
+  private placeCamera(
+    target: Vector3,
+    position: Vector3,
+    fov = this.camera.fov,
+  ) {
     const damping = this.controls.enableDamping;
     this.controls.enableDamping = false;
     this.controls.update();
@@ -795,19 +1157,37 @@ export default class Viewer {
    * model-viewer: the log of the field of view changes by `deltaZoom`, and the
    * distance keeps pace so that both reach their limits together. */
   private adjustZoom(deltaZoom: number) {
-    [this.goalLogFov, this.goalRadius] = this.zoomed(this.goalLogFov, this.goalRadius, deltaZoom);
+    [this.goalLogFov, this.goalRadius] = this.zoomed(
+      this.goalLogFov,
+      this.goalRadius,
+      deltaZoom,
+    );
     this.invalidate();
   }
 
   /** The log field of view and distance `deltaZoom` from these, as above. */
-  private zoomed(logFov: number, radius: number, deltaZoom: number): [number, number] {
+  private zoomed(
+    logFov: number,
+    radius: number,
+    deltaZoom: number,
+  ): [number, number] {
     const minLogFov = Math.log(MIN_FOV);
     const maxLogFov = Math.log(this.adjustedFov(MAX_FOV));
     const out = deltaZoom > 0;
-    const ratio = ((out ? this.maxRadius : this.minRadius) - radius) / ((out ? maxLogFov : minLogFov) - logFov);
+    const ratio =
+      ((out ? this.maxRadius : this.minRadius) - radius) /
+      ((out ? maxLogFov : minLogFov) - logFov);
     return [
       MathUtils.clamp(logFov + deltaZoom, minLogFov, maxLogFov),
-      MathUtils.clamp(radius + deltaZoom * (Number.isFinite(ratio) ? ratio : (this.maxRadius - this.minRadius) * 2), this.minRadius, this.maxRadius),
+      MathUtils.clamp(
+        radius +
+          deltaZoom *
+            (Number.isFinite(ratio)
+              ? ratio
+              : (this.maxRadius - this.minRadius) * 2),
+        this.minRadius,
+        this.maxRadius,
+      ),
     ];
   }
 
@@ -815,7 +1195,11 @@ export default class Viewer {
     if (!this.model) return;
     const target = this.controls.target.clone();
     const distance = this.camera.position.distanceTo(target);
-    this.editorCamera = { position: this.camera.position.clone(), target, fov: this.camera.fov };
+    this.editorCamera = {
+      position: this.camera.position.clone(),
+      target,
+      fov: this.camera.fov,
+    };
     // Detector coordinates describe a straight-on camera. The editor's usual
     // elevated orbit would turn head/body yaw into apparent sideways tilt.
     this.placeCamera(target, target.clone().add(new Vector3(0, 0, distance)));
@@ -823,13 +1207,21 @@ export default class Viewer {
 
   private restoreEditorCamera() {
     if (!this.editorCamera) return;
-    this.placeCamera(this.editorCamera.target, this.editorCamera.position, this.editorCamera.fov);
+    this.placeCamera(
+      this.editorCamera.target,
+      this.editorCamera.position,
+      this.editorCamera.fov,
+    );
     this.editorCamera = null;
   }
 
   /** Receive mirrored image landmarks. Empty input holds the last reliable
    * framing while the rig independently handles tracking loss. */
-  setPoseFraming(landmarks: readonly PoseLandmark[], imageWidth?: number, imageHeight?: number) {
+  setPoseFraming(
+    landmarks: readonly PoseLandmark[],
+    imageWidth?: number,
+    imageHeight?: number,
+  ) {
     if (!this.posing || !this.model || !this.rig || !this.poseRuntime) return;
     this.poseFraming ??= this.poseRuntime.createPoseFraming(this.model.scene);
     this.poseFraming.setInput(landmarks, imageWidth, imageHeight);
@@ -844,10 +1236,17 @@ export default class Viewer {
   /** With no animation chosen, `playFirstClip` plays the model's first clip,
    * as model-viewer did for weapons and vehicles, but only once, holding its
    * last frame. */
-  setAnimation(name: string | null, paused: boolean, speed: number, playFirstClip = false) {
+  setAnimation(
+    name: string | null,
+    paused: boolean,
+    speed: number,
+    playFirstClip = false,
+  ) {
     const animations = this.model?.animations ?? [];
     const once = name === null && playFirstClip;
-    const clip = once ? animations[0] : animations.find((animation) => animation.name === name);
+    const clip = once
+      ? animations[0]
+      : animations.find((animation) => animation.name === name);
     const previous = this.action;
     // Calls for the same clip, like pausing or changing speed, don't restart it.
     if (previous?.getClip() !== clip) {
@@ -902,7 +1301,10 @@ export default class Viewer {
     this.controls.enablePan = !posing;
     // With pan and zoom both off, OrbitControls would turn the camera with two
     // fingers, toward their midpoint. The viewer's pinch zoom is all they do then.
-    this.controls.touches = { ONE: TOUCH.ROTATE, TWO: posing ? null : TOUCH.DOLLY_PAN };
+    this.controls.touches = {
+      ONE: TOUCH.ROTATE,
+      TWO: posing ? null : TOUCH.DOLLY_PAN,
+    };
     this.resetPoseFraming();
     if (posing) {
       this.startPoseCamera();
@@ -935,13 +1337,20 @@ export default class Viewer {
       seed = (seed + 0.37) % 1;
       let geometries = this.randomColorGeometries.get(object);
       if (random && !geometries) {
-        geometries = { original: object.geometry, random: randomColorGeometry(object.geometry, seed) };
+        geometries = {
+          original: object.geometry,
+          random: randomColorGeometry(object.geometry, seed),
+        };
         this.randomColorGeometries.set(object, geometries);
       }
-      if (geometries) object.geometry = random ? geometries.random : geometries.original;
+      if (geometries)
+        object.geometry = random ? geometries.random : geometries.original;
     });
-    this.scene.overrideMaterial = random ? this.randomColorMaterial
-      : this.renderMode === "wireframe" ? this.wireframeMaterial : null;
+    this.scene.overrideMaterial = random
+      ? this.randomColorMaterial
+      : this.renderMode === "wireframe"
+        ? this.wireframeMaterial
+        : null;
     this.invalidate();
   }
 
@@ -955,7 +1364,10 @@ export default class Viewer {
     let texture: Texture | null = null;
     if (url) {
       texture = await new RGBELoader().loadAsync(url);
-      if (this.disposed || generation !== this.environmentGeneration) { texture.dispose(); return; }
+      if (this.disposed || generation !== this.environmentGeneration) {
+        texture.dispose();
+        return;
+      }
       texture.mapping = EquirectangularReflectionMapping;
     }
     this.background?.dispose();
@@ -967,7 +1379,9 @@ export default class Viewer {
   /** Lights the model with the HDR background, or the default environment
    * without one. */
   private applyLighting() {
-    const environment = this.background ? this.pmrem.fromEquirectangular(this.background) : null;
+    const environment = this.background
+      ? this.pmrem.fromEquirectangular(this.background)
+      : null;
     this.environment?.dispose();
     this.environment = environment;
     this.scene.environment = (environment ?? this.defaultEnvironment).texture;
@@ -981,12 +1395,17 @@ export default class Viewer {
   private updateBackground() {
     this.scene.background = this.showBackground ? this.background : null;
     // Keep the camera above the ground of a visible environment.
-    this.controls.maxPolarAngle = this.scene.background ? Math.PI / 2 : MAX_POLAR_ANGLE;
+    this.controls.maxPolarAngle = this.scene.background
+      ? Math.PI / 2
+      : MAX_POLAR_ANGLE;
     this.invalidate();
   }
 
   private handleVisibility = () => {
-    if (document.hidden && this.frameId !== null) { cancelAnimationFrame(this.frameId); this.frameId = null; }
+    if (document.hidden && this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
     this.previousTime = null;
     this.invalidate();
   };
@@ -1029,20 +1448,44 @@ export default class Viewer {
   };
 
   private handleKey = (event: KeyboardEvent) => {
-    const orbit = new Spherical().setFromVector3(this.camera.position.clone().sub(this.controls.target));
+    const orbit = new Spherical().setFromVector3(
+      this.camera.position.clone().sub(this.controls.target),
+    );
     switch (event.key) {
       // Each arrow turns the model the way it points, like a drag that way.
-      case "ArrowLeft": orbit.theta += 0.1; break;
-      case "ArrowRight": orbit.theta -= 0.1; break;
-      case "ArrowUp": orbit.phi += 0.1; break;
-      case "ArrowDown": orbit.phi -= 0.1; break;
-      case "+": case "=": this.adjustZoom(-0.1); event.preventDefault(); return;
-      case "-": this.adjustZoom(0.1); event.preventDefault(); return;
-      case "Home": this.resetCamera(); event.preventDefault(); return;
-      default: return;
+      case "ArrowLeft":
+        orbit.theta += 0.1;
+        break;
+      case "ArrowRight":
+        orbit.theta -= 0.1;
+        break;
+      case "ArrowUp":
+        orbit.phi += 0.1;
+        break;
+      case "ArrowDown":
+        orbit.phi -= 0.1;
+        break;
+      case "+":
+      case "=":
+        this.adjustZoom(-0.1);
+        event.preventDefault();
+        return;
+      case "-":
+        this.adjustZoom(0.1);
+        event.preventDefault();
+        return;
+      case "Home":
+        this.resetCamera();
+        event.preventDefault();
+        return;
+      default:
+        return;
     }
     event.preventDefault();
-    orbit.phi = Math.max(this.controls.minPolarAngle, Math.min(this.controls.maxPolarAngle, orbit.phi));
+    orbit.phi = Math.max(
+      this.controls.minPolarAngle,
+      Math.min(this.controls.maxPolarAngle, orbit.phi),
+    );
     this.camera.position.setFromSpherical(orbit).add(this.controls.target);
     this.controls.update();
     this.invalidate();
@@ -1051,7 +1494,9 @@ export default class Viewer {
   private handleWheel = (event: WheelEvent) => {
     event.preventDefault();
     // A line counts as 18 pixels, like model-viewer.
-    this.adjustZoom(event.deltaY * (event.deltaMode === 1 ? 18 : 1) * ZOOM_SENSITIVITY / 30);
+    this.adjustZoom(
+      (event.deltaY * (event.deltaMode === 1 ? 18 : 1) * ZOOM_SENSITIVITY) / 30,
+    );
   };
 
   private handlePointerDown = (event: PointerEvent) => {
@@ -1066,7 +1511,10 @@ export default class Viewer {
     // Ctrl, Meta or Shift held, instead of rotating.
     const { LEFT, MIDDLE, RIGHT } = this.controls.mouseButtons;
     const action = [LEFT, MIDDLE, RIGHT][event.button];
-    const pans = event.ctrlKey || event.metaKey || event.shiftKey ? action === MOUSE.ROTATE : action === MOUSE.PAN;
+    const pans =
+      event.ctrlKey || event.metaKey || event.shiftKey
+        ? action === MOUSE.ROTATE
+        : action === MOUSE.PAN;
     this.panPointer = pans ? event.pointerId : null;
     this.startPan(new Map([[event.pointerId, point]]));
   };
@@ -1074,7 +1522,14 @@ export default class Viewer {
   private handlePointerMove = (event: PointerEvent) => {
     // Like model-viewer's taps, a click or tap moves 2 pixels at most.
     const start = this.panStarts.get(event.pointerId);
-    if (start && Math.max(Math.abs(event.clientX - start.x), Math.abs(event.clientY - start.y)) > 2) this.panMoved = true;
+    if (
+      start &&
+      Math.max(
+        Math.abs(event.clientX - start.x),
+        Math.abs(event.clientY - start.y),
+      ) > 2
+    )
+      this.panMoved = true;
     const touch = this.touches.get(event.pointerId);
     if (!touch) return;
     touch.set(event.clientX, event.clientY);
@@ -1106,12 +1561,24 @@ export default class Viewer {
     if (!height) return;
     const goals: [number, number] = [this.goalLogFov, this.goalRadius];
     let { pinch } = this;
-    if (!pinch || pinch.height !== height || pinch.goals.some((goal, index) => goal !== goals[index])) {
+    if (
+      !pinch ||
+      pinch.height !== height ||
+      pinch.goals.some((goal, index) => goal !== goals[index])
+    ) {
       const from = pinch?.separation ?? separation;
-      pinch = this.pinch = { from, height, logFov: goals[0], radius: goals[1], separation: from, goals };
+      pinch = this.pinch = {
+        from,
+        height,
+        logFov: goals[0],
+        radius: goals[1],
+        separation: from,
+        goals,
+      };
     }
     if (separation === pinch.separation) return;
-    const deltaZoom = ZOOM_SENSITIVITY * (pinch.from - separation) * 50 / height;
+    const deltaZoom =
+      (ZOOM_SENSITIVITY * (pinch.from - separation) * 50) / height;
     const next = this.zoomed(pinch.logFov, pinch.radius, deltaZoom);
     [this.goalLogFov, this.goalRadius] = next;
     pinch.separation = separation;
@@ -1150,11 +1617,16 @@ export default class Viewer {
     const pivot = target.clone().addScaledVector(toCamera, shift);
     // OrbitControls would pull a target outside the pan limit back in, and
     // the camera with it.
-    if (pivot.distanceTo(this.controls.cursor) > this.controls.maxTargetRadius) return;
+    if (pivot.distanceTo(this.controls.cursor) > this.controls.maxTargetRadius)
+      return;
     target.copy(pivot);
     // The camera is that much closer to the target now, and goes on to where
     // zooming was taking it, within the zoom limits.
-    this.goalRadius = MathUtils.clamp(this.goalRadius - shift, this.minRadius, this.maxRadius);
+    this.goalRadius = MathUtils.clamp(
+      this.goalRadius - shift,
+      this.minRadius,
+      this.maxRadius,
+    );
     this.invalidate();
   }
 
@@ -1169,12 +1641,22 @@ export default class Viewer {
     });
     this.camera.updateMatrixWorld();
     this.raycaster.setFromCamera(new Vector2(), this.camera);
-    const hit = this.raycaster.intersectObject(this.model.scene).find(({ object, face }) => {
-      const { material } = object as Mesh;
-      if (!(Array.isArray(material) ? material[face?.materialIndex ?? 0] : material)?.visible) return false;
-      for (let node: Object3D | null = object; node; node = node.parent) if (!node.visible) return false;
-      return true;
-    });
+    const hit = this.raycaster
+      .intersectObject(this.model.scene)
+      .find(({ object, face }) => {
+        const { material } = object as Mesh;
+        if (
+          !(
+            Array.isArray(material)
+              ? material[face?.materialIndex ?? 0]
+              : material
+          )?.visible
+        )
+          return false;
+        for (let node: Object3D | null = object; node; node = node.parent)
+          if (!node.visible) return false;
+        return true;
+      });
     return hit?.point ?? null;
   }
 
@@ -1203,7 +1685,10 @@ export default class Viewer {
     const canvas = this.renderer.domElement;
     canvas.removeEventListener("keydown", this.handleKey);
     canvas.removeEventListener("webglcontextlost", this.handleContextLost);
-    canvas.removeEventListener("webglcontextrestored", this.handleContextRestored);
+    canvas.removeEventListener(
+      "webglcontextrestored",
+      this.handleContextRestored,
+    );
     canvas.removeEventListener("wheel", this.handleWheel);
     canvas.removeEventListener("pointerdown", this.handlePointerDown);
     canvas.removeEventListener("pointermove", this.handlePointerMove);

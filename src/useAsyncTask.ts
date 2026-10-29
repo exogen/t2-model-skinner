@@ -1,8 +1,11 @@
+import { captureActivity } from "./captureActivity";
 import { useLayoutEffect, useMemo, useRef } from "react";
 
 interface Scope {
   pending: Set<AbortController>;
   closed: boolean;
+  activity: ReturnType<typeof captureActivity.register>;
+  error: unknown;
 }
 
 // Work belongs to the mounted owner and is aborted on unmount. With `latest`,
@@ -13,12 +16,20 @@ export default function useAsyncTask(latest = false) {
   const scopeRef = useRef<Scope | null>(null);
 
   useLayoutEffect(() => {
-    const scope: Scope = { pending: new Set(), closed: false };
+    const scope: Scope = {
+      pending: new Set(),
+      closed: false,
+      activity: captureActivity.register("Editor"),
+      error: null,
+    };
     scopeRef.current = scope;
     return () => {
       scope.closed = true;
+      scope.activity.dispose();
       scope.pending.forEach((controller) => controller.abort());
       scope.pending.clear();
+      scope.error = null;
+      scope.activity.update(0);
     };
   }, []);
 
@@ -26,7 +37,7 @@ export default function useAsyncTask(latest = false) {
     async function run<T>(
       prepare: (signal: AbortSignal) => Promise<T>,
       commit: (value: T) => void,
-      dispose?: (value: T) => void
+      dispose?: (value: T) => void,
     ): Promise<boolean> {
       const scope = scopeRef.current;
       if (!scope || scope.closed) return false;
@@ -36,6 +47,8 @@ export default function useAsyncTask(latest = false) {
       }
       const controller = new AbortController();
       scope.pending.add(controller);
+      scope.error = null;
+      scope.activity.update(scope.pending.size);
       const { signal } = controller;
       try {
         const value = await prepare(signal);
@@ -46,10 +59,14 @@ export default function useAsyncTask(latest = false) {
         commit(value);
         return true;
       } catch (error) {
-        if (!signal.aborted) throw error;
+        if (!signal.aborted) {
+          scope.error = error;
+          throw error;
+        }
         return false;
       } finally {
         scope.pending.delete(controller);
+        scope.activity.update(scope.pending.size, scope.error);
       }
     }
 
@@ -58,6 +75,8 @@ export default function useAsyncTask(latest = false) {
       if (!scope) return;
       scope.pending.forEach((controller) => controller.abort());
       scope.pending.clear();
+      scope.error = null;
+      scope.activity.update(0);
     };
     return run;
   }, [latest]);

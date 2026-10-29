@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getEnv } from "fabric";
-import { AnimationClip, AnimationMixer, Group, Object3D, PerspectiveCamera, Texture, VectorKeyframeTrack } from "three";
+import {
+  AnimationClip,
+  AnimationMixer,
+  Group,
+  Object3D,
+  PerspectiveCamera,
+  Texture,
+  VectorKeyframeTrack,
+} from "three";
 import Viewer, { OUTSIDE_BRIGHTNESS, OUTSIDE_OPACITY } from "./Viewer";
 
 const fixture = vi.hoisted(() => ({ events: [] }));
@@ -20,31 +28,47 @@ vi.mock("three", async (importOriginal) => {
         this.setScissor = vi.fn();
       }
       setClearColor() {}
-      setPixelRatio(ratio) { this.pixelRatio = ratio; }
-      getPixelRatio() { return this.pixelRatio; }
+      setPixelRatio(ratio) {
+        this.pixelRatio = ratio;
+      }
+      getPixelRatio() {
+        return this.pixelRatio;
+      }
       setSize(width, height) {
         this.size.set(width, height);
         this.domElement.width = Math.floor(width * this.pixelRatio);
         this.domElement.height = Math.floor(height * this.pixelRatio);
       }
-      getSize(target) { return target.copy(this.size); }
+      getSize(target) {
+        return target.copy(this.size);
+      }
       dispose() {}
       forceContextLoss() {}
     },
     PMREMGenerator: class {
-      fromScene() { return { texture: new actual.Texture(), dispose() {} }; }
+      fromScene() {
+        return { texture: new actual.Texture(), dispose() {} };
+      }
       dispose() {}
     },
   };
 });
 vi.mock("three/addons/controls/OrbitControls.js", async () => {
   const { Vector3 } = await vi.importActual("three");
-  return { OrbitControls: class {
-    constructor() { this.target = new Vector3(); this.mouseButtons = {}; }
-    addEventListener() {}
-    update() { fixture.events.push("controls"); return false; }
-    dispose() {}
-  } };
+  return {
+    OrbitControls: class {
+      constructor() {
+        this.target = new Vector3();
+        this.mouseButtons = {};
+      }
+      addEventListener() {}
+      update() {
+        fixture.events.push("controls");
+        return false;
+      }
+      dispose() {}
+    },
+  };
 });
 
 const { document } = getEnv();
@@ -63,18 +87,42 @@ beforeEach(() => {
   fixture.events.length = 0;
   scheduled = new Map();
   let nextId = 0;
-  vi.stubGlobal("requestAnimationFrame", (callback) => { scheduled.set(++nextId, callback); return nextId; });
-  vi.stubGlobal("cancelAnimationFrame", (id) => scheduled.delete(id));
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  observers = [];
-  vi.stubGlobal("IntersectionObserver", class {
-    constructor(callback, options) { this.callback = callback; this.options = options; this.targets = new Set(); observers.push(this); }
-    observe(target) { this.targets.add(target); }
-    disconnect() { this.targets.clear(); }
+  vi.stubGlobal("requestAnimationFrame", (callback) => {
+    scheduled.set(++nextId, callback);
+    return nextId;
   });
+  vi.stubGlobal("cancelAnimationFrame", (id) => scheduled.delete(id));
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  observers = [];
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback, options) {
+        this.callback = callback;
+        this.options = options;
+        this.targets = new Set();
+        observers.push(this);
+      }
+      observe(target) {
+        this.targets.add(target);
+      }
+      disconnect() {
+        this.targets.clear();
+      }
+    },
+  );
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
   host = document.createElement("div");
-  vi.spyOn(host, "getBoundingClientRect").mockReturnValue({ width: 640, height: 480 });
+  vi.spyOn(host, "getBoundingClientRect").mockReturnValue({
+    width: 640,
+    height: 480,
+  });
   document.body.append(host);
   viewer = new Viewer(host);
   frame(0);
@@ -98,7 +146,11 @@ function frame(time) {
 
 /** Reports the view scrolling on or off screen, oldest first. */
 function scroll(...onScreen) {
-  observers.at(-1).callback(onScreen.map((isIntersecting) => ({ target: host, isIntersecting })));
+  observers
+    .at(-1)
+    .callback(
+      onScreen.map((isIntersecting) => ({ target: host, isIntersecting })),
+    );
 }
 
 test("screen-space pose callbacks receive the exact final camera after body, orbit, and framing updates", () => {
@@ -114,16 +166,26 @@ test("screen-space pose callbacks receive the exact final camera after body, orb
       return framed;
     },
   };
-  const unsubscribeBase = viewer.subscribeFrame(() => fixture.events.push("body"));
+  const unsubscribeBase = viewer.subscribeFrame(() =>
+    fixture.events.push("body"),
+  );
   const callback = vi.fn((delta, camera, imageAspect) => {
     fixture.events.push("pose");
     expect(camera).toBe(framed);
     expect(imageAspect).toBe(3 / 4);
-    expect(camera.projectionMatrix.elements[0]).toBe(viewer.camera.projectionMatrix.elements[0] * 2);
+    expect(camera.projectionMatrix.elements[0]).toBe(
+      viewer.camera.projectionMatrix.elements[0] * 2,
+    );
   });
   const unsubscribePose = viewer.subscribePoseFrame(callback);
   frame(16);
-  expect(fixture.events).toEqual(["body", "controls", "framing", "pose", "draw"]);
+  expect(fixture.events).toEqual([
+    "body",
+    "controls",
+    "framing",
+    "pose",
+    "draw",
+  ]);
   expect(viewer.renderer.render).toHaveBeenLastCalledWith(viewer.scene, framed);
   expect(callback).toHaveBeenCalledOnce();
   unsubscribeBase();
@@ -178,7 +240,9 @@ const blue = [0, 0, 255, 255];
 
 test("a frame capture copies the whole canvas after the next draw", async () => {
   // The marker only exists once the frame is drawn.
-  viewer.renderer.render.mockImplementation(() => paint(viewer.renderer.domElement, 5, 7, red));
+  viewer.renderer.render.mockImplementation(() =>
+    paint(viewer.renderer.domElement, 5, 7, red),
+  );
   const capture = viewer.captureFrame();
   expect(scheduled.size).toBe(1);
   frame(16);
@@ -224,7 +288,12 @@ function frameWideImage() {
 }
 
 /** A fade drawn all the way, over everything outside `box`. */
-const faded = (box) => ({ box, opacity: OUTSIDE_OPACITY, brightness: OUTSIDE_BRIGHTNESS, autoClear: false });
+const faded = (box) => ({
+  box,
+  opacity: OUTSIDE_OPACITY,
+  brightness: OUTSIDE_BRIGHTNESS,
+  autoClear: false,
+});
 
 /** Records each fade drawn over the frame; draws of the scene are ignored. */
 function recordFades(drawScene = () => {}) {
@@ -233,7 +302,9 @@ function recordFades(drawScene = () => {}) {
     if (object === viewer.scene) return drawScene();
     const { uniforms } = object.material;
     fades.push({
-      box: uniforms.box.value.toArray(), opacity: uniforms.opacity.value, brightness: uniforms.brightness.value,
+      box: uniforms.box.value.toArray(),
+      opacity: uniforms.opacity.value,
+      brightness: uniforms.brightness.value,
       autoClear: viewer.renderer.autoClear,
     });
     paint(viewer.renderer.domElement, 0, 0, blue);
@@ -255,7 +326,10 @@ test("while faded, what's outside the camera area is drawn fainter and darker, a
   frame(16);
   // The capture copies rows 81 to 400 from the top, which are rows 80 to 399
   // from the bottom: edges 80 and 400.
-  expect([(await area).height, fades]).toEqual([320, [faded([0, 80, 640, 400])]]);
+  expect([(await area).height, fades]).toEqual([
+    320,
+    [faded([0, 80, 640, 400])],
+  ]);
   expect(viewer.renderer.autoClear).toBe(true);
   expect(pixel(await view, 0, 0)).toEqual(red);
   // The fade is the last thing drawn.
@@ -273,9 +347,13 @@ test("while faded, what's outside the camera area is drawn fainter and darker, a
 test("the fade eases in and out over 200 ms", () => {
   frameWideImage();
   const fades = recordFades();
-  const steps = () => fades.splice(0).map(({ opacity, brightness }) => [opacity, brightness]);
+  const steps = () =>
+    fades.splice(0).map(({ opacity, brightness }) => [opacity, brightness]);
   // A quarter of the way through the fade, and so on.
-  const at = (progress) => [OUTSIDE_OPACITY, OUTSIDE_BRIGHTNESS].map((full) => expect.closeTo(1 - progress * (1 - full)));
+  const at = (progress) =>
+    [OUTSIDE_OPACITY, OUTSIDE_BRIGHTNESS].map((full) =>
+      expect.closeTo(1 - progress * (1 - full)),
+    );
   const full = [OUTSIDE_OPACITY, OUTSIDE_BRIGHTNESS];
   viewer.setFadeOutsideCameraArea(true);
   // The first frame after the view was still has no time to measure.
@@ -330,16 +408,22 @@ test("disposing the viewer rejects pending frame captures and later requests", a
   const capture = viewer.captureFrame();
   viewer.dispose();
   await expect(capture).rejects.toThrow("The 3D view has closed.");
-  await expect(viewer.captureFrame()).rejects.toThrow("The 3D view has closed.");
+  await expect(viewer.captureFrame()).rejects.toThrow(
+    "The 3D view has closed.",
+  );
   viewer = null;
 });
 
 test("a lost graphics context rejects frame captures until it is restored", async () => {
   const canvas = viewer.renderer.domElement;
   const capture = viewer.captureFrame();
-  canvas.dispatchEvent(new globalThis.Event("webglcontextlost", { cancelable: true }));
+  canvas.dispatchEvent(
+    new globalThis.Event("webglcontextlost", { cancelable: true }),
+  );
   await expect(capture).rejects.toThrow("lost its graphics context");
-  await expect(viewer.captureFrame()).rejects.toThrow("lost its graphics context");
+  await expect(viewer.captureFrame()).rejects.toThrow(
+    "lost its graphics context",
+  );
   canvas.dispatchEvent(new globalThis.Event("webglcontextrestored"));
   const next = viewer.captureFrame();
   frame(16);
@@ -352,7 +436,12 @@ test("a capture without the background gets its own draw, before the draw the sc
   const backgrounds = [];
   viewer.renderer.render.mockImplementation(() => {
     backgrounds.push(viewer.scene.background);
-    paint(viewer.renderer.domElement, 0, 0, viewer.scene.background ? blue : red);
+    paint(
+      viewer.renderer.domElement,
+      0,
+      0,
+      viewer.scene.background ? blue : red,
+    );
   });
   const transparent = viewer.captureFrame({ background: false });
   const visible = viewer.captureFrame();
@@ -374,7 +463,9 @@ test("with no environment showing, a capture without the background uses the fra
 test("the environment comes back even if the draw without it fails", () => {
   const environment = new Texture();
   viewer.scene.background = environment;
-  viewer.renderer.render.mockImplementationOnce(() => { throw new Error("draw failed"); });
+  viewer.renderer.render.mockImplementationOnce(() => {
+    throw new Error("draw failed");
+  });
   viewer.captureFrame({ background: false }).catch(() => {});
   expect(() => frame(16)).toThrow("draw failed");
   expect(viewer.scene.background).toBe(environment);
@@ -399,7 +490,9 @@ test("off screen, animations stop, and continue from where they stopped back on 
   frame(5000);
   frame(5016);
   const steps = [0, 0.016, 0.016, 0, 0.016];
-  expect(viewer.mixer.update.mock.calls.map(([seconds]) => seconds)).toEqual(steps);
+  expect(viewer.mixer.update.mock.calls.map(([seconds]) => seconds)).toEqual(
+    steps,
+  );
   expect(textureFrames.mock.calls.map(([seconds]) => seconds)).toEqual(steps);
 });
 
@@ -428,7 +521,9 @@ test("off screen, captures and live mocap still get frames", async () => {
   // Coming back on screen doesn't disturb frames that kept going.
   scroll(true);
   frame(112);
-  expect(playback.mock.calls.map(([seconds]) => seconds)).toEqual([0, 0.016, 0.016]);
+  expect(playback.mock.calls.map(([seconds]) => seconds)).toEqual([
+    0, 0.016, 0.016,
+  ]);
 });
 
 test("without IntersectionObserver, the view draws as if it were always on screen", () => {
@@ -461,7 +556,14 @@ test("a clip played once stops asking for frames when it ends, and pausing and p
   const node = new Object3D();
   node.name = "node";
   scene.add(node);
-  viewer.model = { scene, animations: [new AnimationClip("Deploy", 0.5, [new VectorKeyframeTrack("node.position", [0, 0.5], [0, 0, 0, 1, 0, 0])])] };
+  viewer.model = {
+    scene,
+    animations: [
+      new AnimationClip("Deploy", 0.5, [
+        new VectorKeyframeTrack("node.position", [0, 0.5], [0, 0, 0, 1, 0, 0]),
+      ]),
+    ],
+  };
   viewer.mixer = new AnimationMixer(scene);
   viewer.setAnimation(null, false, 0.5, true);
   let count = 0;

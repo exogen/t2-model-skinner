@@ -13,30 +13,49 @@ function read(url) {
 }
 
 test("real color/metallic conversion preserves HD pixels and alpha", async () => {
-  const width = 1024, height = 1024;
+  const width = 1024,
+    height = 1024;
   const source = new PNG({ width, height });
   for (let i = 0; i < source.data.length; i += 4) {
-    source.data.set([i % 251, (i + 73) % 251, (i + 121) % 251, (i / 4) % 256], i);
+    source.data.set(
+      [i % 251, (i + 73) % 251, (i + 121) % 251, (i / 4) % 256],
+      i,
+    );
   }
   const bytes = PNG.sync.write(source);
-  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const buffer = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  );
   const [color, metallic] = await Promise.all([
     removeAlphaFromArrayBuffer(buffer),
     convertArrayBufferAlphaToGrayscale(buffer),
   ]);
   const grayscale = read(metallic);
-  const preview = read(await convertGrayscaleImageUrlToMetallicRoughness(metallic));
-  const exported = read(await combineColorAndAlphaImageUrls({
-    colorImageUrl: color, metallicImageUrl: metallic,
-  }));
+  const preview = read(
+    await convertGrayscaleImageUrlToMetallicRoughness(metallic),
+  );
+  const exported = read(
+    await combineColorAndAlphaImageUrls({
+      colorImageUrl: color,
+      metallicImageUrl: metallic,
+    }),
+  );
   for (const output of [read(color), grayscale, preview, exported]) {
     expect([output.width, output.height]).toEqual([width, height]);
   }
   for (const pixel of [0, 1, 64, 127, 255, width + 10, width * height - 1]) {
     const offset = pixel * 4;
     const alpha = source.data[offset + 3];
-    expect([...grayscale.data.subarray(offset, offset + 4)]).toEqual([alpha, alpha, alpha, 255]);
-    expect(preview.data[offset + 2]).toBe(alpha ? Math.min(alpha + 64, 255) : 0);
+    expect([...grayscale.data.subarray(offset, offset + 4)]).toEqual([
+      alpha,
+      alpha,
+      alpha,
+      255,
+    ]);
+    expect(preview.data[offset + 2]).toBe(
+      alpha ? Math.min(alpha + 64, 255) : 0,
+    );
   }
   // Zero alpha is deliberately clamped to 1 for the game's metallic format.
   for (let i = 3; i < source.data.length; i += 4) {

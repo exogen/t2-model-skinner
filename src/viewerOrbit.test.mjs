@@ -1,8 +1,21 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getEnv } from "fabric";
 import {
-  AnimationClip, Bone, BoxGeometry, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial,
-  PerspectiveCamera, Skeleton, SkinnedMesh, Spherical, Texture, Uint16BufferAttribute, VectorKeyframeTrack,
+  AnimationClip,
+  Bone,
+  BoxGeometry,
+  DoubleSide,
+  Float32BufferAttribute,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  PerspectiveCamera,
+  Skeleton,
+  SkinnedMesh,
+  Spherical,
+  Texture,
+  Uint16BufferAttribute,
+  VectorKeyframeTrack,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import Viewer, { FrameOrbitControls } from "./Viewer";
@@ -13,18 +26,26 @@ vi.mock("three", async (importOriginal) => {
   return {
     ...actual,
     WebGLRenderer: class {
-      constructor() { this.domElement = getEnv().document.createElement("canvas"); }
+      constructor() {
+        this.domElement = getEnv().document.createElement("canvas");
+      }
       setClearColor() {}
       setPixelRatio() {}
-      getPixelRatio() { return 1; }
+      getPixelRatio() {
+        return 1;
+      }
       setSize() {}
-      getSize(target) { return target.set(640, 480); }
+      getSize(target) {
+        return target.set(640, 480);
+      }
       render() {}
       dispose() {}
       forceContextLoss() {}
     },
     PMREMGenerator: class {
-      fromScene() { return { texture: new actual.Texture(), dispose() {} }; }
+      fromScene() {
+        return { texture: new actual.Texture(), dispose() {} };
+      }
       dispose() {}
     },
   };
@@ -45,12 +66,24 @@ beforeEach(() => {
   scheduled = new Map();
   time = 0;
   let nextId = 0;
-  vi.stubGlobal("requestAnimationFrame", (callback) => { scheduled.set(++nextId, callback); return nextId; });
+  vi.stubGlobal("requestAnimationFrame", (callback) => {
+    scheduled.set(++nextId, callback);
+    return nextId;
+  });
   vi.stubGlobal("cancelAnimationFrame", (id) => scheduled.delete(id));
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
   host = document.createElement("div");
-  vi.spyOn(host, "getBoundingClientRect").mockReturnValue({ width: 640, height: 480 });
+  vi.spyOn(host, "getBoundingClientRect").mockReturnValue({
+    width: 640,
+    height: 480,
+  });
   document.body.append(host);
   viewer = new Viewer(host);
   pointerCanvas(viewer.renderer.domElement);
@@ -69,14 +102,25 @@ afterEach(() => {
 function pointerCanvas(canvas = document.createElement("canvas")) {
   canvas.setPointerCapture = () => {};
   canvas.releasePointerCapture = () => {};
-  Object.defineProperty(canvas, "clientHeight", { value: 480, configurable: true });
+  Object.defineProperty(canvas, "clientHeight", {
+    value: 480,
+    configurable: true,
+  });
   return canvas;
 }
 
 /** jsdom has no PointerEvent. `init` can hold modifier keys. */
 function pointer(canvas, type, x, y = 100, button = 0, init = {}) {
-  const event = new window.MouseEvent(type, { button, clientX: x, clientY: y, ...init });
-  Object.defineProperties(event, { pointerId: { value: 1 }, pointerType: { value: "mouse" } });
+  const event = new window.MouseEvent(type, {
+    button,
+    clientX: x,
+    clientY: y,
+    ...init,
+  });
+  Object.defineProperties(event, {
+    pointerId: { value: 1 },
+    pointerType: { value: "mouse" },
+  });
   canvas.dispatchEvent(event);
 }
 
@@ -84,19 +128,29 @@ function pointer(canvas, type, x, y = 100, button = 0, init = {}) {
 function touch(type, id, x, y) {
   const event = new window.MouseEvent(type, { clientX: x, clientY: y });
   Object.defineProperties(event, {
-    pointerId: { value: id }, pointerType: { value: "touch" }, pageX: { value: x }, pageY: { value: y },
+    pointerId: { value: id },
+    pointerType: { value: "touch" },
+    pageX: { value: x },
+    pageY: { value: y },
   });
   viewer.renderer.domElement.dispatchEvent(event);
 }
 
 function wheel(deltaY, deltaMode = 0) {
-  const event = new window.WheelEvent("wheel", { deltaY, deltaMode, cancelable: true });
+  const event = new window.WheelEvent("wheel", {
+    deltaY,
+    deltaMode,
+    cancelable: true,
+  });
   viewer.renderer.domElement.dispatchEvent(event);
   return event;
 }
 
 function key(name) {
-  const event = new window.KeyboardEvent("keydown", { key: name, cancelable: true });
+  const event = new window.KeyboardEvent("keydown", {
+    key: name,
+    cancelable: true,
+  });
   viewer.renderer.domElement.dispatchEvent(event);
   return event;
 }
@@ -109,7 +163,7 @@ function runFrames() {
     const before = viewer.camera.position.clone();
     const [id, callback] = scheduled.entries().next().value;
     scheduled.delete(id);
-    callback(time += 16);
+    callback((time += 16));
     steps.push(viewer.camera.position.distanceTo(before));
   }
   return steps;
@@ -120,33 +174,40 @@ function frames(count) {
   for (let i = 0; i < count && scheduled.size; i++) {
     const [id, callback] = scheduled.entries().next().value;
     scheduled.delete(id);
-    callback(time += 16);
+    callback((time += 16));
   }
 }
 
 /** Loads `scene` as the model. */
 async function loadScene(scene, camera = {}, animations = []) {
   vi.spyOn(GLTFLoader.prototype, "loadAsync").mockResolvedValueOnce({
-    scene, animations, parser: { json: {}, associations: new Map() },
+    scene,
+    animations,
+    parser: { json: {}, associations: new Map() },
   });
   await viewer.load("/model.glb", camera);
 }
 
 /** Loads a box `width` by `height` by `depth`, named "box", as the model. */
 async function loadBox([width, height, depth], camera = {}, animations = []) {
-  const box = new Mesh(new BoxGeometry(width, height, depth), new MeshStandardMaterial());
+  const box = new Mesh(
+    new BoxGeometry(width, height, depth),
+    new MeshStandardMaterial(),
+  );
   box.name = "box";
   await loadScene(new Group().add(box), camera, animations);
 }
 
 /** Where the camera is around the orbit target. */
 function orbit() {
-  return new Spherical().setFromVector3(viewer.camera.position.clone().sub(viewer.controls.target));
+  return new Spherical().setFromVector3(
+    viewer.camera.position.clone().sub(viewer.controls.target),
+  );
 }
 
 /** How much of the scene the view's height spans at the orbit target. */
 function viewHeight() {
-  return 2 * orbit().radius * Math.tan(viewer.camera.fov * Math.PI / 360);
+  return 2 * orbit().radius * Math.tan((viewer.camera.fov * Math.PI) / 360);
 }
 
 // The 2 by 4 by 2 box most tests use: the radius of its bounds, the distance
@@ -158,7 +219,14 @@ const [minRadius, maxRadius] = [2.2 * boxRadius, 1.05 * boxFraming];
 
 /** The field of view framing `fov` widens to in a view of this aspect. */
 function framedFov(fov, aspect, idealAspect = boxAspect) {
-  return 2 * Math.atan(Math.tan(fov * Math.PI / 360) * Math.max(1, idealAspect / aspect)) * 180 / Math.PI;
+  return (
+    (2 *
+      Math.atan(
+        Math.tan((fov * Math.PI) / 360) * Math.max(1, idealAspect / aspect),
+      ) *
+      180) /
+    Math.PI
+  );
 }
 
 test("during a drag, OrbitControls' own updates only ask for a frame, and each frame moves the camera by time", () => {
@@ -212,12 +280,15 @@ test("on a model as small as a player, frames continue until the camera settles"
   const steps = runFrames();
   // Most of them move the camera less than the 0.001 units OrbitControls
   // reports as a change.
-  expect(steps.filter((step) => step > 0 && step < 0.001).length).toBeGreaterThan(20);
+  expect(
+    steps.filter((step) => step > 0 && step < 0.001).length,
+  ).toBeGreaterThan(20);
   // They stop within a second, when what's left wouldn't move it a tenth of a
   // pixel.
   expect(scheduled.size).toBe(0);
   expect(steps.length * 16).toBeLessThan(1000);
-  const pixel = 2 * orbit().radius * Math.tan(viewer.camera.fov * Math.PI / 360) / 480;
+  const pixel =
+    (2 * orbit().radius * Math.tan((viewer.camera.fov * Math.PI) / 360)) / 480;
   const settled = viewer.camera.position.clone();
   viewer.controls.step(1);
   expect(viewer.camera.position.distanceTo(settled)).toBeLessThan(pixel / 10);
@@ -235,11 +306,14 @@ test("models are framed for 30°, so a narrower field of view zooms in, and orbi
   await loadBox([2, 4, 2], { fov: "12deg", orbit: "290deg 60deg 130%" });
   const { radius, theta, phi } = orbit();
   expect(radius).toBeCloseTo(framing * 1.05, 9);
-  expect(theta).toBeCloseTo((290 - 360) * Math.PI / 180, 9);
+  expect(theta).toBeCloseTo(((290 - 360) * Math.PI) / 180, 9);
   expect(phi).toBeCloseTo(Math.PI / 3, 9);
   expect(viewer.camera.fov).toBeCloseTo(12, 9);
   // The viewer's zoom limits apply, not OrbitControls'.
-  expect([viewer.controls.minDistance, viewer.controls.maxDistance]).toEqual([0, Infinity]);
+  expect([viewer.controls.minDistance, viewer.controls.maxDistance]).toEqual([
+    0,
+    Infinity,
+  ]);
   // Home goes back there.
   viewer.camera.position.multiplyScalar(2);
   viewer.controls.update();
@@ -249,7 +323,9 @@ test("models are framed for 30°, so a narrower field of view zooms in, and orbi
   host.getBoundingClientRect.mockReturnValue({ width: 240, height: 480 });
   viewer.resize();
   const idealAspect = Math.SQRT2 / (framing - 2) / Math.tan(Math.PI / 12);
-  const fov = 2 * Math.atan(Math.tan(Math.PI / 30) * idealAspect / 0.5) * 180 / Math.PI;
+  const fov =
+    (2 * Math.atan((Math.tan(Math.PI / 30) * idealAspect) / 0.5) * 180) /
+    Math.PI;
   expect(viewer.camera.fov).toBeCloseTo(fov, 9);
 });
 
@@ -261,12 +337,12 @@ test("the camera stops 22.5° short of straight under the model, or at the horiz
     viewer.controls.update();
     return orbit().phi;
   };
-  expect(fromBelow()).toBeCloseTo(Math.PI * 7 / 8, 9);
+  expect(fromBelow()).toBeCloseTo((Math.PI * 7) / 8, 9);
   viewer.background = new Texture();
   viewer.setBackgroundVisible(true);
   expect(fromBelow()).toBeCloseTo(Math.PI / 2, 9);
   viewer.setBackgroundVisible(false);
-  expect(fromBelow()).toBeCloseTo(Math.PI * 7 / 8, 9);
+  expect(fromBelow()).toBeCloseTo((Math.PI * 7) / 8, 9);
 });
 
 test("a middle-drag orbits like a left-drag instead of zooming", async () => {
@@ -306,16 +382,21 @@ test("a scroll changes distance and field of view together, eased over time", as
   const height = viewHeight();
   // Scrolling up by 100 pixels zooms in.
   expect(wheel(-100).defaultPrevented).toBe(true);
-  const deltaZoom = -100 * 0.04 / 30;
+  const deltaZoom = (-100 * 0.04) / 30;
   // The log of the field of view moves toward log 10° by that much, and the
   // distance keeps pace toward 2.2 radii.
-  const goalRadius = maxRadius + deltaZoom * (minRadius - maxRadius) / (Math.log(10) - Math.log(30));
+  const goalRadius =
+    maxRadius +
+    (deltaZoom * (minRadius - maxRadius)) / (Math.log(10) - Math.log(30));
   const goalFov = 30 * Math.exp(deltaZoom);
   expect(orbit().radius).toBeCloseTo(maxRadius, 9);
   // The first frame after the view was still counts as 1/60 s.
   frames(1);
   const k = 1 - Math.exp(-1 / 3);
-  expect(orbit().radius).toBeCloseTo(maxRadius + (goalRadius - maxRadius) * k, 9);
+  expect(orbit().radius).toBeCloseTo(
+    maxRadius + (goalRadius - maxRadius) * k,
+    9,
+  );
   expect(viewer.camera.fov).toBeCloseTo(30 * Math.exp(deltaZoom * k), 9);
   const steps = runFrames();
   expect(scheduled.size).toBe(0);
@@ -336,26 +417,33 @@ test("scrolling by lines counts 18 pixels a line, and frames continue while only
   expect(steps.length).toBeGreaterThan(10);
   expect(scheduled.size).toBe(0);
   expect(viewer.camera.position.distanceTo(position)).toBeLessThan(1e-12);
-  expect(viewer.camera.fov).toBeCloseTo(30 * Math.exp(3 * 18 * 0.04 / 30), 12);
+  expect(viewer.camera.fov).toBeCloseTo(
+    30 * Math.exp((3 * 18 * 0.04) / 30),
+    12,
+  );
 });
 
 test("each zoom step moves the distance so it reaches its limit with the field of view, or by twice its range with the field of view at a limit", async () => {
   await loadBox([2, 4, 2]);
   const [minLog, maxLog] = [Math.log(10), Math.log(viewer.adjustedFov(45))];
   viewer.adjustZoom(-0.3);
-  let radius = maxRadius - 0.3 * (minRadius - maxRadius) / (minLog - Math.log(30));
+  let radius =
+    maxRadius - (0.3 * (minRadius - maxRadius)) / (minLog - Math.log(30));
   let logFov = Math.log(30) - 0.3;
   expect(viewer.goalRadius).toBeCloseTo(radius, 12);
   expect(viewer.goalLogFov).toBeCloseTo(logFov, 12);
   viewer.adjustZoom(0.2);
-  radius += 0.2 * (maxRadius - radius) / (maxLog - logFov);
+  radius += (0.2 * (maxRadius - radius)) / (maxLog - logFov);
   logFov += 0.2;
   expect(viewer.goalRadius).toBeCloseTo(radius, 12);
   expect(viewer.goalLogFov).toBeCloseTo(logFov, 12);
   viewer.goalLogFov = maxLog;
   viewer.goalRadius = minRadius + 1;
   viewer.adjustZoom(0.01);
-  expect(viewer.goalRadius).toBeCloseTo(minRadius + 1 + 0.01 * 2 * (maxRadius - minRadius), 12);
+  expect(viewer.goalRadius).toBeCloseTo(
+    minRadius + 1 + 0.01 * 2 * (maxRadius - minRadius),
+    12,
+  );
   expect(viewer.goalLogFov).toBe(maxLog);
 });
 
@@ -387,7 +475,7 @@ test("pinching zooms, and two fingers still pan", async () => {
   touch("pointerdown", 2, 400, 200);
   // Fingers 48 pixels farther apart on a view 480 pixels tall zoom in by 0.2.
   touch("pointermove", 2, 448, 200);
-  expect(viewer.goalLogFov).toBeCloseTo(logFov - 0.04 * 48 * 50 / 480, 12);
+  expect(viewer.goalLogFov).toBeCloseTo(logFov - (0.04 * 48 * 50) / 480, 12);
   frames(60);
   // Both fingers moving down drags the model down, and the zoom ends where it was.
   const target = viewer.controls.target.clone();
@@ -421,7 +509,7 @@ test("a pinch starts over when a finger lifts, so the zoom doesn't jump when the
   await loadBox([2, 4, 2]);
   runFrames();
   const logFov = viewer.goalLogFov;
-  const step = 0.04 * 48 * 50 / 480;
+  const step = (0.04 * 48 * 50) / 480;
   touch("pointerdown", 1, 300, 200);
   touch("pointerdown", 2, 400, 200);
   touch("pointermove", 2, 448, 200);
@@ -441,9 +529,15 @@ test("a pinch carries on at the new scale when the view's height changes", async
   touch("pointerdown", 1, 300, 200);
   touch("pointerdown", 2, 400, 200);
   touch("pointermove", 2, 448, 200);
-  Object.defineProperty(viewer.renderer.domElement, "clientHeight", { value: 400, configurable: true });
+  Object.defineProperty(viewer.renderer.domElement, "clientHeight", {
+    value: 400,
+    configurable: true,
+  });
   touch("pointermove", 2, 496, 200);
-  expect(viewer.goalLogFov).toBeCloseTo(logFov - 0.04 * 48 * 50 / 480 - 0.04 * 48 * 50 / 400, 12);
+  expect(viewer.goalLogFov).toBeCloseTo(
+    logFov - (0.04 * 48 * 50) / 480 - (0.04 * 48 * 50) / 400,
+    12,
+  );
 });
 
 test("pinching back from past a zoom limit zooms at once", async () => {
@@ -456,13 +550,19 @@ test("pinching back from past a zoom limit zooms at once", async () => {
   expect(viewer.goalLogFov).toBeCloseTo(Math.log(10), 12);
   expect(viewer.goalRadius).toBeCloseTo(minRadius, 12);
   touch("pointermove", 2, 690, 200);
-  expect(viewer.goalLogFov).toBeCloseTo(Math.log(10) + 0.04 * 10 * 50 / 480, 12);
+  expect(viewer.goalLogFov).toBeCloseTo(
+    Math.log(10) + (0.04 * 10 * 50) / 480,
+    12,
+  );
   // Pinching out past the other limit, and back.
   touch("pointermove", 2, 310, 200);
   expect(viewer.goalLogFov).toBeCloseTo(Math.log(45), 12);
   expect(viewer.goalRadius).toBeCloseTo(maxRadius, 12);
   touch("pointermove", 2, 320, 200);
-  expect(viewer.goalLogFov).toBeCloseTo(Math.log(45) - 0.04 * 10 * 50 / 480, 12);
+  expect(viewer.goalLogFov).toBeCloseTo(
+    Math.log(45) - (0.04 * 10 * 50) / 480,
+    12,
+  );
 });
 
 test("a pinch carries on from a resize in the middle of it", async () => {
@@ -477,7 +577,7 @@ test("a pinch carries on from a resize in the middle of it", async () => {
   const resized = viewer.goalLogFov;
   expect(resized).toBeGreaterThan(pinched + 0.3);
   touch("pointermove", 2, 496, 200);
-  expect(viewer.goalLogFov).toBeCloseTo(resized - 0.04 * 48 * 50 / 480, 12);
+  expect(viewer.goalLogFov).toBeCloseTo(resized - (0.04 * 48 * 50) / 480, 12);
 });
 
 test("while posing, two fingers only zoom, and the one left behind turns the model as one finger does", async () => {
@@ -492,14 +592,17 @@ test("while posing, two fingers only zoom, and the one left behind turns the mod
   touch("pointermove", 2, 410, 200);
   touch("pointermove", 1, 290, 200);
   frames(60);
-  expect(viewer.goalLogFov).toBeCloseTo(goalLogFov - 0.04 * 20 * 50 / 480, 12);
+  expect(viewer.goalLogFov).toBeCloseTo(
+    goalLogFov - (0.04 * 20 * 50) / 480,
+    12,
+  );
   expect(orbit().theta).toBeCloseTo(before.theta, 9);
   expect(orbit().phi).toBeCloseTo(before.phi, 9);
   touch("pointerup", 2, 410, 200);
   touch("pointermove", 1, 350, 200);
   frames(60);
   touch("pointerup", 1, 350, 200);
-  expect(orbit().theta).toBeCloseTo(before.theta - 2 * Math.PI * 60 / 480, 6);
+  expect(orbit().theta).toBeCloseTo(before.theta - (2 * Math.PI * 60) / 480, 6);
   // Out of mocap, two fingers pan again.
   viewer.setPoseMode(false);
   runFrames();
@@ -560,7 +663,7 @@ test("resizing keeps the zoom, changing the field of view as much as the framing
   const { radius } = orbit();
   host.getBoundingClientRect.mockReturnValue({ width: 240, height: 480 });
   viewer.resize();
-  const narrow = fov * framedFov(30, 0.5) / 30;
+  const narrow = (fov * framedFov(30, 0.5)) / 30;
   expect(viewer.camera.fov).toBeCloseTo(narrow, 12);
   // Nothing eases afterwards.
   runFrames();
@@ -574,7 +677,9 @@ test("resizing keeps the zoom, changing the field of view as much as the framing
   runFrames();
   host.getBoundingClientRect.mockReturnValue({ width: 240, height: 480 });
   viewer.resize();
-  expect(45 * framedFov(30, 0.5) / 30).toBeGreaterThan(framedFov(45, 0.5) + 1);
+  expect((45 * framedFov(30, 0.5)) / 30).toBeGreaterThan(
+    framedFov(45, 0.5) + 1,
+  );
   expect(viewer.camera.fov).toBeCloseTo(framedFov(45, 0.5), 12);
 });
 
@@ -583,7 +688,11 @@ test("leaving mocap brings back the editor's view and zoom, even after zooming a
   wheel(-100);
   wheel(-100);
   runFrames();
-  const before = { position: viewer.camera.position.clone(), target: viewer.controls.target.clone(), fov: viewer.camera.fov };
+  const before = {
+    position: viewer.camera.position.clone(),
+    target: viewer.controls.target.clone(),
+    fov: viewer.camera.fov,
+  };
   viewer.setPoseMode(true);
   expect(viewer.camera.fov).toBe(before.fov);
   // Zooming still works while posing.
@@ -597,7 +706,9 @@ test("leaving mocap brings back the editor's view and zoom, even after zooming a
   viewer.setPoseMode(false);
   host.getBoundingClientRect.mockReturnValue({ width: 640, height: 480 });
   viewer.resize();
-  expect(viewer.camera.position.distanceTo(before.position)).toBeLessThan(1e-12);
+  expect(viewer.camera.position.distanceTo(before.position)).toBeLessThan(
+    1e-12,
+  );
   expect(viewer.controls.target.distanceTo(before.target)).toBeLessThan(1e-12);
   expect(viewer.camera.fov).toBeCloseTo(before.fov, 12);
   const steps = runFrames();
@@ -617,7 +728,9 @@ function pan(dx, dy = 0, init = {}) {
 
 /** Whether `point` lies on the 2 by 4 by 2 box's surface. */
 function onBox({ x, y, z }) {
-  return Math.abs(Math.max(Math.abs(x), Math.abs(y) / 2, Math.abs(z)) - 1) < 1e-9;
+  return (
+    Math.abs(Math.max(Math.abs(x), Math.abs(y) / 2, Math.abs(z)) - 1) < 1e-9
+  );
 }
 
 test("after a pan, the orbit target moves onto the surface in the middle of the view without moving the camera", async () => {
@@ -648,7 +761,10 @@ test("after a pan, the orbit target moves onto the surface in the middle of the 
   runFrames();
   expect(viewer.controls.target.distanceTo(pivot)).toBeLessThan(1e-6);
   expect(orbit().theta).toBeLessThan(-0.5);
-  expect(viewer.camera.position.distanceTo(viewer.controls.target)).toBeCloseTo(distance, 9);
+  expect(viewer.camera.position.distanceTo(viewer.controls.target)).toBeCloseTo(
+    distance,
+    9,
+  );
 });
 
 test("the pivot leaves the rest of a pan to finish, across the view", async () => {
@@ -665,12 +781,17 @@ test("the pivot leaves the rest of a pan to finish, across the view", async () =
   runFrames();
   // OrbitControls pans 2 * tan(15°) times the distance for each view height dragged.
   const panned = viewer.controls.target.clone().sub(pivot);
-  expect(panned.x).toBeCloseTo(-2 * 30 * distance * Math.tan(Math.PI / 12) / 480, 3);
+  expect(panned.x).toBeCloseTo(
+    (-2 * 30 * distance * Math.tan(Math.PI / 12)) / 480,
+    3,
+  );
   expect(Math.hypot(panned.y, panned.z)).toBeLessThan(1e-3);
 });
 
 test.each([
-  ["Shift", { shiftKey: true }], ["Ctrl", { ctrlKey: true }], ["Meta", { metaKey: true }],
+  ["Shift", { shiftKey: true }],
+  ["Ctrl", { ctrlKey: true }],
+  ["Meta", { metaKey: true }],
 ])("a left-drag with %s held pans, and pivots", async (_, init) => {
   await loadBox([2, 4, 2]);
   runFrames();
@@ -679,15 +800,20 @@ test.each([
 });
 
 test.each([
-  ["left", 0, {}], ["middle", 1, {}], ["right, with Shift held,", 2, { shiftKey: true }],
-])("a %s drag rotates, and leaves the orbit target alone", async (_, button, init) => {
-  await loadBox([2, 4, 2]);
-  runFrames();
-  const theta = orbit().theta;
-  pan(30, 0, { button, ...init })();
-  expect(orbit().theta).toBeLessThan(theta - 0.3);
-  expect(viewer.controls.target.length()).toBeLessThan(1e-12);
-});
+  ["left", 0, {}],
+  ["middle", 1, {}],
+  ["right, with Shift held,", 2, { shiftKey: true }],
+])(
+  "a %s drag rotates, and leaves the orbit target alone",
+  async (_, button, init) => {
+    await loadBox([2, 4, 2]);
+    runFrames();
+    const theta = orbit().theta;
+    pan(30, 0, { button, ...init })();
+    expect(orbit().theta).toBeLessThan(theta - 0.3);
+    expect(viewer.controls.target.length()).toBeLessThan(1e-12);
+  },
+);
 
 test("a two-finger gesture pivots when a finger lifts", async () => {
   await loadBox([2, 4, 2]);
@@ -740,7 +866,8 @@ test("a click or a tap isn't a pan, so it doesn't pivot", async () => {
   runFrames();
   const canvas = viewer.renderer.domElement;
   // No frames run from here on, so only a pivot could move the target.
-  const unmoved = () => expect(viewer.controls.target.length()).toBeLessThan(1e-12);
+  const unmoved = () =>
+    expect(viewer.controls.target.length()).toBeLessThan(1e-12);
   // After a drag that turns the model, a right-click and a Shift-click.
   pointer(canvas, "pointerdown", 100);
   pointer(canvas, "pointermove", 130);
@@ -856,15 +983,31 @@ function boxBehind(material, wrap = (object) => object) {
 }
 
 test.each([
-  ["an invisible material", () => boxBehind(new MeshStandardMaterial({ visible: false }))],
+  [
+    "an invisible material",
+    () => boxBehind(new MeshStandardMaterial({ visible: false })),
+  ],
   // Only its sides are visible, from both sides.
-  ["invisible materials on the faces hit", () => boxBehind(Array.from({ length: 6 }, (_, face) =>
-    new MeshStandardMaterial({ visible: face < 4, side: DoubleSide })))],
-  ["an invisible parent", () => boxBehind(new MeshStandardMaterial(), (front) => {
-    const parent = new Group().add(new Group().add(front));
-    parent.visible = false;
-    return parent;
-  })],
+  [
+    "invisible materials on the faces hit",
+    () =>
+      boxBehind(
+        Array.from(
+          { length: 6 },
+          (_, face) =>
+            new MeshStandardMaterial({ visible: face < 4, side: DoubleSide }),
+        ),
+      ),
+  ],
+  [
+    "an invisible parent",
+    () =>
+      boxBehind(new MeshStandardMaterial(), (front) => {
+        const parent = new Group().add(new Group().add(front));
+        parent.visible = false;
+        return parent;
+      }),
+  ],
 ])("the pivot passes through %s", async (_, scene) => {
   await loadScene(scene());
   runFrames();
@@ -882,8 +1025,17 @@ test("the pivot lands on a visible box in front", async () => {
 test("the pivot finds a skinned mesh where it's posed now, not where it first was", async () => {
   const geometry = new BoxGeometry(2, 4, 2);
   const count = geometry.attributes.position.count;
-  geometry.setAttribute("skinIndex", new Uint16BufferAttribute(new Uint16Array(count * 4), 4));
-  geometry.setAttribute("skinWeight", new Float32BufferAttribute(Array.from({ length: count }, () => [1, 0, 0, 0]).flat(), 4));
+  geometry.setAttribute(
+    "skinIndex",
+    new Uint16BufferAttribute(new Uint16Array(count * 4), 4),
+  );
+  geometry.setAttribute(
+    "skinWeight",
+    new Float32BufferAttribute(
+      Array.from({ length: count }, () => [1, 0, 0, 0]).flat(),
+      4,
+    ),
+  );
   const mesh = new SkinnedMesh(geometry, new MeshStandardMaterial());
   const bone = new Bone();
   mesh.add(bone);
@@ -910,7 +1062,9 @@ test("each arrow key turns the model the way it points, at once, like a drag tha
     const before = orbit();
     expect(key(name).defaultPrevented).toBe(true);
     const after = orbit();
-    return [after.theta - before.theta, after.phi - before.phi].map((angle) => Math.round(angle * 1e9) / 1e9);
+    return [after.theta - before.theta, after.phi - before.phi].map(
+      (angle) => Math.round(angle * 1e9) / 1e9,
+    );
   };
   expect(turn("ArrowLeft")).toEqual([0.1, 0]);
   expect(turn("ArrowRight")).toEqual([-0.1, 0]);
@@ -928,7 +1082,9 @@ test("each arrow key turns the model the way it points, at once, like a drag tha
 });
 
 test("a weapon's first clip plays once after each load and holds its last frame, and then frames stop", async () => {
-  const deploy = new AnimationClip("Deploy", 0.5, [new VectorKeyframeTrack("box.position", [0, 0.5], [0, 0, 0, 0, 0.5, 0])]);
+  const deploy = new AnimationClip("Deploy", 0.5, [
+    new VectorKeyframeTrack("box.position", [0, 0.5], [0, 0, 0, 0, 0.5, 0]),
+  ]);
   for (let load = 0; load < 2; load++) {
     await loadBox([2, 4, 2], {}, [deploy]);
     viewer.setAnimation(null, false, 0.5, true);

@@ -9,7 +9,10 @@ import {
   useRole,
 } from "@floating-ui/react";
 
-export default function useToolPopup(open: boolean, setOpen: (open: boolean) => void) {
+export default function useToolPopup(
+  open: boolean,
+  setOpen: (open: boolean) => void,
+) {
   const { refs, floatingStyles, context } = useFloating({
     open,
     onOpenChange: (open, event, reason) => {

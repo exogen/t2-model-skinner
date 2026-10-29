@@ -1,4 +1,6 @@
 "use client";
+import CaptureAutomation from "../CaptureAutomation";
+import { useSearchParams } from "next/navigation";
 import ModelLoading from "../ModelLoading";
 import dynamic from "next/dynamic";
 import EditorProvider from "../EditorProvider";
@@ -75,10 +77,11 @@ export default function HomePage() {
 // or unmounting editor controls when motion capture starts.
 function Workspace() {
   const { active } = useMocap();
+  const captureMode = useSearchParams().get("capture") === "1";
 
   return (
-    <main data-mocap-active={active}>
-      <ViewerProvider>
+    <ViewerProvider>
+      <main data-mocap-active={active} data-capture={captureMode || undefined}>
         <div className="Viewport">
           <div className="ModelTools">
             <div className="AnimationTools">
@@ -92,10 +95,11 @@ function Workspace() {
           </div>
           <WarriorViewer />
         </div>
-      </ViewerProvider>
-      <EditorProvider>
-        <EditorWorkspace />
-      </EditorProvider>
-    </main>
+        <EditorProvider>
+          <CaptureAutomation />
+          <EditorWorkspace />
+        </EditorProvider>
+      </main>
+    </ViewerProvider>
   );
 }

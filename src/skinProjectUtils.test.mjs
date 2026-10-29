@@ -25,7 +25,7 @@ import config, { isTextureSourceMaterial } from "./models";
 
 async function roundTrip(color, metallic = null) {
   const project = await projects.readSkinProjectZip(
-    await archive([input("base", color, metallic)])
+    await archive([input("base", color, metallic)]),
   );
   const prepared = await projects.prepareSkinProject(project);
   return prepared.base;
@@ -47,7 +47,7 @@ test("multi-selection retains canvas positions, rotation, scale, skew and source
   const c = canvas();
   c.add(
     image({ left: 100, top: 120, skewX: 25, skewY: 10 }),
-    image({ left: 300, top: 240, flipX: true })
+    image({ left: 300, top: 240, flipX: true }),
   );
   const selection = new fabric.ActiveSelection(c.getObjects(), { canvas: c });
   c.setActiveObject(selection);
@@ -94,7 +94,7 @@ test("metallic images and selected, locked brush strokes retain their order and 
     image({ selectable: false, ...locked }),
     stroke,
     image(),
-    new fabric.Path("M 20 20 L 30 40", { stroke: "#777777", strokeWidth: 4 })
+    new fabric.Path("M 20 20 L 30 40", { stroke: "#777777", strokeWidth: 4 }),
   );
   const selection = new fabric.ActiveSelection([stroke, m.item(2)], {
     canvas: m,
@@ -113,11 +113,11 @@ test("all canvas snapshots are captured before asynchronous image encoding", asy
   const c = canvas();
   c.add(image({ left: 100 }));
   const exporting = projects.createSkinProjectZip(
-    projects.captureSkinProject([input("base", c)])
+    projects.captureSkinProject([input("base", c)]),
   );
   c.item(0).set({ left: 400, angle: 90 });
   const project = await projects.readSkinProjectZip(
-    await (await exporting).generateAsync({ type: "nodebuffer" })
+    await (await exporting).generateAsync({ type: "nodebuffer" }),
   );
   expect(project.materials.base.color.objects[0].left).toBe(100);
   expect(project.materials.base.color.objects[0].angle).toBe(0);
@@ -158,10 +158,10 @@ test("version 1 archives keep available layers, filters, strokes and inferred re
           zIndex: 0,
         },
       ],
-    })
+    }),
   );
   const project = await projects.readSkinProjectZip(
-    await z.generateAsync({ type: "nodebuffer" })
+    await z.generateAsync({ type: "nodebuffer" }),
   );
   expect(projects.getProjectTarget(project, "lmale")).toStrictEqual({
     model: "chaingun",
@@ -203,10 +203,10 @@ for (const scenario of [
             ? [256, 256]
             : scenario === "inactive material"
               ? [256, 512]
-              : [512, 512]
+              : [512, 512],
         ),
       ],
-      model
+      model,
     );
     const app = await editor(model);
     await act(async () => app.tools.setActiveCanvasType("metallic"));
@@ -238,10 +238,7 @@ for (const scenario of [
 test("opening a project restores the model and dimensions before installing layers", async () => {
   const c = canvas();
   c.add(image({ left: 864, top: 864 }));
-  const bytes = await archive(
-    [input("base", c, null, [1024, 1024])],
-    "hmale"
-  );
+  const bytes = await archive([input("base", c, null, [1024, 1024])], "hmale");
   const app = await editor("disc", { strict: true });
   await app.load(bytes);
   expect(app.warrior.selectedModel).toBe("hmale");
@@ -251,9 +248,9 @@ test("opening a project restores the model and dimensions before installing laye
   expect(app.canvases[app.tools.activeCanvas].canvas.item(0).left).toBe(864);
   const lateBackground = image();
   await app.setBackground(lateBackground.getSrc());
-  expect(
-    app.canvases[app.tools.activeCanvas].canvas.getObjects().length
-  ).toBe(1);
+  expect(app.canvases[app.tools.activeCanvas].canvas.getObjects().length).toBe(
+    1,
+  );
   expect(app.canvases[app.tools.activeCanvas].canvas.item(0).left).toBe(864);
   await app.close();
   await c.dispose();
@@ -264,13 +261,13 @@ test("empty project canvases replace both previous backgrounds", async () => {
   const app = await editor();
   for (const info of Object.values(app.canvases))
     await act(async () =>
-      info.canvas.add(image({ selectable: false, ...locked }))
+      info.canvas.add(image({ selectable: false, ...locked })),
     );
   await app.load(await archive([input("base", empty)]));
   expect(
     Object.values(app.canvases).every(
-      ({ canvas }) => canvas.getObjects().length === 0
-    )
+      ({ canvas }) => canvas.getObjects().length === 0,
+    ),
   ).toBeTruthy();
   await app.close();
   await empty.dispose();
@@ -283,8 +280,8 @@ test("a corrupt image in a later material leaves the model and all existing artw
     projects.captureSkinProject(
       [input("weapon_disc", c), input("dcase00-frame0", c, null, [256, 256])],
       "disc",
-      "Corrupt Skin"
-    )
+      "Corrupt Skin",
+    ),
   );
   zip.file("dcase00-frame0/image-0", "not an image");
   const app = await editor("lmale");
@@ -294,7 +291,7 @@ test("a corrupt image in a later material leaves the model and all existing artw
     app.tools.setExportName("Current Skin");
   });
   await expect(
-    app.tools.loadSkinProject(await zip.generateAsync({ type: "nodebuffer" }))
+    app.tools.loadSkinProject(await zip.generateAsync({ type: "nodebuffer" })),
   ).rejects.toThrow();
   expect(app.warrior.selectedModel).toBe("lmale");
   expect(app.tools.exportName).toBe("Current Skin");
@@ -309,18 +306,18 @@ test("Duplicate keeps copies as canvas layers through deselection and project ex
   await act(async () => {
     c.add(image(), image({ left: 300 }));
     c.setActiveObject(
-      new fabric.ActiveSelection(c.getObjects(), { canvas: c })
+      new fabric.ActiveSelection(c.getObjects(), { canvas: c }),
     );
   });
   await act(async () => app.tools.duplicate());
   expect(c.getObjects().length).toBe(4);
   expect(
-    c.getObjects().every((object) => object instanceof fabric.FabricImage)
+    c.getObjects().every((object) => object instanceof fabric.FabricImage),
   ).toBeTruthy();
   const expected = c.toObject(SERIALIZED_PROPERTIES).objects;
   await act(async () => app.tools.exportSkinProject("duplicates"));
   const project = await projects.readSkinProjectZip(
-    await saved.at(-1).zip.generateAsync({ type: "nodebuffer" })
+    await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }),
   );
   const restored = await projects.prepareSkinProject(project);
   assertObjectsEqual(restored.base.color, expected);
@@ -346,7 +343,7 @@ test("undo and redo preserve filters, locks and their controls after a project l
   await app.settle();
   expect(app.tools.brightness).toBe(0.5);
   expect(
-    app.canvases[app.tools.activeCanvas].canvas.item(0).lockMovementX
+    app.canvases[app.tools.activeCanvas].canvas.item(0).lockMovementX,
   ).toBe(true);
   await app.close();
   await c.dispose();
@@ -361,16 +358,14 @@ test("all animation frames and rectangular material sizes survive a project reop
     Object.entries(app.canvases).map(([id, info]) => [
       id,
       info.canvas.item(0).left,
-    ])
+    ]),
   );
-  await app.load(
-    await saved.at(-1).zip.generateAsync({ type: "nodebuffer" })
-  );
+  await app.load(await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }));
   const after = Object.fromEntries(
     Object.entries(app.canvases).map(([id, info]) => [
       id,
       info.canvas.item(0).left,
-    ])
+    ]),
   );
   expect(after).toStrictEqual(before);
   await app.close();
@@ -420,13 +415,13 @@ test("old projects leave omitted fixed materials on their default canvases", asy
           locked: false,
         },
       ],
-    })
+    }),
   );
   const defaults = Object.fromEntries(
     config.materials.plasmathrower.map((material) => [
       material.file ?? material.name,
       [original.getSrc()],
-    ])
+    ]),
   );
   const app = await editor("plasmathrower", {
     realCanvases: true,
@@ -442,15 +437,15 @@ test("old projects leave omitted fixed materials on their default canvases", asy
   expect(restoredFixed.getObjects()).toHaveLength(1);
   expect(restoredFixed.item(0).selectable).toBe(false);
   expect(app.canvases["weapon_plasma10:color:0:1"].canvas.item(0).left).toBe(
-    200
+    200,
   );
   await act(async () => app.tools.exportSkinProject("upgraded"));
   const upgraded = await projects.readSkinProjectZip(
-    await saved.at(-1).zip.generateAsync({ type: "nodebuffer" })
+    await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }),
   );
   expect(upgraded.materials.weapon_plasma1.color.objects).toHaveLength(1);
   expect(upgraded.materials.weapon_plasma1.color.objects[0].selectable).toBe(
-    false
+    false,
   );
   await app.close();
 });
@@ -460,21 +455,21 @@ test("fixed duplicate materials cannot overwrite restored preview textures", () 
   expect(
     isTextureSourceMaterial(
       plasma.find(({ name }) => name === "weapon_plasma10"),
-      "plasmathrower"
-    )
+      "plasmathrower",
+    ),
   ).toBe(true);
   expect(
     isTextureSourceMaterial(
       plasma.find(({ name }) => name === "weapon_plasma1"),
-      "plasmathrower"
-    )
+      "plasmathrower",
+    ),
   ).toBe(false);
   const scout = config.materials.vehicle_grav_scout;
   expect(
     isTextureSourceMaterial(
       scout.find(({ name }) => name === "Vehicle_grav_scout_windshield"),
-      "vehicle_grav_scout"
-    )
+      "vehicle_grav_scout",
+    ),
   ).toBe(true);
 });
 
@@ -493,13 +488,13 @@ test("late metallic processing cannot overwrite the newly opened project preview
     const latest = pending.pop();
     await act(async () => latest.resolve("new preview"));
     expect(app.skin.getSkinImages("base").metallicImageUrl[0]).toBe(
-      "new preview"
+      "new preview",
     );
     await act(async () =>
-      pending.forEach(({ resolve }) => resolve("old preview"))
+      pending.forEach(({ resolve }) => resolve("old preview")),
     );
     expect(app.skin.getSkinImages("base").metallicImageUrl[0]).toBe(
-      "new preview"
+      "new preview",
     );
   } finally {
     workers.convertGrayscaleImageUrlToMetallicRoughness = originalConvert;
@@ -535,7 +530,9 @@ test("saving and reopening a texture keeps artwork aligned with the padded atlas
       }
       expect(app.skin.getSkinImages("base").colorImageUrl[0]).toBe(url);
       await act(async () => app.tools.exportSkinProject("aligned"));
-      await app.load(await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }));
+      await app.load(
+        await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }),
+      );
     }
   } finally {
     await app.close();

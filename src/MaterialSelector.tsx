@@ -19,11 +19,14 @@ export default function MaterialSelector() {
         setSelectedMaterialIndex(parseInt(value, 10));
       }}
       options={materialDefs.flatMap((materialDef, i) =>
-        materialDef &&
-        !materialDef.hidden &&
-        materialDef.selectable !== false ? [{
-          value: String(i), label: materialDef.label ?? materialDef.name,
-        }] : []
+        materialDef && !materialDef.hidden && materialDef.selectable !== false
+          ? [
+              {
+                value: String(i),
+                label: materialDef.label ?? materialDef.name,
+              },
+            ]
+          : [],
       )}
     />
   );

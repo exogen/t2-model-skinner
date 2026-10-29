@@ -1,5 +1,9 @@
 import { Quaternion, type Object3D } from "three";
-import { canFrame, framingLandmarkIndices, isFramingVisible } from "./cameraFraming";
+import {
+  canFrame,
+  framingLandmarkIndices,
+  isFramingVisible,
+} from "./cameraFraming";
 import type { PoseLandmark } from "./poseTracking";
 
 export const MAX_RECORDING_SECONDS = 60;
@@ -44,7 +48,12 @@ export interface Recording extends RecordingData {
 export interface Take {
   /** Adds a key with the nodes' current rotations and this frame's framing
    * input. Returns false once the take is full. */
-  add(deltaSeconds: number, landmarks: readonly PoseLandmark[], imageWidth?: number, imageHeight?: number): boolean;
+  add(
+    deltaSeconds: number,
+    landmarks: readonly PoseLandmark[],
+    imageWidth?: number,
+    imageHeight?: number,
+  ): boolean;
   /** The keys so far, or null with fewer than two. */
   finish(): RecordingData | null;
 }
@@ -52,14 +61,30 @@ export interface Take {
 const FRAMING_STRIDE = framingLandmarkIndices.length * 2;
 
 function validSize(width?: number, height?: number) {
-  return !!width && !!height && Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
+  return (
+    !!width &&
+    !!height &&
+    Number.isFinite(width) &&
+    Number.isFinite(height) &&
+    width > 0 &&
+    height > 0
+  );
 }
 
-function writeRotations(nodes: readonly Object3D[], target: Float32Array, offset: number) {
-  for (let i = 0; i < nodes.length; i++) nodes[i].quaternion.toArray(target, offset + i * 4);
+function writeRotations(
+  nodes: readonly Object3D[],
+  target: Float32Array,
+  offset: number,
+) {
+  for (let i = 0; i < nodes.length; i++)
+    nodes[i].quaternion.toArray(target, offset + i * 4);
 }
 
-function writeFraming(landmarks: readonly PoseLandmark[], target: Float32Array, offset: number) {
+function writeFraming(
+  landmarks: readonly PoseLandmark[],
+  target: Float32Array,
+  offset: number,
+) {
   for (let i = 0; i < framingLandmarkIndices.length; i++) {
     const point = landmarks[framingLandmarkIndices[i]];
     const visible = isFramingVisible(point);
@@ -71,7 +96,11 @@ function writeFraming(landmarks: readonly PoseLandmark[], target: Float32Array, 
 /** Records keys for `nodes` on the render clock. `seed` frames the first key
  * when framing can't measure the live input, since the viewer is still
  * holding the framing from `seed`. */
-export function createTake(nodes: readonly Object3D[], model: string, seed: FramingInput): Take {
+export function createTake(
+  nodes: readonly Object3D[],
+  model: string,
+  seed: FramingInput,
+): Take {
   const stride = nodes.length * 4;
   const times = new Float32Array(MAX_KEYS);
   const rotations = new Float32Array(MAX_KEYS * stride);
@@ -91,11 +120,17 @@ export function createTake(nodes: readonly Object3D[], model: string, seed: Fram
         if (elapsed > MAX_RECORDING_SECONDS || count === MAX_KEYS) return false;
         if (elapsed - lastKey < MIN_KEY_INTERVAL) return true;
       }
-      const input = !count && !canFrame(landmarks) ? seed : { landmarks, imageWidth: width, imageHeight: height };
+      const input =
+        !count && !canFrame(landmarks)
+          ? seed
+          : { landmarks, imageWidth: width, imageHeight: height };
       times[count] = lastKey = elapsed;
       writeRotations(nodes, rotations, count * stride);
       writeFraming(input.landmarks, framing, count * FRAMING_STRIDE);
-      if (imageWidth === undefined && validSize(input.imageWidth, input.imageHeight)) {
+      if (
+        imageWidth === undefined &&
+        validSize(input.imageWidth, input.imageHeight)
+      ) {
         imageWidth = input.imageWidth;
         imageHeight = input.imageHeight;
       }
@@ -120,7 +155,11 @@ export function createTake(nodes: readonly Object3D[], model: string, seed: Fram
 }
 
 /** A single key with the nodes' current rotations. */
-export function readPose(nodes: readonly Object3D[], model: string, input: FramingInput): RecordingData {
+export function readPose(
+  nodes: readonly Object3D[],
+  model: string,
+  input: FramingInput,
+): RecordingData {
   const rotations = new Float32Array(nodes.length * 4);
   const framing = new Float32Array(FRAMING_STRIDE);
   writeRotations(nodes, rotations, 0);
@@ -156,12 +195,17 @@ const to = new Quaternion();
 
 /** Poses `nodes`, which line up with `recording.nodes`, at `time` and returns
  * the key it used. Missing nodes are skipped. */
-export function applyRecording(recording: RecordingData, nodes: readonly (Object3D | undefined)[], time: number) {
+export function applyRecording(
+  recording: RecordingData,
+  nodes: readonly (Object3D | undefined)[],
+  time: number,
+) {
   const { times, rotations } = recording;
   const key = keyAt(times, time);
   const next = Math.min(key + 1, times.length - 1);
   const span = times[next] - times[key];
-  const alpha = span > 0 ? Math.min(Math.max((time - times[key]) / span, 0), 1) : 0;
+  const alpha =
+    span > 0 ? Math.min(Math.max((time - times[key]) / span, 0), 1) : 0;
   const stride = recording.nodes.length * 4;
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
@@ -175,13 +219,17 @@ export function applyRecording(recording: RecordingData, nodes: readonly (Object
 
 /** The framing input recorded with `key`, as sparse image landmarks. Empty
  * when no landmark was visible. */
-export function framingAt(recording: RecordingData, key: number): PoseLandmark[] {
+export function framingAt(
+  recording: RecordingData,
+  key: number,
+): PoseLandmark[] {
   const points: PoseLandmark[] = [];
   const offset = key * FRAMING_STRIDE;
   for (let i = 0; i < framingLandmarkIndices.length; i++) {
     const x = recording.framing[offset + i * 2];
     const y = recording.framing[offset + i * 2 + 1];
-    if (Number.isFinite(x) && Number.isFinite(y)) points[framingLandmarkIndices[i]] = { x, y, z: 0 };
+    if (Number.isFinite(x) && Number.isFinite(y))
+      points[framingLandmarkIndices[i]] = { x, y, z: 0 };
   }
   return points;
 }

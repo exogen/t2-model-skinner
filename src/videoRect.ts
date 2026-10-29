@@ -12,7 +12,11 @@ export function containedVideoRect(
   videoWidth: number,
   videoHeight: number,
 ): VideoRect | null {
-  if (![width, height, videoWidth, videoHeight].every((value) => Number.isFinite(value) && value > 0)) {
+  if (
+    ![width, height, videoWidth, videoHeight].every(
+      (value) => Number.isFinite(value) && value > 0,
+    )
+  ) {
     return null;
   }
   const scale = Math.min(width / videoWidth, height / videoHeight);
@@ -28,10 +32,26 @@ export function containedVideoRect(
 
 /** The canvas pixels `rect` covers, given in CSS pixels from the top left:
  * each edge scaled by `pixelRatio` and rounded, clamped to the canvas. */
-export function pixelBox(rect: VideoRect, pixelRatio: number, canvasWidth: number, canvasHeight: number): VideoRect {
+export function pixelBox(
+  rect: VideoRect,
+  pixelRatio: number,
+  canvasWidth: number,
+  canvasHeight: number,
+): VideoRect {
   const left = Math.max(0, Math.round(rect.x * pixelRatio));
   const top = Math.max(0, Math.round(rect.y * pixelRatio));
-  const right = Math.min(canvasWidth, Math.round((rect.x + rect.width) * pixelRatio));
-  const bottom = Math.min(canvasHeight, Math.round((rect.y + rect.height) * pixelRatio));
-  return { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+  const right = Math.min(
+    canvasWidth,
+    Math.round((rect.x + rect.width) * pixelRatio),
+  );
+  const bottom = Math.min(
+    canvasHeight,
+    Math.round((rect.y + rect.height) * pixelRatio),
+  );
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
 }

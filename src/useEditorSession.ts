@@ -33,7 +33,7 @@ export interface EditorSessionValue {
 }
 
 export const EditorSessionContext = createContext<EditorSessionValue | null>(
-  null
+  null,
 );
 
 export default function useEditorSession() {

@@ -25,7 +25,7 @@ export default function AnimationSelector() {
       ...(selectedModelType === "player" ? animations.global : []),
       ...(animations[actualModel] ?? []),
     ],
-    [actualModel, selectedModelType]
+    [actualModel, selectedModelType],
   );
 
   return (
@@ -59,8 +59,10 @@ export default function AnimationSelector() {
             { value: "", label: "None" },
             ...animationList.map((animationName) => ({
               value: animationName,
-              label: animationLabelOverrides[actualModel]?.[animationName]
-                ?? animationLabels[animationName] ?? animationName,
+              label:
+                animationLabelOverrides[actualModel]?.[animationName] ??
+                animationLabels[animationName] ??
+                animationName,
             })),
           ]}
         />

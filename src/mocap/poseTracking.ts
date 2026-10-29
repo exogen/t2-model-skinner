@@ -47,21 +47,22 @@ export const MAX_POSE_AGE_MS = 2000;
 /** Hold slow CPU results long enough for the next inference to arrive instead
  * of easing toward rest between frames. A pose expires after twice its
  * inference time, clamped between 500ms and MAX_POSE_AGE_MS. */
-export function freshPose(pose: PoseFrame | null | undefined, now: number): PoseFrame | null {
-  if (!pose || !Number.isFinite(now) || !Number.isFinite(pose.timestamp)) return null;
+export function freshPose(
+  pose: PoseFrame | null | undefined,
+  now: number,
+): PoseFrame | null {
+  if (!pose || !Number.isFinite(now) || !Number.isFinite(pose.timestamp))
+    return null;
   const arrived = pose.receivedAt ?? pose.timestamp;
-  const maxAge = Math.max(500, Math.min(MAX_POSE_AGE_MS, 2 * (arrived - pose.timestamp)));
+  const maxAge = Math.max(
+    500,
+    Math.min(MAX_POSE_AGE_MS, 2 * (arrived - pose.timestamp)),
+  );
   return Number.isFinite(arrived) && now - arrived <= maxAge ? pose : null;
 }
 
 export type TrackingStatus =
-  | "idle"
-  | "loading"
-  | "requesting"
-  | "tracking"
-  | "paused"
-  | "lost"
-  | "error";
+  "idle" | "loading" | "requesting" | "tracking" | "paused" | "lost" | "error";
 
 export function cameraErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -83,9 +84,13 @@ export function cameraErrorMessage(error: unknown): string {
 
 // Pending permission requests cannot be cancelled. Let callers stop waiting while
 // separately disposing any stream that arrives after the session was stopped.
-export function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+export function untilAborted<T>(
+  promise: Promise<T>,
+  signal: AbortSignal,
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    const abort = () => reject(new DOMException("Tracking stopped", "AbortError"));
+    const abort = () =>
+      reject(new DOMException("Tracking stopped", "AbortError"));
     if (signal.aborted) {
       abort();
       return;

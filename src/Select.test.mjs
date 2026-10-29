@@ -26,24 +26,39 @@ async function renderSelect(props = {}) {
       searchPlaceholder: "Search skins…",
       options: [
         { value: "", label: "Select a skin…" },
-        { label: "Default", options: [{ value: "default/Base", label: "Base" }] },
-        { label: "Custom", options: [
-          { value: "custom/Folder/Skin #1?100%", label: "Folder/Skin #1?100%" },
-          { value: "loading", label: "Loading…", disabled: true },
-        ] },
+        {
+          label: "Default",
+          options: [{ value: "default/Base", label: "Base" }],
+        },
+        {
+          label: "Custom",
+          options: [
+            {
+              value: "custom/Folder/Skin #1?100%",
+              label: "Folder/Skin #1?100%",
+            },
+            { value: "loading", label: "Loading…", disabled: true },
+          ],
+        },
       ],
-      onChange: (next) => { setValue(next); onChange(next); },
+      onChange: (next) => {
+        setValue(next);
+        onChange(next);
+      },
       ...props,
     });
   }
   await act(async () => root.render(React.createElement(Field)));
-  return { trigger: host.querySelector('[data-select]'), onChange };
+  return { trigger: host.querySelector("[data-select]"), onChange };
 }
 
 async function search(input, value) {
   await act(async () => {
     input.focus();
-    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set.call(input, value);
+    Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set.call(input, value);
     input.dispatchEvent(new window.Event("input", { bubbles: true }));
   });
 }
@@ -52,8 +67,11 @@ test("search filters labels and groups without changing the selected skin", asyn
   const { trigger, onChange } = await renderSelect();
   const popup = await openSelect(trigger);
   await search(popup.querySelector("input"), "folder/skin");
-  expect([...popup.querySelectorAll('[role="option"]')].map((item) => item.textContent))
-    .toEqual(["Folder/Skin #1?100%"]);
+  expect(
+    [...popup.querySelectorAll('[role="option"]')].map(
+      (item) => item.textContent,
+    ),
+  ).toEqual(["Folder/Skin #1?100%"]);
   expect(popup.querySelectorAll('[role="group"]')).toHaveLength(1);
   expect(trigger.textContent).toBe("Base");
   expect(onChange).not.toHaveBeenCalled();
@@ -68,17 +86,30 @@ test("an unmatched search offers feedback and is cleared on dismissal", async ()
   const popup = await openSelect(trigger);
   const input = popup.querySelector("input");
   await search(input, "no such skin");
-  expect(popup.querySelector('[role="status"]').textContent).toBe("No matches found");
+  expect(popup.querySelector('[role="status"]').textContent).toBe(
+    "No matches found",
+  );
   expect(popup.querySelector('[role="option"]')).toBeNull();
-  await act(async () => input.dispatchEvent(new window.KeyboardEvent("keydown", {
-    key: "Escape", bubbles: true, cancelable: true,
-  })));
+  await act(async () =>
+    input.dispatchEvent(
+      new window.KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    ),
+  );
   expect(trigger.getAttribute("aria-expanded")).toBe("false");
   expect(onChange).not.toHaveBeenCalled();
   // Ariakit clears the query after the hidden popover finishes its lifecycle.
-  await act(async () => new Promise((resolve) =>
-    globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
-  ));
+  await act(
+    async () =>
+      new Promise((resolve) =>
+        globalThis.requestAnimationFrame(() =>
+          globalThis.requestAnimationFrame(resolve),
+        ),
+      ),
+  );
   const reopened = await openSelect(trigger);
   expect(reopened.querySelector("input").value).toBe("");
   expect(reopened.querySelectorAll('[role="option"]')).toHaveLength(4);

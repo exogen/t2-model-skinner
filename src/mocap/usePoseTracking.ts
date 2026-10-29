@@ -5,8 +5,16 @@ import { detectorAssets } from "./detectorAssets";
 import { cameraErrorMessage, untilAborted } from "./poseTracking";
 import type { PoseFrame, TrackingStatus } from "./poseTracking";
 import type { PoseTrackingWorker } from "./poseTracking.worker";
-import { DEFAULT_POSE_SETTINGS, detectorSettingsKey, normalizePoseSettings } from "./poseSettings";
-import type { Delegate, PoseTrackingSettings, PoseTrackingStats } from "./poseSettings";
+import {
+  DEFAULT_POSE_SETTINGS,
+  detectorSettingsKey,
+  normalizePoseSettings,
+} from "./poseSettings";
+import type {
+  Delegate,
+  PoseTrackingSettings,
+  PoseTrackingStats,
+} from "./poseSettings";
 
 interface DetectorSession {
   controller: AbortController;
@@ -39,8 +47,10 @@ interface TrackingSession {
 
 function cancelFrame(session: TrackingSession) {
   session.frameGeneration++;
-  if (session.videoCallback !== null) session.video?.cancelVideoFrameCallback?.(session.videoCallback);
-  if (session.animationCallback !== null) cancelAnimationFrame(session.animationCallback);
+  if (session.videoCallback !== null)
+    session.video?.cancelVideoFrameCallback?.(session.videoCallback);
+  if (session.animationCallback !== null)
+    cancelAnimationFrame(session.animationCallback);
   session.videoCallback = null;
   session.animationCallback = null;
 }
@@ -80,7 +90,10 @@ export default function usePoseTracking() {
       sessionRef.current?.configure?.();
     }
   }, []);
-  const resetSettings = useCallback(() => updateSettings(DEFAULT_POSE_SETTINGS), [updateSettings]);
+  const resetSettings = useCallback(
+    () => updateSettings(DEFAULT_POSE_SETTINGS),
+    [updateSettings],
+  );
 
   const videoRef = useCallback((video: HTMLVideoElement | null) => {
     videoElement.current = video;
@@ -103,7 +116,10 @@ export default function usePoseTracking() {
     session.videoGeneration++;
     session.bindVideo = null;
     if (session.visibilityListener) {
-      document.removeEventListener("visibilitychange", session.visibilityListener);
+      document.removeEventListener(
+        "visibilitychange",
+        session.visibilityListener,
+      );
     }
     session.stream?.getTracks().forEach((track) => track.stop());
     if (video?.srcObject === session.stream) video.srcObject = null;
@@ -124,9 +140,15 @@ export default function usePoseTracking() {
   const start = useCallback(async () => {
     if (sessionRef.current) return false;
     setError(null);
-    if (!navigator.mediaDevices?.getUserMedia || typeof Worker === "undefined" ||
-        typeof OffscreenCanvas === "undefined" || typeof createImageBitmap === "undefined") {
-      setError("Motion capture needs a camera and a current browser on HTTPS or localhost.");
+    if (
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof Worker === "undefined" ||
+      typeof OffscreenCanvas === "undefined" ||
+      typeof createImageBitmap === "undefined"
+    ) {
+      setError(
+        "Motion capture needs a camera and a current browser on HTTPS or localhost.",
+      );
       updateStatus("error");
       return false;
     }
@@ -162,14 +184,17 @@ export default function usePoseTracking() {
         updateStatus("error");
       };
       let detectorReady!: () => void;
-      const firstDetector = new Promise<void>((resolve) => { detectorReady = resolve; });
+      const firstDetector = new Promise<void>((resolve) => {
+        detectorReady = resolve;
+      });
       let metrics = { since: performance.now(), frames: 0, duration: 0 };
       const settledStatus = () => {
         if (current.stream) updateStatus(document.hidden ? "paused" : "lost");
       };
       current.configure = (immediate = false) => {
         if (signal.aborted) return;
-        if (current.configureTimer !== null) clearTimeout(current.configureTimer);
+        if (current.configureTimer !== null)
+          clearTimeout(current.configureTimer);
         current.configureTimer = null;
         disposeDetector(current.pendingDetector);
         current.pendingDetector = null;
@@ -186,7 +211,9 @@ export default function usePoseTracking() {
           const requested = settingsRef.current;
           let candidate: DetectorSession | null = null;
           try {
-            const worker = new Worker(new URL("./poseTracking.worker.ts", import.meta.url));
+            const worker = new Worker(
+              new URL("./poseTracking.worker.ts", import.meta.url),
+            );
             candidate = {
               worker,
               api: Comlink.wrap<PoseTrackingWorker>(worker),
@@ -201,13 +228,22 @@ export default function usePoseTracking() {
             const workerFailure = new Promise<never>((_, reject) => {
               worker.addEventListener("error", () => {
                 if (current.detector === initializing) {
-                  fail("Motion tracking stopped unexpectedly. Try starting it again.");
+                  fail(
+                    "Motion tracking stopped unexpectedly. Try starting it again.",
+                  );
                 } else reject(new Error("Could not load the motion tracker."));
               });
             });
-            const result = await untilAborted(Promise.race([
-              candidate.api.initialize(detectorAssets(BASE_PATH, requested.model), requested), workerFailure,
-            ]), candidate.controller.signal);
+            const result = await untilAborted(
+              Promise.race([
+                candidate.api.initialize(
+                  detectorAssets(BASE_PATH, requested.model),
+                  requested,
+                ),
+                workerFailure,
+              ]),
+              candidate.controller.signal,
+            );
             if (signal.aborted || current.pendingDetector !== candidate) return;
             candidate.delegate = result?.delegate ?? null;
             candidate.handDelegate = result?.handDelegate ?? null;
@@ -222,17 +258,26 @@ export default function usePoseTracking() {
             settledStatus();
             detectorReady();
           } catch (cause) {
-            if (signal.aborted || (candidate && current.pendingDetector !== candidate)) return;
+            if (
+              signal.aborted ||
+              (candidate && current.pendingDetector !== candidate)
+            )
+              return;
             disposeDetector(candidate);
             current.pendingDetector = null;
             current.switching = false;
             setSwitching(false);
             if (current.detector) {
               // Keep the working detector and camera if the new settings cannot load.
-              const restored = { ...current.detector.settings, smoothing: settingsRef.current.smoothing };
+              const restored = {
+                ...current.detector.settings,
+                smoothing: settingsRef.current.smoothing,
+              };
               settingsRef.current = restored;
               setSettings(restored);
-              setError("Could not switch the motion tracker. The previous settings are still active.");
+              setError(
+                "Could not switch the motion tracker. The previous settings are still active.",
+              );
               settledStatus();
             } else {
               fail(cameraErrorMessage(cause));
@@ -255,22 +300,38 @@ export default function usePoseTracking() {
           frameRate: { ideal: 30, max: 30 },
         },
       });
-      void camera.then((stream) => {
-        if (signal.aborted) stream.getTracks().forEach((track) => track.stop());
-      }, () => {});
+      void camera.then(
+        (stream) => {
+          if (signal.aborted)
+            stream.getTracks().forEach((track) => track.stop());
+        },
+        () => {},
+      );
       current.stream = await untilAborted(camera, signal);
       signal.throwIfAborted();
       current.stream.getVideoTracks().forEach((track) => {
-        track.addEventListener("ended", () => fail("The camera disconnected. Reconnect it and try again."));
+        track.addEventListener("ended", () =>
+          fail("The camera disconnected. Reconnect it and try again."),
+        );
       });
       let playbackStarted!: () => void;
-      const firstPlayback = new Promise<void>((resolve) => { playbackStarted = resolve; });
+      const firstPlayback = new Promise<void>((resolve) => {
+        playbackStarted = resolve;
+      });
       const isCurrentVideo = (video: HTMLVideoElement, generation: number) =>
-        !signal.aborted && current.video === video && current.videoGeneration === generation;
+        !signal.aborted &&
+        current.video === video &&
+        current.videoGeneration === generation;
       const schedule = () => {
         const video = current.video;
-        if (signal.aborted || document.hidden || !video ||
-            current.videoCallback !== null || current.animationCallback !== null) return;
+        if (
+          signal.aborted ||
+          document.hidden ||
+          !video ||
+          current.videoCallback !== null ||
+          current.animationCallback !== null
+        )
+          return;
         const generation = current.videoGeneration;
         const frameGeneration = ++current.frameGeneration;
         const callback = (timestamp: number) => {
@@ -283,7 +344,11 @@ export default function usePoseTracking() {
           current.animationCallback = requestAnimationFrame(callback);
         }
       };
-      const frame = async (timestamp: number, video: HTMLVideoElement, generation: number) => {
+      const frame = async (
+        timestamp: number,
+        video: HTMLVideoElement,
+        generation: number,
+      ) => {
         // A cancelled callback from a detached video must not clear or create
         // callbacks belonging to the replacement video.
         if (!isCurrentVideo(video, generation)) return;
@@ -292,22 +357,32 @@ export default function usePoseTracking() {
         if (document.hidden) return;
         schedule();
         const detector = current.detector;
-        if (current.switching || !detector || detector.busy || video.readyState < 2 ||
-            video.currentTime === current.lastVideoTime) return;
+        if (
+          current.switching ||
+          !detector ||
+          detector.busy ||
+          video.readyState < 2 ||
+          video.currentTime === current.lastVideoTime
+        )
+          return;
         current.lastVideoTime = video.currentTime;
         detector.busy = true;
         const startedAt = performance.now();
         const inferenceGeneration = current.inferenceGeneration;
-        const isCurrentDetector = () => isCurrentVideo(video, generation) &&
+        const isCurrentDetector = () =>
+          isCurrentVideo(video, generation) &&
           current.inferenceGeneration === inferenceGeneration &&
-          !current.switching && current.detector === detector && !document.hidden;
+          !current.switching &&
+          current.detector === detector &&
+          !document.hidden;
         let bitmap: ImageBitmap | null = null;
         try {
           bitmap = await createImageBitmap(video);
           if (!isCurrentDetector()) return;
-          const result = await untilAborted(detector.api.detect(
-            Comlink.transfer(bitmap, [bitmap]), timestamp,
-          ), detector.controller.signal);
+          const result = await untilAborted(
+            detector.api.detect(Comlink.transfer(bitmap, [bitmap]), timestamp),
+            detector.controller.signal,
+          );
           if (!isCurrentDetector()) return;
           if (result) result.receivedAt = performance.now();
           latestPose.current = result;
@@ -316,7 +391,7 @@ export default function usePoseTracking() {
           const elapsed = performance.now() - metrics.since;
           if (elapsed >= 500) {
             setStats({
-              fps: metrics.frames * 1000 / elapsed,
+              fps: (metrics.frames * 1000) / elapsed,
               frameMs: metrics.duration / metrics.frames,
               delegate: detector.delegate,
               handDelegate: detector.handDelegate,
@@ -328,7 +403,9 @@ export default function usePoseTracking() {
           updateStatus(result ? "tracking" : "lost");
         } catch {
           if (isCurrentDetector()) {
-            fail("Motion tracking stopped unexpectedly. Try starting it again.");
+            fail(
+              "Motion tracking stopped unexpectedly. Try starting it again.",
+            );
           }
         } finally {
           bitmap?.close();
@@ -340,7 +417,9 @@ export default function usePoseTracking() {
         latestPose.current = null;
         metrics = { since: performance.now(), frames: 0, duration: 0 };
         setStats(null);
-        current.stream?.getVideoTracks().forEach((track) => { track.enabled = !document.hidden; });
+        current.stream?.getVideoTracks().forEach((track) => {
+          track.enabled = !document.hidden;
+        });
         if (document.hidden) {
           cancelFrame(current);
           updateStatus("paused");
@@ -352,7 +431,8 @@ export default function usePoseTracking() {
       current.bindVideo = (video) => {
         if (current.video === video || signal.aborted) return;
         cancelFrame(current);
-        if (current.video?.srcObject === current.stream) current.video.srcObject = null;
+        if (current.video?.srcObject === current.stream)
+          current.video.srcObject = null;
         current.video = video;
         const generation = ++current.videoGeneration;
         current.lastVideoTime = -1;
@@ -361,7 +441,8 @@ export default function usePoseTracking() {
         video.srcObject = current.stream;
         current.visibilityListener?.();
         const playbackFailed = (cause: unknown) => {
-          if (isCurrentVideo(video, generation)) fail(cameraErrorMessage(cause));
+          if (isCurrentVideo(video, generation))
+            fail(cameraErrorMessage(cause));
         };
         try {
           // A replacement can play while the old play() is still pending.
@@ -391,5 +472,17 @@ export default function usePoseTracking() {
     }
   }, [dispose, updateStatus]);
 
-  return { videoRef, latestPose, status, error, start, stop, settings, updateSettings, resetSettings, switching, stats };
+  return {
+    videoRef,
+    latestPose,
+    status,
+    error,
+    start,
+    stop,
+    settings,
+    updateSettings,
+    resetSettings,
+    switching,
+    stats,
+  };
 }

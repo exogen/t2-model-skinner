@@ -7,7 +7,11 @@ import { buildProjects } from "../scripts/buildProjects.mjs";
 
 const directories = [];
 afterEach(async () => {
-  await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
+  await Promise.all(
+    directories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
 });
 
 async function fixture() {
@@ -22,20 +26,33 @@ async function project(directory, file, metadata, { legacy = false } = {}) {
   archive.file("base/material.json", "{}");
   const destination = path.join(directory, file);
   await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, await archive.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
+  await writeFile(
+    destination,
+    await archive.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }),
+  );
   return destination;
 }
 
 test("lists .skin files in nested directories, named after the file", async () => {
   const directory = await fixture();
-  await project(directory, "z.skin", { name: "Internal name", model: "hfemale" });
+  await project(directory, "z.skin", {
+    name: "Internal name",
+    model: "hfemale",
+  });
   await project(directory, "nested %2F/日本語.skin", { model: "lbioderm" });
-  await project(directory, "A.SKIN", { name: "Different saved name", model: "lmale" });
+  await project(directory, "A.SKIN", {
+    name: "Different saved name",
+    model: "lmale",
+  });
   await project(directory, "nested %2F/Case 100% #?&+.sKiN", { model: "disc" });
   await project(directory, "ignore.skin.png", { model: "mmale" });
   expect(await buildProjects(directory)).toEqual([
     { file: "A.SKIN", name: "A", model: "lmale" },
-    { file: "nested %2F/Case 100% #?&+.sKiN", name: "Case 100% #?&+", model: "disc" },
+    {
+      file: "nested %2F/Case 100% #?&+.sKiN",
+      name: "Case 100% #?&+",
+      model: "disc",
+    },
     { file: "nested %2F/日本語.skin", name: "日本語", model: "lbioderm" },
     { file: "z.skin", name: "z", model: "hfemale" },
   ]);
@@ -62,7 +79,9 @@ test("a broken archive is reported by filename", async () => {
   const directory = await fixture();
   await project(directory, "Good.skin", { model: "lmale" });
   await writeFile(path.join(directory, "Broken.skin"), "not a ZIP");
-  await expect(buildProjects(directory)).rejects.toThrow('Could not read local project "Broken.skin":');
+  await expect(buildProjects(directory)).rejects.toThrow(
+    'Could not read local project "Broken.skin":',
+  );
 });
 
 test.each([
@@ -73,6 +92,9 @@ test.each([
 ])("malformed manifest %s is reported", async (manifest, expected) => {
   const directory = await fixture();
   const archive = new JSZip().file("project.json", manifest);
-  await writeFile(path.join(directory, "Malformed.skin"), await archive.generateAsync({ type: "nodebuffer" }));
+  await writeFile(
+    path.join(directory, "Malformed.skin"),
+    await archive.generateAsync({ type: "nodebuffer" }),
+  );
   await expect(buildProjects(directory)).rejects.toThrow(expected);
 });

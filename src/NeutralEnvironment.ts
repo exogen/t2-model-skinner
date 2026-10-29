@@ -12,120 +12,134 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { BackSide, BoxGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, PointLight, Scene } from 'three';
+import {
+  BackSide,
+  BoxGeometry,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  PointLight,
+  Scene,
+} from "three";
 // Adapted from model-viewer 3.5.0's neutral environment.
 const neutral = {
-    topLight: {
-        intensity: 400,
-        position: [0.5, 14.0, 0.5],
+  topLight: {
+    intensity: 400,
+    position: [0.5, 14.0, 0.5],
+  },
+  room: {
+    position: [0.0, 13.2, 0.0],
+    scale: [31.5, 28.5, 31.5],
+  },
+  boxes: [
+    {
+      position: [-10.906, -1.0, 1.846],
+      rotation: -0.195,
+      scale: [2.328, 7.905, 4.651],
     },
-    room: {
-        position: [0.0, 13.2, 0.0],
-        scale: [31.5, 28.5, 31.5],
+    {
+      position: [-5.607, -0.754, -0.758],
+      rotation: 0.994,
+      scale: [1.97, 1.534, 3.955],
     },
-    boxes: [
-        {
-            position: [-10.906, -1.0, 1.846],
-            rotation: -0.195,
-            scale: [2.328, 7.905, 4.651],
-        },
-        {
-            position: [-5.607, -0.754, -0.758],
-            rotation: 0.994,
-            scale: [1.970, 1.534, 3.955],
-        },
-        {
-            position: [6.167, -0.16, 7.803],
-            rotation: 0.561,
-            scale: [3.927, 6.285, 3.687],
-        },
-        {
-            position: [-2.017, 0.018, 6.124],
-            rotation: 0.333,
-            scale: [2.002, 4.566, 2.064],
-        },
-        {
-            position: [2.291, -0.756, -2.621],
-            rotation: -0.286,
-            scale: [1.546, 1.552, 1.496],
-        },
-        {
-            position: [-2.193, -0.369, -5.547],
-            rotation: 0.516,
-            scale: [3.875, 3.487, 2.986],
-        },
-    ],
-    lights: [
-        {
-            intensity: 80,
-            position: [-14.0, 10.0, 8.0],
-            scale: [0.1, 2.5, 2.5],
-        },
-        {
-            intensity: 80,
-            position: [-14.0, 14.0, -4.0],
-            scale: [0.1, 2.5, 2.5],
-        },
-        {
-            intensity: 23,
-            position: [14.0, 12.0, 0.0],
-            scale: [0.1, 5.0, 5.0],
-        },
-        {
-            intensity: 16,
-            position: [0.0, 9.0, 14.0],
-            scale: [5.0, 5.0, 0.1],
-        },
-        {
-            intensity: 80,
-            position: [7.0, 8.0, -14.0],
-            scale: [2.5, 2.5, 0.1],
-        },
-        {
-            intensity: 80,
-            position: [-7.0, 16.0, -14.0],
-            scale: [2.5, 2.5, 0.1],
-        },
-        {
-            intensity: 1,
-            position: [0.0, 20.0, 0.0],
-            scale: [0.1, 0.1, 0.1],
-        },
-    ]
+    {
+      position: [6.167, -0.16, 7.803],
+      rotation: 0.561,
+      scale: [3.927, 6.285, 3.687],
+    },
+    {
+      position: [-2.017, 0.018, 6.124],
+      rotation: 0.333,
+      scale: [2.002, 4.566, 2.064],
+    },
+    {
+      position: [2.291, -0.756, -2.621],
+      rotation: -0.286,
+      scale: [1.546, 1.552, 1.496],
+    },
+    {
+      position: [-2.193, -0.369, -5.547],
+      rotation: 0.516,
+      scale: [3.875, 3.487, 2.986],
+    },
+  ],
+  lights: [
+    {
+      intensity: 80,
+      position: [-14.0, 10.0, 8.0],
+      scale: [0.1, 2.5, 2.5],
+    },
+    {
+      intensity: 80,
+      position: [-14.0, 14.0, -4.0],
+      scale: [0.1, 2.5, 2.5],
+    },
+    {
+      intensity: 23,
+      position: [14.0, 12.0, 0.0],
+      scale: [0.1, 5.0, 5.0],
+    },
+    {
+      intensity: 16,
+      position: [0.0, 9.0, 14.0],
+      scale: [5.0, 5.0, 0.1],
+    },
+    {
+      intensity: 80,
+      position: [7.0, 8.0, -14.0],
+      scale: [2.5, 2.5, 0.1],
+    },
+    {
+      intensity: 80,
+      position: [-7.0, 16.0, -14.0],
+      scale: [2.5, 2.5, 0.1],
+    },
+    {
+      intensity: 1,
+      position: [0.0, 20.0, 0.0],
+      scale: [0.1, 0.1, 0.1],
+    },
+  ],
 };
 export default class EnvironmentScene extends Scene {
-    constructor() {
-        super();
-        this.position.y = -3.5;
-        const geometry = new BoxGeometry();
-        geometry.deleteAttribute('uv');
-        const roomMaterial = new MeshStandardMaterial({ metalness: 0, side: BackSide });
-        const boxMaterial = new MeshStandardMaterial({ metalness: 0 });
-        const data = neutral;
-        const mainLight = new PointLight(0xffffff, data.topLight.intensity, 28, 2);
-        mainLight.position.fromArray(data.topLight.position);
-        this.add(mainLight);
-        const room = new Mesh(geometry, roomMaterial);
-        room.position.fromArray(data.room.position);
-        room.scale.fromArray(data.room.scale);
-        this.add(room);
-        for (const box of data.boxes) {
-            const box1 = new Mesh(geometry, boxMaterial);
-            box1.position.fromArray(box.position);
-            box1.rotation.set(0, box.rotation, 0);
-            box1.scale.fromArray(box.scale);
-            this.add(box1);
-        }
-        for (const light of data.lights) {
-            const light1 = new Mesh(geometry, this.createAreaLightMaterial(light.intensity));
-            light1.position.fromArray(light.position);
-            light1.scale.fromArray(light.scale);
-            this.add(light1);
-        }
+  constructor() {
+    super();
+    this.position.y = -3.5;
+    const geometry = new BoxGeometry();
+    geometry.deleteAttribute("uv");
+    const roomMaterial = new MeshStandardMaterial({
+      metalness: 0,
+      side: BackSide,
+    });
+    const boxMaterial = new MeshStandardMaterial({ metalness: 0 });
+    const data = neutral;
+    const mainLight = new PointLight(0xffffff, data.topLight.intensity, 28, 2);
+    mainLight.position.fromArray(data.topLight.position);
+    this.add(mainLight);
+    const room = new Mesh(geometry, roomMaterial);
+    room.position.fromArray(data.room.position);
+    room.scale.fromArray(data.room.scale);
+    this.add(room);
+    for (const box of data.boxes) {
+      const box1 = new Mesh(geometry, boxMaterial);
+      box1.position.fromArray(box.position);
+      box1.rotation.set(0, box.rotation, 0);
+      box1.scale.fromArray(box.scale);
+      this.add(box1);
     }
-    createAreaLightMaterial(intensity: number) {
-        const material = new MeshBasicMaterial();
-        material.color.setScalar(intensity);
-        return material;
+    for (const light of data.lights) {
+      const light1 = new Mesh(
+        geometry,
+        this.createAreaLightMaterial(light.intensity),
+      );
+      light1.position.fromArray(light.position);
+      light1.scale.fromArray(light.scale);
+      this.add(light1);
     }
+  }
+  createAreaLightMaterial(intensity: number) {
+    const material = new MeshBasicMaterial();
+    material.color.setScalar(intensity);
+    return material;
+  }
 }

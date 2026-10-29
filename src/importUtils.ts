@@ -20,7 +20,7 @@ export async function readZipFile(inputFile: File) {
           };
         }
       }
-    })
+    }),
   );
   return skins.filter((x): x is NonNullable<typeof x> => Boolean(x));
 }
@@ -51,7 +51,7 @@ export const imageTooBig =
 
 function readBlob<T extends string | ArrayBuffer>(
   blob: Blob,
-  method: "readAsDataURL" | "readAsText" | "readAsArrayBuffer"
+  method: "readAsDataURL" | "readAsText" | "readAsArrayBuffer",
 ) {
   return new Promise<T>((resolve, reject) => {
     const reader = new FileReader();
@@ -72,15 +72,22 @@ function sniffImageType(bytes: Uint8Array) {
   if (head.startsWith("\x89PNG\r\n\x1A\n")) return "image/png";
   if (head.startsWith("\xFF\xD8\xFF")) return "image/jpeg";
   if (/^GIF8[79]a/.test(head)) return "image/gif";
-  if (head.startsWith("RIFF") && head.slice(8, 12) === "WEBP") return "image/webp";
+  if (head.startsWith("RIFF") && head.slice(8, 12) === "WEBP")
+    return "image/webp";
   if (head.startsWith("BM")) return "image/bmp";
 }
 
 /** The type of image a file holds, judged by its first bytes, not its label.
  * SVG has no signature, so it counts by its type or name and is checked when
  * it's read. */
-export async function imageFileType(file: Blob, name = (file as File).name ?? "") {
-  const head = await readBlob<ArrayBuffer>(file.slice(0, 12), "readAsArrayBuffer");
+export async function imageFileType(
+  file: Blob,
+  name = (file as File).name ?? "",
+) {
+  const head = await readBlob<ArrayBuffer>(
+    file.slice(0, 12),
+    "readAsArrayBuffer",
+  );
   return (
     sniffImageType(new Uint8Array(head)) ??
     (file.type === "image/svg+xml" || /\.svg$/i.test(name)
@@ -114,7 +121,10 @@ function svgDataUrl(markup: string) {
     svg = parser.parseFromString(markup, "text/html").querySelector("svg");
   }
   if (!svg) return null;
-  const viewBox = (svg.getAttribute("viewBox") ?? "").trim().split(/[\s,]+/).map(Number);
+  const viewBox = (svg.getAttribute("viewBox") ?? "")
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
   if (viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0) {
     const [, , viewWidth, viewHeight] = viewBox;
     const hasWidth = svg.hasAttribute("width");
@@ -160,7 +170,10 @@ async function svgToPng(markup: string) {
 
 /** Reads an image file into a data URL for a layer, typed by its contents.
  * Rejects files that aren't a supported image or are too big. */
-export async function readImageFile(file: Blob, name = (file as File).name ?? "") {
+export async function readImageFile(
+  file: Blob,
+  name = (file as File).name ?? "",
+) {
   if (file.size > maxImageBytes) throw new ImageError(imageTooBig);
   const type = await imageFileType(file, name);
   if (!type) throw new ImageError(unreadableImage);
@@ -187,7 +200,7 @@ export async function readMultipleFiles(fileList: FileList | File[]) {
               ...imageFile,
               path: `${file.name}/${imageFile.path}`,
               name,
-            })
+            }),
           );
         }
         case "png":
@@ -199,7 +212,7 @@ export async function readMultipleFiles(fileList: FileList | File[]) {
         default:
           return null;
       }
-    })
+    }),
   );
   return files.flat().filter((x): x is NonNullable<typeof x> => Boolean(x));
 }
@@ -316,7 +329,7 @@ export type Skin = {
 };
 
 export function fileArrayToModels(
-  files: Array<{ path: string; name: string | null; imageUrl: string }>
+  files: Array<{ path: string; name: string | null; imageUrl: string }>,
 ) {
   const foundModels: Map<string, Map<string | null, Skin>> = new Map();
   files.forEach((file) => {
@@ -344,11 +357,11 @@ export function fileArrayToModels(
       (material) =>
         material.selectable !== false &&
         material.hidden !== true &&
-        material.optional !== true
+        material.optional !== true,
     );
     skinsByName.forEach((skin) => {
       skin.isComplete = requiredMaterials.every((material) =>
-        skin.materials.has(material.file ?? material.name)
+        skin.materials.has(material.file ?? material.name),
       );
     });
   });

@@ -7,7 +7,7 @@ export const modelTypes = Object.fromEntries(
   modelOptions.map(({ type, options }) => [
     type,
     options.map((option) => option.value),
-  ])
+  ]),
 ) as Record<ModelType, string[]>;
 
 const modelGroups = Object.entries(modelTypes) as [ModelType, string[]][];
@@ -65,7 +65,7 @@ export default typedModelConfig;
  * mounted on it, in the order of that file's materials. */
 export function partMaterials(model: string, mount?: string) {
   return typedModelConfig.materials[model].filter(
-    (material) => material.mount === mount
+    (material) => material.mount === mount,
   );
 }
 
@@ -79,7 +79,9 @@ export function hasMetallicMap(material: MaterialDefinition) {
  * default. */
 export function armThread(model: string, weapon: string) {
   const thread = typedModelConfig.armThreads[weapon];
-  return thread && (typedModelConfig.armThreadOverrides[model]?.[thread] ?? thread);
+  return (
+    thread && (typedModelConfig.armThreadOverrides[model]?.[thread] ?? thread)
+  );
 }
 
 // Prefer an editable canvas for each shared texture, falling back to the first
@@ -87,7 +89,7 @@ export function armThread(model: string, weapon: string) {
 // from overwriting the preview.
 export function isTextureSourceMaterial(
   material: MaterialDefinition,
-  model: string
+  model: string,
 ) {
   const definitions = typedModelConfig.materials[model];
   const sharesTexture = (candidate: MaterialDefinition) =>
@@ -97,7 +99,7 @@ export function isTextureSourceMaterial(
       (candidate) =>
         sharesTexture(candidate) &&
         !candidate.hidden &&
-        candidate.selectable !== false
+        candidate.selectable !== false,
     ) ?? definitions.find(sharesTexture);
   return source?.name === material.name;
 }

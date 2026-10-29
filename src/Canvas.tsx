@@ -47,7 +47,7 @@ async function prepareCanvasSource(
   source: CanvasSource,
   textureSize: [number, number],
   loadImage: (url: string) => Promise<ArrayBuffer>,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<FabricObject[]> {
   if (source.kind === "project") {
     return util.enlivenObjects<FabricObject>(source.snapshot.objects, {
@@ -111,7 +111,8 @@ export default function Canvas({
   } | null>(null);
   const { canvas, history } = surface ?? {};
   const { activeCanvas } = useTools();
-  const { sizeMultiplier, isResolvingSize, resolutionError } = useEditorSession();
+  const { sizeMultiplier, isResolvingSize, resolutionError } =
+    useEditorSession();
   const { canvasPadding } = useSettings();
   const { registerCanvas, unregisterCanvas } = useCanvas();
   const [isDrawingMode, setDrawingMode] = useState(defaultDrawingMode);
@@ -121,7 +122,7 @@ export default function Canvas({
     canRedo: false,
   });
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
-    "loading"
+    "loading",
   );
   const [loadError, setLoadError] = useState<string | null>(null);
   const { loadImage } = useImageLoader();
@@ -154,11 +155,10 @@ export default function Canvas({
       () => handleChangeRef.current?.(canvas),
       (next) =>
         setHistoryState((previous) =>
-          previous.canUndo === next.canUndo &&
-          previous.canRedo === next.canRedo
+          previous.canUndo === next.canUndo && previous.canRedo === next.canRedo
             ? previous
-            : next
-        )
+            : next,
+        ),
     );
     setSurface({ canvas, history });
 
@@ -178,7 +178,7 @@ export default function Canvas({
         width: (textureSize[0] + canvasPadding * 2) / sizeMultiplier,
         height: (textureSize[1] + canvasPadding * 2) / sizeMultiplier,
       },
-      { cssOnly: true }
+      { cssOnly: true },
     );
     return configureCanvasControls(canvas, sizeMultiplier);
   }, [canvas, textureSize, canvasPadding, sizeMultiplier]);
@@ -248,15 +248,21 @@ export default function Canvas({
         history.reset(objects);
         setStatus("ready");
       },
-      (objects) => objects.forEach((object) => object.dispose())
+      (objects) => objects.forEach((object) => object.dispose()),
     ).catch((error: unknown) => {
       setStatus("error");
       setLoadError(
-        error instanceof Error ? error.message : "Unable to load texture"
+        error instanceof Error ? error.message : "Unable to load texture",
       );
     });
   }, [
-    canvas, history, source, textureSize, loadImage, initialize, isResolvingSize,
+    canvas,
+    history,
+    source,
+    textureSize,
+    loadImage,
+    initialize,
+    isResolvingSize,
     resolutionError,
   ]);
 

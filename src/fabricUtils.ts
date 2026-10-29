@@ -3,7 +3,10 @@ import { Canvas, Control, FabricImage, FabricObject, util } from "fabric";
 // CSS scales the artwork down, but handles and hit targets remain screen-sized.
 // Apply this on attachment and selection so restored layers and multi-selections
 // get the same controls without changing their saved document coordinates.
-export function configureCanvasControls(canvas: Canvas, sizeMultiplier: number) {
+export function configureCanvasControls(
+  canvas: Canvas,
+  sizeMultiplier: number,
+) {
   const configure = (object: FabricObject) => {
     object.set({
       cornerSize: 9 * sizeMultiplier,
@@ -80,7 +83,7 @@ export function serializeObject(object: FabricObject) {
 
 export function objectBounds(objects: FabricObject[]) {
   return util.makeBoundingBoxFromPoints(
-    objects.flatMap((object) => object.getCoords())
+    objects.flatMap((object) => object.getCoords()),
   );
 }
 
@@ -90,8 +93,10 @@ export function renderObjects(canvas: Canvas, objects: FabricObject[]) {
   const bounds = objectBounds(objects);
   const left = Math.max(0, Math.floor(bounds.left));
   const top = Math.max(0, Math.floor(bounds.top));
-  const width = Math.min(canvas.width, Math.ceil(bounds.left + bounds.width)) - left;
-  const height = Math.min(canvas.height, Math.ceil(bounds.top + bounds.height)) - top;
+  const width =
+    Math.min(canvas.width, Math.ceil(bounds.left + bounds.width)) - left;
+  const height =
+    Math.min(canvas.height, Math.ceil(bounds.top + bounds.height)) - top;
   // Fabric renders the whole canvas for a zero width or height.
   if (width <= 0 || height <= 0) return null;
   return canvas.toCanvasElement(1, {
@@ -103,10 +108,7 @@ export function renderObjects(canvas: Canvas, objects: FabricObject[]) {
   });
 }
 
-export function replaceCanvasObjects(
-  canvas: Canvas,
-  objects: FabricObject[]
-) {
+export function replaceCanvasObjects(canvas: Canvas, objects: FabricObject[]) {
   const renderOnAddRemove = canvas.renderOnAddRemove;
   const previous = canvas.getObjects();
   canvas.renderOnAddRemove = false;

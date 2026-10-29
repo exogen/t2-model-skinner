@@ -39,7 +39,7 @@ export default function ImageWorkerProvider({
 
   useLayoutEffect(() => {
     const worker = new Worker(
-      new URL("./imageProcessing.worker.ts", import.meta.url)
+      new URL("./imageProcessing.worker.ts", import.meta.url),
     );
     const proxy = Comlink.wrap<ImageFunctions>(worker);
 

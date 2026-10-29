@@ -6,13 +6,17 @@ import { DEFAULT_POSE_SETTINGS } from "./poseSettings";
 import { chooseOption } from "../selectTestUtils.mjs";
 
 const updateSettings = vi.hoisted(() => vi.fn());
-vi.mock("../MocapProvider", () => ({ useMocap: () => ({ tracking: {
-  settings: DEFAULT_POSE_SETTINGS,
-  updateSettings,
-  resetSettings: vi.fn(),
-  switching: false,
-  stats: null,
-} }) }));
+vi.mock("../MocapProvider", () => ({
+  useMocap: () => ({
+    tracking: {
+      settings: DEFAULT_POSE_SETTINGS,
+      updateSettings,
+      resetSettings: vi.fn(),
+      switching: false,
+      stats: null,
+    },
+  }),
+}));
 
 let root, host;
 afterEach(async () => {
@@ -28,11 +32,15 @@ test("detailed hands can be disabled for comparison without changing body qualit
   await act(async () => root.render(React.createElement(MocapDebugPanel)));
   // The footer only speaks up while the tracker is switching models.
   expect(host.querySelector("[role='status']").textContent).toBe("");
-  const field = [...host.querySelectorAll("label")].find((node) => node.textContent.includes("Detailed hands"));
+  const field = [...host.querySelectorAll("label")].find((node) =>
+    node.textContent.includes("Detailed hands"),
+  );
   const checkbox = field.querySelector("input");
   expect(checkbox.checked).toBe(true);
   await act(async () => checkbox.click());
-  expect(updateSettings).toHaveBeenCalledExactlyOnceWith({ handTracking: false });
+  expect(updateSettings).toHaveBeenCalledExactlyOnceWith({
+    handTracking: false,
+  });
 });
 
 test.each([
@@ -43,7 +51,9 @@ test.each([
   globalThis.document.body.append(host);
   root = createRoot(host);
   await act(async () => root.render(React.createElement(MocapDebugPanel)));
-  const field = [...host.querySelectorAll("label")].find((node) => node.textContent === label);
+  const field = [...host.querySelectorAll("label")].find(
+    (node) => node.textContent === label,
+  );
   const trigger = globalThis.document.getElementById(field.htmlFor);
   await chooseOption(trigger, value);
   expect(updateSettings).toHaveBeenCalledWith(setting);

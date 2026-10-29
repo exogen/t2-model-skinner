@@ -1,5 +1,11 @@
 import {
-  AdditiveAnimationBlendMode, AnimationClip, KeyframeTrack, Object3D, Quaternion, QuaternionKeyframeTrack, Vector3,
+  AdditiveAnimationBlendMode,
+  AnimationClip,
+  KeyframeTrack,
+  Object3D,
+  Quaternion,
+  QuaternionKeyframeTrack,
+  Vector3,
   VectorKeyframeTrack,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -19,7 +25,10 @@ export function armPoseClip(clip: AnimationClip, root: Object3D) {
     const property = track.name.slice(dot + 1);
     const value = track.createInterpolant().evaluate(time);
     if (property === "quaternion") {
-      const change = node.quaternion.clone().invert().multiply(new Quaternion().fromArray(value));
+      const change = node.quaternion
+        .clone()
+        .invert()
+        .multiply(new Quaternion().fromArray(value));
       return [new QuaternionKeyframeTrack(track.name, [0], change.toArray())];
     }
     if (property === "position" || property === "scale") {
@@ -34,7 +43,9 @@ export function armPoseClip(clip: AnimationClip, root: Object3D) {
 // Every arm animation a weapon is held with.
 const armThreads = new Set([
   ...Object.values(modelConfig.armThreads),
-  ...Object.values(modelConfig.armThreadOverrides).flatMap((names) => Object.values(names)),
+  ...Object.values(modelConfig.armThreadOverrides).flatMap((names) =>
+    Object.values(names),
+  ),
 ]);
 const armPoses = new Map<string, Promise<Map<string, AnimationClip>>>();
 
@@ -45,9 +56,11 @@ export function loadArmPoses(url: string) {
   if (!poses) {
     poses = new GLTFLoader().loadAsync(url).then((gltf) => {
       try {
-        return new Map(gltf.animations
-          .filter((clip) => armThreads.has(clip.name))
-          .map((clip) => [clip.name, armPoseClip(clip, gltf.scene)]));
+        return new Map(
+          gltf.animations
+            .filter((clip) => armThreads.has(clip.name))
+            .map((clip) => [clip.name, armPoseClip(clip, gltf.scene)]),
+        );
       } finally {
         disposeObject(gltf.scene);
       }

@@ -1,6 +1,12 @@
 import {
-  createContext, ReactNode, useCallback, useContext, useEffect,
-  useLayoutEffect, useRef, useState,
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
 } from "react";
 import { MdVideoCameraFront } from "react-icons/md";
 import useWarrior from "./useWarrior";
@@ -84,7 +90,12 @@ export default function MocapProvider({ children }: { children: ReactNode }) {
       const pending = runtimePromise.current ?? import("./mocap/MocapRuntime");
       runtimePromise.current = pending;
       const loaded = await pending;
-      if (!mounted.current || !playerRef.current || generation.current !== current) return;
+      if (
+        !mounted.current ||
+        !playerRef.current ||
+        generation.current !== current
+      )
+        return;
       setRuntime(loaded);
       setRequested(true);
       setRequestId((id) => id + 1);
@@ -100,12 +111,25 @@ export default function MocapProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const active = player && (loading || (requested && !tracking)
-    || (tracking !== null && tracking.status !== "idle" && tracking.status !== "error"));
+  const active =
+    player &&
+    (loading ||
+      (requested && !tracking) ||
+      (tracking !== null &&
+        tracking.status !== "idle" &&
+        tracking.status !== "error"));
 
   return (
-    <MocapContext.Provider value={{ tracking, runtime, active, loading, error, start, stop }}>
-      {runtime && <runtime.Controller onTracking={onTracking} requested={requested && player} requestId={requestId} />}
+    <MocapContext.Provider
+      value={{ tracking, runtime, active, loading, error, start, stop }}
+    >
+      {runtime && (
+        <runtime.Controller
+          onTracking={onTracking}
+          requested={requested && player}
+          requestId={requestId}
+        />
+      )}
       {children}
     </MocapContext.Provider>
   );
@@ -115,7 +139,7 @@ export function LiveMocapControls() {
   const { tracking, loading, error, start, stop } = useMocap();
   const { selectedModelType } = useWarrior();
   if (selectedModelType !== "player") return null;
-  const status = loading ? "loading" : tracking?.status ?? "idle";
+  const status = loading ? "loading" : (tracking?.status ?? "idle");
   const message = error ?? tracking?.error ?? null;
   const active = status !== "idle" && status !== "error";
 
@@ -133,7 +157,11 @@ export function LiveMocapControls() {
         <MdVideoCameraFront aria-hidden="true" />
         <span className="ButtonText">Motion capture</span>
       </button>
-      {message && <p className={styles.Error} role="alert">{message}</p>}
+      {message && (
+        <p className={styles.Error} role="alert">
+          {message}
+        </p>
+      )}
     </div>
   );
 }
@@ -141,7 +169,11 @@ export function LiveMocapControls() {
 export function LiveMocapPreview() {
   const { runtime, tracking, active } = useMocap();
   if (runtime && tracking) return <runtime.Preview />;
-  return active ? <div id="MocapPreview" className={styles.Loading} role="status">Loading motion tracking…</div> : null;
+  return active ? (
+    <div id="MocapPreview" className={styles.Loading} role="status">
+      Loading motion tracking…
+    </div>
+  ) : null;
 }
 
 export function LiveMocapPose() {

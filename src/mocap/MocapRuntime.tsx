@@ -14,7 +14,9 @@ export const viewerRuntime: PoseRuntime = {
   createPoseFraming,
 };
 
-export type MocapTracking = ReturnType<typeof usePoseTracking> & { recorder: Recorder };
+export type MocapTracking = ReturnType<typeof usePoseTracking> & {
+  recorder: Recorder;
+};
 
 // The memo boundary prevents publishing tracking state to the shell from
 // re-rendering this hook in a loop. Keep it mounted after stopping so settings
@@ -31,7 +33,9 @@ export const Controller = memo(function MocapController({
   const tracking = usePoseTracking();
   const recorder = useRecorder(tracking.status);
   const { start, stop } = tracking;
-  useLayoutEffect(() => { onTracking({ ...tracking, recorder }); }, [tracking, recorder, onTracking]);
+  useLayoutEffect(() => {
+    onTracking({ ...tracking, recorder });
+  }, [tracking, recorder, onTracking]);
   useEffect(() => {
     if (requested) void start();
     else stop();

@@ -149,15 +149,18 @@ test("keyboard input in sliders and dropdowns does not edit selected artwork", a
             value: "model",
             options: [{ value: "model", label: "Model" }],
             onChange() {},
-          })
-        )
+          }),
+        ),
       );
     });
     for (const target of [
       controls.querySelector('[role="slider"]'),
-      controls.querySelector('[data-select]'),
+      controls.querySelector("[data-select]"),
     ]) {
-      for (const [key, keyCode] of [["ArrowRight", 39], ["Delete", 46]]) {
+      for (const [key, keyCode] of [
+        ["ArrowRight", 39],
+        ["Delete", 46],
+      ]) {
         await act(async () =>
           target.dispatchEvent(
             new window.KeyboardEvent("keydown", {
@@ -165,8 +168,8 @@ test("keyboard input in sliders and dropdowns does not edit selected artwork", a
               keyCode,
               bubbles: true,
               cancelable: true,
-            })
-          )
+            }),
+          ),
         );
         expect(artwork.left).toBe(100);
         expect(current.getObjects()).toContain(artwork);
@@ -187,7 +190,9 @@ test("disabled canvas interactions preserve artwork and undo history through key
   const artwork = image({ left: 100 });
   const upload = image();
   const data = upload.getElement().toDataURL("image/png").split(",")[1];
-  const file = new window.File([Buffer.from(data, "base64")], "Artwork.png", { type: "image/png" });
+  const file = new window.File([Buffer.from(data, "base64")], "Artwork.png", {
+    type: "image/png",
+  });
   upload.dispose();
   try {
     const info = app.canvases[app.tools.activeCanvas];
@@ -211,13 +216,23 @@ test("disabled canvas interactions preserve artwork and undo history through key
     const cameraControl = document.createElement("button");
     surface.append(cameraControl);
     for (const options of [
-      { key: "ArrowRight" }, { key: "Delete" }, { key: "d" },
-      { key: "z", ctrlKey: true }, { key: "z", metaKey: true },
-      { key: "y", ctrlKey: true }, { key: "z", metaKey: true, shiftKey: true },
+      { key: "ArrowRight" },
+      { key: "Delete" },
+      { key: "d" },
+      { key: "z", ctrlKey: true },
+      { key: "z", metaKey: true },
+      { key: "y", ctrlKey: true },
+      { key: "z", metaKey: true, shiftKey: true },
     ]) {
-      await act(async () => cameraControl.dispatchEvent(new window.KeyboardEvent("keydown", {
-        ...options, bubbles: true, cancelable: true,
-      })));
+      await act(async () =>
+        cameraControl.dispatchEvent(
+          new window.KeyboardEvent("keydown", {
+            ...options,
+            bubbles: true,
+            cancelable: true,
+          }),
+        ),
+      );
     }
     const drop = new window.Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(drop, "dataTransfer", { value: { files: [file] } });
@@ -250,7 +265,7 @@ async function dropFiles(app, files, assertLoaded) {
   const event = new window.Event("drop", { bubbles: true, cancelable: true });
   Object.defineProperty(event, "dataTransfer", { value: { files } });
   await act(async () =>
-    app.host.querySelector(".CanvasInteractions").dispatchEvent(event)
+    app.host.querySelector(".CanvasInteractions").dispatchEvent(event),
   );
   expect(event.defaultPrevented).toBe(true);
   await vi.waitFor(async () => {
@@ -283,7 +298,7 @@ test.each(["image/png", "image/jpeg"])(
       layer.dispose();
       await app.close();
     }
-  }
+  },
 );
 
 test("dropping a .skin file restores the project, model and skin name", async () => {
@@ -316,12 +331,16 @@ test.each(["VL2", "zip"])(
   async (extension) => {
     const source = image();
     const zip = new JSZip();
-    zip.file("textures/skins/Imported.lmale.png", source.getSrc().split(",")[1], {
-      base64: true,
-    });
+    zip.file(
+      "textures/skins/Imported.lmale.png",
+      source.getSrc().split(",")[1],
+      {
+        base64: true,
+      },
+    );
     const file = new window.File(
       [await zip.generateAsync({ type: "nodebuffer" })],
-      `Dropped.${extension}`
+      `Dropped.${extension}`,
     );
     const app = await editor("lmale", { realCanvases: true });
     try {
@@ -333,7 +352,7 @@ test.each(["VL2", "zip"])(
       });
       expect(app.warrior.selectedSkinType).toBe("import");
       expect(
-        app.warrior.importedSkins.get("lmale").get("Imported").isComplete
+        app.warrior.importedSkins.get("lmale").get("Imported").isComplete,
       ).toBe(true);
       const current = app.canvases[app.tools.activeCanvas].canvas;
       expect(current).not.toBe(previous);
@@ -343,7 +362,7 @@ test.each(["VL2", "zip"])(
       source.dispose();
       await app.close();
     }
-  }
+  },
 );
 
 test.each(["skin", "vl2"])(
@@ -360,7 +379,10 @@ test.each(["skin", "vl2"])(
       await dropFiles(
         app,
         [new window.File(["invalid archive"], `Broken.${extension}`)],
-        () => expect(document.querySelector('dialog [role="alert"]')).not.toBeNull()
+        () =>
+          expect(
+            document.querySelector('dialog [role="alert"]'),
+          ).not.toBeNull(),
       );
       expect(app.canvases[app.tools.activeCanvas].canvas).toBe(current);
       expect(current.item(0)).toBe(original);
@@ -368,5 +390,5 @@ test.each(["skin", "vl2"])(
     } finally {
       await app.close();
     }
-  }
+  },
 );

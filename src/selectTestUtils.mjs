@@ -2,7 +2,9 @@ import { act } from "react";
 
 export async function openSelect(trigger) {
   await act(async () => trigger.click());
-  return globalThis.document.getElementById(trigger.getAttribute("aria-controls"));
+  return globalThis.document.getElementById(
+    trigger.getAttribute("aria-controls"),
+  );
 }
 
 export async function chooseOption(trigger, value) {

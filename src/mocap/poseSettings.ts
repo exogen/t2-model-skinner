@@ -35,15 +35,24 @@ export interface PoseDetectorAssets {
   faceModelUrl?: string;
 }
 
-export function normalizePoseSettings(value: Partial<PoseTrackingSettings>): PoseTrackingSettings {
+export function normalizePoseSettings(
+  value: Partial<PoseTrackingSettings>,
+): PoseTrackingSettings {
   const confidence = (input: number | undefined) =>
-    typeof input === "number" && Number.isFinite(input) ? Math.max(0.1, Math.min(0.9, input)) : 0.5;
+    typeof input === "number" && Number.isFinite(input)
+      ? Math.max(0.1, Math.min(0.9, input))
+      : 0.5;
   return {
-    model: value.model === "lite" || value.model === "full"
-      ? value.model : DEFAULT_POSE_SETTINGS.model,
+    model:
+      value.model === "lite" || value.model === "full"
+        ? value.model
+        : DEFAULT_POSE_SETTINGS.model,
     handTracking: value.handTracking !== false,
-    smoothing: ["none", "classic", "adaptive", "stable"].includes(value.smoothing ?? "")
-      ? value.smoothing as PoseTrackingSettings["smoothing"] : DEFAULT_POSE_SETTINGS.smoothing,
+    smoothing: ["none", "classic", "adaptive", "stable"].includes(
+      value.smoothing ?? "",
+    )
+      ? (value.smoothing as PoseTrackingSettings["smoothing"])
+      : DEFAULT_POSE_SETTINGS.smoothing,
     minDetectionConfidence: confidence(value.minDetectionConfidence),
     minPresenceConfidence: confidence(value.minPresenceConfidence),
     minTrackingConfidence: confidence(value.minTrackingConfidence),
@@ -52,6 +61,11 @@ export function normalizePoseSettings(value: Partial<PoseTrackingSettings>): Pos
 
 // Rig smoothing applies without rebuilding the detector.
 export function detectorSettingsKey(settings: PoseTrackingSettings): string {
-  return [settings.model, settings.minDetectionConfidence, settings.minPresenceConfidence,
-    settings.minTrackingConfidence, settings.handTracking].join(":");
+  return [
+    settings.model,
+    settings.minDetectionConfidence,
+    settings.minPresenceConfidence,
+    settings.minTrackingConfidence,
+    settings.handTracking,
+  ].join(":");
 }

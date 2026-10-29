@@ -1,7 +1,16 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { Buffer } from "node:buffer";
 import { ActiveSelection, filters, getEnv, util } from "fabric";
-import { act, archive, canvas, editor, image, input, locked, until } from "./skinProjectTestUtils.mjs";
+import {
+  act,
+  archive,
+  canvas,
+  editor,
+  image,
+  input,
+  locked,
+  until,
+} from "./skinProjectTestUtils.mjs";
 import { findImageUrl } from "./canvasClipboard";
 import { readImageFile } from "./importUtils";
 
@@ -34,8 +43,10 @@ async function dispatch(type, data, target) {
 }
 
 const editorElement = (app) => app.host.querySelector(".CanvasInteractions");
-const copy = (app, data = clipboardData()) => dispatch("copy", data, editorElement(app)).then((event) => ({ event, data }));
-const cut = (app, data = clipboardData()) => dispatch("cut", data, editorElement(app)).then((event) => ({ event, data }));
+const copy = (app, data = clipboardData()) =>
+  dispatch("copy", data, editorElement(app)).then((event) => ({ event, data }));
+const cut = (app, data = clipboardData()) =>
+  dispatch("cut", data, editorElement(app)).then((event) => ({ event, data }));
 const paste = (app, data) => dispatch("paste", data, editorElement(app));
 
 function pngFile(name = "image.png", type = "image/png", options = {}) {
@@ -59,13 +70,18 @@ function active(app) {
 async function select(canvas, ...objects) {
   await act(async () => {
     canvas.setActiveObject(
-      objects.length > 1 ? new ActiveSelection(objects, { canvas }) : objects[0]
+      objects.length > 1
+        ? new ActiveSelection(objects, { canvas })
+        : objects[0],
     );
   });
 }
 
 function stubAsyncClipboard(write) {
-  Object.defineProperty(globalThis.navigator, "clipboard", { value: { write }, configurable: true });
+  Object.defineProperty(globalThis.navigator, "clipboard", {
+    value: { write },
+    configurable: true,
+  });
   globalThis.ClipboardItem = class {
     constructor(items) {
       this.items = items;
@@ -74,10 +90,13 @@ function stubAsyncClipboard(write) {
 }
 
 async function closeDialog() {
-  await act(async () => document.querySelector("dialog[open] footer button").click());
+  await act(async () =>
+    document.querySelector("dialog[open] footer button").click(),
+  );
 }
 
-const alertText = () => document.querySelector("dialog[open] [role='alert']")?.textContent;
+const alertText = () =>
+  document.querySelector("dialog[open] [role='alert']")?.textContent;
 
 test("pasting a screenshot adds it as a layer", async () => {
   const app = await editor();
@@ -121,7 +140,9 @@ test("an untyped file is checked for image data", async () => {
     ]) {
       const event = await paste(app, clipboardData({ files: [notes] }));
       expect(event.defaultPrevented).toBe(true);
-      await until(() => expect(alertText()).toBe("Only images can be pasted here."));
+      await until(() =>
+        expect(alertText()).toBe("Only images can be pasted here."),
+      );
       await closeDialog();
     }
     expect(read).not.toHaveBeenCalled();
@@ -134,9 +155,15 @@ test("an untyped file is checked for image data", async () => {
 test("an image that can't be decoded shows a short message", async () => {
   const app = await editor();
   try {
-    const file = new window.File([Buffer.from("not an image")], "scan.tiff", { type: "image/tiff" });
+    const file = new window.File([Buffer.from("not an image")], "scan.tiff", {
+      type: "image/tiff",
+    });
     await paste(app, clipboardData({ files: [file] }));
-    await until(() => expect(alertText()).toBe("This image couldn't be opened. Try saving it as a PNG."));
+    await until(() =>
+      expect(alertText()).toBe(
+        "This image couldn't be opened. Try saving it as a PNG.",
+      ),
+    );
     expect(active(app).getObjects()).toHaveLength(0);
   } finally {
     await app.close();
@@ -149,7 +176,11 @@ test("text fields and dialogs keep their own paste", async () => {
   editorElement(app).append(field);
   try {
     const current = active(app);
-    const fieldPaste = await dispatch("paste", clipboardData({ files: [pngFile()] }), field);
+    const fieldPaste = await dispatch(
+      "paste",
+      clipboardData({ files: [pngFile()] }),
+      field,
+    );
     expect(fieldPaste.defaultPrevented).toBe(false);
     const dialog = document.createElement("dialog");
     dialog.open = true;
@@ -158,7 +189,10 @@ test("text fields and dialogs keep their own paste", async () => {
     expect(dialogPaste.defaultPrevented).toBe(false);
     dialog.remove();
     await app.setInteractionsDisabled(true);
-    const disabledPaste = await paste(app, clipboardData({ files: [pngFile()] }));
+    const disabledPaste = await paste(
+      app,
+      clipboardData({ files: [pngFile()] }),
+    );
     expect(disabledPaste.defaultPrevented).toBe(false);
     await app.settle();
     expect(current.getObjects()).toHaveLength(0);
@@ -180,14 +214,23 @@ test("copy and paste duplicates the selection with an offset, as one undo step",
     await app.settle();
     const { event, data } = await copy(app);
     expect(event.defaultPrevented).toBe(true);
-    expect(data.written["text/html"]).toMatch(/^<img src="data:image\/png;base64,[^"]+" data-t2-skinner-clip="[0-9a-f]{32}">$/);
+    expect(data.written["text/html"]).toMatch(
+      /^<img src="data:image\/png;base64,[^"]+" data-t2-skinner-clip="[0-9a-f]{32}">$/,
+    );
     expect(current.getObjects()).toHaveLength(1);
 
     const html = data.written["text/html"];
-    expect((await paste(app, clipboardData({ html }))).defaultPrevented).toBe(true);
+    expect((await paste(app, clipboardData({ html }))).defaultPrevented).toBe(
+      true,
+    );
     await until(() => expect(current.getObjects()).toHaveLength(2));
     const first = current.item(1);
-    expect(first).toMatchObject({ left: 120, top: 140, angle: 15, opacity: 0.5 });
+    expect(first).toMatchObject({
+      left: 120,
+      top: 140,
+      angle: 15,
+      opacity: 0.5,
+    });
     expect(first.filters).toHaveLength(1);
     expect(first.filters[0]).toBeInstanceOf(filters.Brightness);
     expect(current.getActiveObject()).toBe(first);
@@ -210,7 +253,13 @@ test("a selection pastes in place on the metallic canvas, in grayscale", async (
   try {
     const color = active(app);
     const first = image({ left: 100, top: 120 });
-    const second = image({ left: 300, top: 200, angle: 30, scaleX: 2, scaleY: 2 });
+    const second = image({
+      left: 300,
+      top: 200,
+      angle: 30,
+      scaleX: 2,
+      scaleY: 2,
+    });
     await act(async () => color.add(first, second));
     await select(color, first, second);
     const { data } = await copy(app);
@@ -230,7 +279,9 @@ test("a selection pastes in place on the metallic canvas, in grayscale", async (
     expect(b.angle).toBeCloseTo(30);
     expect(b.scaleX).toBeCloseTo(2);
     for (const object of [a, b]) {
-      expect(object.filters.some((filter) => filter instanceof filters.Grayscale)).toBe(true);
+      expect(
+        object.filters.some((filter) => filter instanceof filters.Grayscale),
+      ).toBe(true);
     }
   } finally {
     await app.close();
@@ -331,11 +382,17 @@ test("a paste before the async write finishes still pastes the layers", async ()
 });
 
 test.each([
-  ["the window loses focus", () => window.dispatchEvent(new window.Event("blur"))],
+  [
+    "the window loses focus",
+    () => window.dispatchEvent(new window.Event("blur")),
+  ],
   [
     "the page is hidden",
     () => {
-      Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+      Object.defineProperty(document, "visibilityState", {
+        value: "hidden",
+        configurable: true,
+      });
       document.dispatchEvent(new window.Event("visibilitychange"));
       delete document.visibilityState;
     },
@@ -345,7 +402,9 @@ test.each([
     (app) => {
       const field = document.createElement("input");
       editorElement(app).append(field);
-      field.dispatchEvent(new window.Event("copy", { bubbles: true, cancelable: true }));
+      field.dispatchEvent(
+        new window.Event("copy", { bubbles: true, cancelable: true }),
+      );
       field.remove();
     },
   ],
@@ -381,7 +440,13 @@ test("after leaving the page, the token still identifies the copy", async () => 
     const html = data.written["text/html"];
     await act(async () => window.dispatchEvent(new window.Event("blur")));
     // A different copy, like one from another tab, pastes as an image.
-    await paste(app, clipboardData({ files: [pngFile()], html: html.replace(/clip="[0-9a-f]+"/, 'clip="0123"') }));
+    await paste(
+      app,
+      clipboardData({
+        files: [pngFile()],
+        html: html.replace(/clip="[0-9a-f]+"/, 'clip="0123"'),
+      }),
+    );
     await until(() => expect(current.getObjects()).toHaveLength(2));
     expect(current.item(1).getCenterPoint()).toMatchObject({ x: 320, y: 320 });
     await paste(app, clipboardData({ files: [pngFile()], html }));
@@ -407,7 +472,9 @@ test("clicking the editor clears an old text selection so Ctrl+C copies layers",
     document.getSelection().addRange(range);
     expect((await copy(app)).event.defaultPrevented).toBe(false);
     await act(async () =>
-      editorElement(app).dispatchEvent(new window.Event("pointerdown", { bubbles: true }))
+      editorElement(app).dispatchEvent(
+        new window.Event("pointerdown", { bubbles: true }),
+      ),
     );
     expect(document.getSelection().isCollapsed).toBe(true);
     expect((await copy(app)).event.defaultPrevented).toBe(true);
@@ -417,18 +484,21 @@ test("clicking the editor clears an old text selection so Ctrl+C copies layers",
   }
 });
 
-test.each(["pointerdown", "pointerup"])("a middle-click paste is ignored after %s", async (type) => {
-  const app = await editor();
-  try {
-    const pointer = new window.Event(type, { bubbles: true });
-    Object.defineProperty(pointer, "button", { value: 1 });
-    await act(async () => editorElement(app).dispatchEvent(pointer));
-    const event = await paste(app, clipboardData({ files: [pngFile()] }));
-    expect(event.defaultPrevented).toBe(false);
-  } finally {
-    await app.close();
-  }
-});
+test.each(["pointerdown", "pointerup"])(
+  "a middle-click paste is ignored after %s",
+  async (type) => {
+    const app = await editor();
+    try {
+      const pointer = new window.Event(type, { bubbles: true });
+      Object.defineProperty(pointer, "button", { value: 1 });
+      await act(async () => editorElement(app).dispatchEvent(pointer));
+      const event = await paste(app, clipboardData({ files: [pngFile()] }));
+      expect(event.defaultPrevented).toBe(false);
+    } finally {
+      await app.close();
+    }
+  },
+);
 
 test("Safari's Edit menu is enabled for the editor only", async () => {
   const app = await editor();
@@ -471,7 +541,12 @@ test("copied layers survive a skin switch and scale to its resolution", async ()
     expect(target).not.toBe(current);
     await paste(app, clipboardData({ html: data.written["text/html"] }));
     await until(() => expect(target.getObjects()).toHaveLength(1));
-    expect(target.item(0)).toMatchObject({ left: 64 + 2 * 36, top: 64 + 2 * 56, scaleX: 2, scaleY: 2 });
+    expect(target.item(0)).toMatchObject({
+      left: 64 + 2 * 36,
+      top: 64 + 2 * 56,
+      scaleX: 2,
+      scaleY: 2,
+    });
   } finally {
     await app.close();
     await source.dispose();
@@ -542,10 +617,16 @@ test("pasting a skin file doesn't open it", async () => {
   const source = canvas();
   try {
     const skin = app.skin;
-    const file = new window.File([await archive([input("base", source)])], "Mine.skin", { type: "" });
+    const file = new window.File(
+      [await archive([input("base", source)])],
+      "Mine.skin",
+      { type: "" },
+    );
     const event = await paste(app, clipboardData({ files: [file] }));
     expect(event.defaultPrevented).toBe(true);
-    await until(() => expect(alertText()).toBe("Only images can be pasted here."));
+    await until(() =>
+      expect(alertText()).toBe("Only images can be pasted here."),
+    );
     expect(app.skin).toBe(skin);
     expect(active(app).getObjects()).toHaveLength(0);
   } finally {
@@ -560,12 +641,20 @@ test("images over the size limit are rejected", async () => {
     const wide = document.createElement("canvas");
     wide.width = 8193;
     wide.height = 1;
-    const wideFile = new window.File([Buffer.from(wide.toDataURL("image/png").split(",")[1], "base64")], "wide.png", { type: "image/png" });
+    const wideFile = new window.File(
+      [Buffer.from(wide.toDataURL("image/png").split(",")[1], "base64")],
+      "wide.png",
+      { type: "image/png" },
+    );
     const heavyFile = pngFile();
     Object.defineProperty(heavyFile, "size", { value: 50 * 1024 * 1024 + 1 });
     for (const file of [wideFile, heavyFile]) {
       await paste(app, clipboardData({ files: [file] }));
-      await until(() => expect(alertText()).toBe("This image is too big. The limit is 8192 × 8192 pixels and 50 MB."));
+      await until(() =>
+        expect(alertText()).toBe(
+          "This image is too big. The limit is 8192 × 8192 pixels and 50 MB.",
+        ),
+      );
       await closeDialog();
     }
     expect(active(app).getObjects()).toHaveLength(0);
@@ -576,20 +665,37 @@ test("images over the size limit are rejected", async () => {
 
 test("a pasted image link is downloaded only if it's an image", async () => {
   const { Response, ReadableStream } = globalThis;
-  const bytes = Buffer.from(image().getElement().toDataURL("image/png").split(",")[1], "base64");
+  const bytes = Buffer.from(
+    image().getElement().toDataURL("image/png").split(",")[1],
+    "base64",
+  );
   const chunk = new Uint8Array(1024 * 1024);
   const png = { "content-type": "image/png" };
   const responses = {
     "decal.png": () => new Response(bytes, { headers: png }),
     "missing.png": () => new Response("", { status: 404 }),
-    "page.png": () => new Response("<p>Hi</p>", { headers: { "content-type": "text/html" } }),
-    "bucket.png": () => new Response(bytes, { headers: { "content-type": "application/octet-stream" } }),
+    "page.png": () =>
+      new Response("<p>Hi</p>", { headers: { "content-type": "text/html" } }),
+    "bucket.png": () =>
+      new Response(bytes, {
+        headers: { "content-type": "application/octet-stream" },
+      }),
     "fake.png": () => new Response("<p>Hi</p>", { headers: png }),
-    "huge.png": () => new Response(bytes, { headers: { ...png, "content-length": String(51 * 1024 * 1024) } }),
+    "huge.png": () =>
+      new Response(bytes, {
+        headers: { ...png, "content-length": String(51 * 1024 * 1024) },
+      }),
     "endless.png": () =>
-      new Response(new ReadableStream({ pull: (controller) => controller.enqueue(chunk) }), { headers: png }),
+      new Response(
+        new ReadableStream({ pull: (controller) => controller.enqueue(chunk) }),
+        { headers: png },
+      ),
   };
-  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => responses[String(url).split("/").pop()]());
+  const fetch = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async (url) =>
+      responses[String(url).split("/").pop()](),
+    );
   const app = await editor();
   try {
     const current = active(app);
@@ -597,18 +703,41 @@ test("a pasted image link is downloaded only if it's an image", async () => {
     await until(() => expect(current.getObjects()).toHaveLength(1));
     expect(fetch).toHaveBeenCalledWith(
       "https://example.com/decal.png",
-      expect.objectContaining({ credentials: "omit", referrerPolicy: "no-referrer" })
+      expect.objectContaining({
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      }),
     );
-    for (const text of ["https://example.com/page", "http://example.com/decal.png"]) {
-      expect((await paste(app, clipboardData({ text }))).defaultPrevented).toBe(false);
+    for (const text of [
+      "https://example.com/page",
+      "http://example.com/decal.png",
+    ]) {
+      expect((await paste(app, clipboardData({ text }))).defaultPrevented).toBe(
+        false,
+      );
     }
     for (const [name, message] of [
-      ["missing.png", "The pasted image couldn't be downloaded. Save it, then add the file."],
-      ["page.png", "The pasted image couldn't be downloaded. Save it, then add the file."],
-      ["bucket.png", "The pasted image couldn't be downloaded. Save it, then add the file."],
+      [
+        "missing.png",
+        "The pasted image couldn't be downloaded. Save it, then add the file.",
+      ],
+      [
+        "page.png",
+        "The pasted image couldn't be downloaded. Save it, then add the file.",
+      ],
+      [
+        "bucket.png",
+        "The pasted image couldn't be downloaded. Save it, then add the file.",
+      ],
       ["fake.png", "This image couldn't be opened. Try saving it as a PNG."],
-      ["huge.png", "This image is too big. The limit is 8192 × 8192 pixels and 50 MB."],
-      ["endless.png", "This image is too big. The limit is 8192 × 8192 pixels and 50 MB."],
+      [
+        "huge.png",
+        "This image is too big. The limit is 8192 × 8192 pixels and 50 MB.",
+      ],
+      [
+        "endless.png",
+        "This image is too big. The limit is 8192 × 8192 pixels and 50 MB.",
+      ],
     ]) {
       await paste(app, clipboardData({ text: `https://example.com/${name}` }));
       await until(() => expect(alertText()).toBe(message));
@@ -625,10 +754,20 @@ test("a pasted data URL must hold a real image", async () => {
   const app = await editor();
   try {
     const current = active(app);
-    await paste(app, clipboardData({ text: image().getElement().toDataURL("image/png") }));
+    await paste(
+      app,
+      clipboardData({ text: image().getElement().toDataURL("image/png") }),
+    );
     await until(() => expect(current.getObjects()).toHaveLength(1));
-    await paste(app, clipboardData({ text: "data:image/png;base64,PHA+SGk8L3A+" }));
-    await until(() => expect(alertText()).toBe("This image couldn't be opened. Try saving it as a PNG."));
+    await paste(
+      app,
+      clipboardData({ text: "data:image/png;base64,PHA+SGk8L3A+" }),
+    );
+    await until(() =>
+      expect(alertText()).toBe(
+        "This image couldn't be opened. Try saving it as a PNG.",
+      ),
+    );
     expect(current.getObjects()).toHaveLength(1);
   } finally {
     await app.close();
@@ -636,44 +775,88 @@ test("a pasted data URL must hold a real image", async () => {
 });
 
 test("finds an image in pasted text", () => {
-  expect(findImageUrl(" data:image/png;base64,AAAA ")).toBe("data:image/png;base64,AAAA");
-  expect(findImageUrl("https://a.test/photo.JPG?size=large")).toBe("https://a.test/photo.JPG?size=large");
+  expect(findImageUrl(" data:image/png;base64,AAAA ")).toBe(
+    "data:image/png;base64,AAAA",
+  );
+  expect(findImageUrl("https://a.test/photo.JPG?size=large")).toBe(
+    "https://a.test/photo.JPG?size=large",
+  );
   expect(findImageUrl("http://a.test/photo.png")).toBe(null);
   expect(findImageUrl("https://a.test/page.html")).toBe(null);
   expect(findImageUrl("https://a.test/scan.tiff")).toBe(null);
-  expect(findImageUrl('<svg xmlns="http://www.w3.org/2000/svg"></svg>')).toMatch(/^data:image\/svg\+xml;charset=utf-8,%3Csvg/);
+  expect(
+    findImageUrl('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
+  ).toMatch(/^data:image\/svg\+xml;charset=utf-8,%3Csvg/);
   expect(findImageUrl("Just text")).toBe(null);
 });
 
 test.each([
-  ["a viewBox only", '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"></svg>', 16],
-  ["no namespace, as copied from a web page", '<svg viewBox="0 0 24 16"><use xlink:href="#a"/><text>&nbsp;</text></svg>', 16],
+  [
+    "a viewBox only",
+    '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"></svg>',
+    16,
+  ],
+  [
+    "no namespace, as copied from a web page",
+    '<svg viewBox="0 0 24 16"><use xlink:href="#a"/><text>&nbsp;</text></svg>',
+    16,
+  ],
   [
     "an XML declaration and comment, as saved by Inkscape",
     '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Created with Inkscape -->\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0,0,24,16"><style>a > b {}</style></svg>\n',
     16,
   ],
-  ["its own width", '<svg width="24" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"></svg>', 8],
-  ["its own height in pixels", '<svg height="8px" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"></svg>', 8],
-])("pasted SVG text with %s becomes a PNG layer at its size", async (_, text, height) => {
-  const app = await editor();
-  try {
-    const current = active(app);
-    expect((await paste(app, clipboardData({ text }))).defaultPrevented).toBe(true);
-    await until(() => expect(current.getObjects()).toHaveLength(1));
-    expect(current.item(0).getSrc()).toMatch(/^data:image\/png;base64,/);
-    expect(current.item(0)).toMatchObject({ width: 24, height });
-  } finally {
-    await app.close();
-  }
-});
+  [
+    "its own width",
+    '<svg width="24" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"></svg>',
+    8,
+  ],
+  [
+    "its own height in pixels",
+    '<svg height="8px" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"></svg>',
+    8,
+  ],
+])(
+  "pasted SVG text with %s becomes a PNG layer at its size",
+  async (_, text, height) => {
+    const app = await editor();
+    try {
+      const current = active(app);
+      expect((await paste(app, clipboardData({ text }))).defaultPrevented).toBe(
+        true,
+      );
+      await until(() => expect(current.getObjects()).toHaveLength(1));
+      expect(current.item(0).getSrc()).toMatch(/^data:image\/png;base64,/);
+      expect(current.item(0)).toMatchObject({ width: 24, height });
+    } finally {
+      await app.close();
+    }
+  },
+);
 
 test("image files are read by their contents, not their label", async () => {
-  const jpeg = Buffer.from(image().getElement().toDataURL("image/jpeg").split(",")[1], "base64");
-  expect(await readImageFile(new window.File([jpeg], "photo", { type: "" }))).toMatch(/^data:image\/jpeg;base64,/);
-  expect(await readImageFile(new window.File([jpeg], "photo.png", { type: "image/png" }))).toMatch(/^data:image\/jpeg;base64,/);
-  await expect(readImageFile(new window.File(["II*\0"], "scan.tif", { type: "image/tiff" }))).rejects.toThrow("couldn't be opened");
-  const svg = new window.File(['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 6"/>'], "icon.svg", { type: "" });
+  const jpeg = Buffer.from(
+    image().getElement().toDataURL("image/jpeg").split(",")[1],
+    "base64",
+  );
+  expect(
+    await readImageFile(new window.File([jpeg], "photo", { type: "" })),
+  ).toMatch(/^data:image\/jpeg;base64,/);
+  expect(
+    await readImageFile(
+      new window.File([jpeg], "photo.png", { type: "image/png" }),
+    ),
+  ).toMatch(/^data:image\/jpeg;base64,/);
+  await expect(
+    readImageFile(
+      new window.File(["II*\0"], "scan.tif", { type: "image/tiff" }),
+    ),
+  ).rejects.toThrow("couldn't be opened");
+  const svg = new window.File(
+    ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 6"/>'],
+    "icon.svg",
+    { type: "" },
+  );
   const png = await util.loadImage(await readImageFile(svg));
   expect(png.src).toMatch(/^data:image\/png;base64,/);
   expect([png.naturalWidth, png.naturalHeight]).toEqual([8, 6]);

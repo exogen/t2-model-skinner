@@ -40,7 +40,7 @@ test("a save owns its snapshots before asynchronous exporting begins", async () 
       await saving;
     });
     const project = await readSkinProjectZip(
-      await saved.at(-1).zip.generateAsync({ type: "nodebuffer" })
+      await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }),
     );
     expect(project.model).toBe("lmale");
     expect(project.materials.base.color.objects[0].left).toBe(333);
@@ -68,7 +68,7 @@ test.each([
     } finally {
       await app.close();
     }
-  }
+  },
 );
 
 test.each([
@@ -87,7 +87,7 @@ test.each([
         ...(metadata
           ? { color: { objects: [] }, metallic: { objects: [] }, images: {} }
           : { version: 1, objects: [] }),
-      })
+      }),
     );
     const app = await editor();
     try {
@@ -98,7 +98,7 @@ test.each([
     } finally {
       await app.close();
     }
-  }
+  },
 );
 
 for (const operation of ["duplicate", "addImages", "copyToMetallic"]) {
@@ -142,7 +142,7 @@ for (const operation of ["duplicate", "addImages", "copyToMetallic"]) {
       expect(current.getObjects()).toHaveLength(1);
       expect(current.item(0).left).toBe(450);
       expect(
-        app.canvases["base:metallic:0:1"].canvas.getObjects()
+        app.canvases["base:metallic:0:1"].canvas.getObjects(),
       ).toHaveLength(0);
       expect(dispose).toHaveBeenCalled();
     } finally {
@@ -163,15 +163,13 @@ test("changing models while a project decodes cancels the old load", async () =>
   const spy = vi
     .spyOn(FabricImage, "fromObject")
     .mockImplementation((object, options) =>
-      object.left === 321 ? pending.promise : fromObject(object, options)
+      object.left === 321 ? pending.promise : fromObject(object, options),
     );
   try {
     let loading;
     await act(async () => {
       app.tools.setExportName("Current Skin");
-      loading = app.tools.loadSkinProject(
-        new File([bytes], "Cancelled.skin")
-      );
+      loading = app.tools.loadSkinProject(new File([bytes], "Cancelled.skin"));
       await vi.waitFor(() => expect(spy).toHaveBeenCalled());
     });
     await act(async () => app.warrior.setSelectedModel("disc"));
@@ -217,16 +215,14 @@ test("project resolution is independent of the default resolution preference", a
   source.add(image({ left: 864 }));
   const app = await editor();
   try {
-    await app.load(
-      await archive([input("base", source, null, [1024, 1024])])
-    );
+    await app.load(await archive([input("base", source, null, [1024, 1024])]));
     const before = app.canvases[app.tools.activeCanvas].canvas;
     await act(async () => app.tools.setSizeMultiplier(4));
     expect(app.tools.sizeMultiplier).toBe(2);
     expect(app.canvases[app.tools.activeCanvas].canvas).toBe(before);
     await act(async () => app.tools.exportSkinProject("same-size"));
     const project = await readSkinProjectZip(
-      await saved.at(-1).zip.generateAsync({ type: "nodebuffer" })
+      await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }),
     );
     expect(project.materials.base.textureSize).toEqual([1024, 1024]);
     expect(project.materials.base.color.objects[0].left).toBe(864);
@@ -254,8 +250,8 @@ test("a texture request from the previous session cannot overwrite project layer
     const current = app.canvases[app.tools.activeCanvas].canvas;
     await act(async () =>
       pending.resolve(
-        await (await globalThis.fetch(layer.getSrc())).arrayBuffer()
-      )
+        await (await globalThis.fetch(layer.getSrc())).arrayBuffer(),
+      ),
     );
     expect(current.getObjects()).toHaveLength(1);
     expect(current.item(0).left).toBe(450);
@@ -281,14 +277,12 @@ test("the latest project request wins when decoding finishes out of order", asyn
   const spy = vi
     .spyOn(FabricImage, "fromObject")
     .mockImplementation((object, options) =>
-      object.left === 111 ? pending.promise : fromObject(object, options)
+      object.left === 111 ? pending.promise : fromObject(object, options),
     );
   try {
     let loading;
     await act(async () => {
-      loading = app.tools.loadSkinProject(
-        new File([firstBytes], "First.skin")
-      );
+      loading = app.tools.loadSkinProject(new File([firstBytes], "First.skin"));
       await vi.waitFor(() => expect(spy).toHaveBeenCalled());
     });
     await app.load(new File([secondBytes], "Second.skin"));
@@ -296,9 +290,7 @@ test("the latest project request wins when decoding finishes out of order", asyn
       pending.resolve(image({ left: 111 }));
       await loading;
     });
-    expect(app.canvases[app.tools.activeCanvas].canvas.item(0).left).toBe(
-      222
-    );
+    expect(app.canvases[app.tools.activeCanvas].canvas.item(0).left).toBe(222);
     expect(app.tools.exportName).toBe("Second");
   } finally {
     spy.mockRestore();
@@ -316,13 +308,13 @@ test("recomputing identical texture URLs does not discard edits", async () => {
     const before = app.canvases[app.tools.activeCanvas].canvas;
     await act(async () => before.add(image({ left: 444 })));
     await act(async () =>
-      app.warrior.setSkinImageUrls({ base: ["original.png"] })
+      app.warrior.setSkinImageUrls({ base: ["original.png"] }),
     );
     const after = app.canvases[app.tools.activeCanvas].canvas;
     expect(after === before).toBe(true);
     expect(after.item(0).left).toBe(444);
     await act(async () =>
-      app.warrior.setSkinImageUrls({ base: ["replacement.png"] })
+      app.warrior.setSkinImageUrls({ base: ["replacement.png"] }),
     );
     expect(app.canvases[app.tools.activeCanvas].canvas).not.toBe(before);
   } finally {
@@ -377,10 +369,10 @@ test("a texture import keeps default materials omitted from the imported files",
     expect(fixed.getObjects()).toHaveLength(1);
     await act(async () => app.tools.exportSkinProject("complete"));
     const project = await readSkinProjectZip(
-      await saved.at(-1).zip.generateAsync({ type: "nodebuffer" })
+      await saved.at(-1).zip.generateAsync({ type: "nodebuffer" }),
     );
     expect(
-      project.materials.Vehicle_grav_scout_windshield.color.objects
+      project.materials.Vehicle_grav_scout_windshield.color.objects,
     ).toHaveLength(1);
   } finally {
     await app.close();
@@ -456,7 +448,7 @@ for (const [model, filenames, zipName, size] of [
         height: size[1],
       });
       await act(async () =>
-        app.tools.exportSkin({ name: " Paint ", format: "png" })
+        app.tools.exportSkin({ name: " Paint ", format: "png" }),
       );
       expect(downloads.map(({ name }) => name)).toEqual(filenames);
       expect(downloads[0].data).toBe(expected);
@@ -466,16 +458,16 @@ for (const [model, filenames, zipName, size] of [
         frame.dispose();
       }
       await act(async () =>
-        app.tools.exportSkin({ name: "Paint", format: "vl2" })
+        app.tools.exportSkin({ name: "Paint", format: "vl2" }),
       );
       const download = downloads.at(-1);
       expect(download.name).toBe(zipName);
       const zip = await JSZip.loadAsync(download.data);
       expect(
-        Object.keys(zip.files).filter((name) => !zip.files[name].dir)
+        Object.keys(zip.files).filter((name) => !zip.files[name].dir),
       ).toEqual(filenames.map((name) => `textures/skins/${name}`));
       expect(
-        await zip.file(`textures/skins/${filenames[0]}`).async("base64")
+        await zip.file(`textures/skins/${filenames[0]}`).async("base64"),
       ).toBe(expected.split(",")[1]);
     } finally {
       await app.close();
@@ -490,17 +482,15 @@ test("texture exports capture every selected frame before an asynchronous conver
   try {
     await act(async () =>
       Object.values(app.canvases).forEach(({ canvas }, index) =>
-        canvas.add(image({ left: 100 + index }))
-      )
+        canvas.add(image({ left: 100 + index })),
+      ),
     );
+    await act(async () => app.tools.setSelectedExportMaterials([false, true]));
     await act(async () =>
-      app.tools.setSelectedExportMaterials([false, true])
-    );
-    await act(async () =>
-      app.tools.exportSkin({ name: "case", format: "png" })
+      app.tools.exportSkin({ name: "case", format: "png" }),
     );
     expect(downloads.map(({ name }) => name)).toEqual(
-      Array.from({ length: 6 }, (_, frame) => `dcase0${frame}.png`)
+      Array.from({ length: 6 }, (_, frame) => `dcase0${frame}.png`),
     );
     downloads.length = 0;
     await act(async () => app.tools.setSelectedExportMaterials([true, true]));
@@ -515,7 +505,7 @@ test("texture exports capture every selected frame before an asynchronous conver
           width: id.startsWith("dcase") ? 256 : 512,
           height: id.startsWith("dcase") ? 256 : 512,
         }),
-      ])
+      ]),
     );
     combine.mockImplementationOnce(() => pending.promise);
     let saving;
@@ -536,7 +526,7 @@ test("texture exports capture every selected frame before an asynchronous conver
       before["weapon_disc:color:0:1"],
       ...Array.from(
         { length: 6 },
-        (_, frame) => before[`dcase00:color:${frame}:1`]
+        (_, frame) => before[`dcase00:color:${frame}:1`],
       ),
     ]);
   } finally {
@@ -586,15 +576,18 @@ test("toolbar preferences survive skin, model and unnamed project changes", asyn
   }
 });
 
-
 test("an older VL2 load cannot replace a newer project load", async () => {
   const source = canvas();
   source.add(image({ left: 450 }));
   const bytes = await archive([input("base", source)]);
   const zip = new JSZip();
-  zip.file("textures/skins/Old.lmale.png", source.item(0).getSrc().split(",")[1], {
-    base64: true,
-  });
+  zip.file(
+    "textures/skins/Old.lmale.png",
+    source.item(0).getSrc().split(",")[1],
+    {
+      base64: true,
+    },
+  );
   const app = await editor();
   const pending = deferred();
   const readZip = vi
@@ -635,7 +628,11 @@ test("loading a skin or a project ends a pause, like choosing another model", as
       app.warrior.setSelectedAnimation("Celwave");
       app.warrior.setAnimationPaused(true);
     });
-    await act(async () => app.tools.loadSkinFiles([new File([png], "mine.png", { type: "image/png" })]));
+    await act(async () =>
+      app.tools.loadSkinFiles([
+        new File([png], "mine.png", { type: "image/png" }),
+      ]),
+    );
     expect(app.warrior.selectedModel).toBe("mine");
     expect(app.warrior.selectedAnimation).toBeNull();
     expect(app.warrior.animationPaused).toBe(false);

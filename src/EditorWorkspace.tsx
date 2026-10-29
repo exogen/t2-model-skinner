@@ -26,7 +26,11 @@ export default function EditorWorkspace() {
         </div>
         <LiveMocapPreview />
       </div>
-      <div className="CanvasToolsRegion" data-mocap-active={active} inert={active}>
+      <div
+        className="CanvasToolsRegion"
+        data-mocap-active={active}
+        inert={active}
+      >
         <CanvasTools />
       </div>
       <AppFooter />

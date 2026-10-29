@@ -33,3 +33,9 @@ Skin assets are maintained in [t2-skins](https://github.com/exogen/t2-skins).
 
 [GitHub Sponsors](https://github.com/sponsors/exogen) ·
 [Buy Me a Coffee](https://www.buymeacoffee.com/mosswood)
+
+## Gallery automation
+
+The editor supports automated capture of transparent skin previews.
+See [t2-skins](https://github.com/exogen/t2-skins#generate-gallery-previews)
+for gallery generation.

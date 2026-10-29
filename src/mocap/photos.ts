@@ -27,7 +27,8 @@ const TEAL = "#2a9d97"; // the script's shade, a brighter take on the photos' te
 const PRINT_EDGE = "rgba(236, 235, 230, 0.1)"; // keeps dark photo edges off the black
 
 // Safari's generic monospace is Courier, so sans monos come first.
-const MONO = '"Share Tech Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace';
+const MONO =
+  '"Share Tech Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace';
 const SCRIPT = '"Yellowtail", cursive';
 
 export interface StripCaption {
@@ -59,12 +60,19 @@ function createCanvas(width: number, height: number) {
 }
 
 function naturalSize(picture: Picture) {
-  return "naturalWidth" in picture ? [picture.naturalWidth, picture.naturalHeight] : [picture.width, picture.height];
+  return "naturalWidth" in picture
+    ? [picture.naturalWidth, picture.naturalHeight]
+    : [picture.width, picture.height];
 }
 
 /** The captured frame, scaled to fit and centered, over `background` cropped
  * to fill the photo, or over the app's background gradient. */
-export function renderPhoto(frame: HTMLCanvasElement, width = frame.width, height = frame.height, background: Picture | null = null) {
+export function renderPhoto(
+  frame: HTMLCanvasElement,
+  width = frame.width,
+  height = frame.height,
+  background: Picture | null = null,
+) {
   const { canvas, context } = createCanvas(width, height);
   context.imageSmoothingQuality = "high";
   if (background) {
@@ -72,7 +80,13 @@ export function renderPhoto(frame: HTMLCanvasElement, width = frame.width, heigh
     const scale = Math.max(width / backgroundWidth, height / backgroundHeight);
     const drawWidth = backgroundWidth * scale;
     const drawHeight = backgroundHeight * scale;
-    context.drawImage(background, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+    context.drawImage(
+      background,
+      (width - drawWidth) / 2,
+      (height - drawHeight) / 2,
+      drawWidth,
+      drawHeight,
+    );
   } else {
     const gradient = context.createLinearGradient(0, 0, 0, height);
     gradient.addColorStop(0, "#124044");
@@ -87,9 +101,18 @@ export function renderPhoto(frame: HTMLCanvasElement, width = frame.width, heigh
 
 /** The strip for the photo booth's captured frames, each photo over its own
  * background, or over the gradient when `backgrounds` has none for it. */
-export function renderBoothStrip(frames: readonly HTMLCanvasElement[], caption: StripCaption, art: StripArt, backgrounds: readonly Picture[]) {
+export function renderBoothStrip(
+  frames: readonly HTMLCanvasElement[],
+  caption: StripCaption,
+  art: StripArt,
+  backgrounds: readonly Picture[],
+) {
   return renderPhotoStrip(
-    frames.map((frame, index) => renderPhoto(frame, PHOTO_WIDTH, PHOTO_HEIGHT, backgrounds[index] ?? null)), caption, art,
+    frames.map((frame, index) =>
+      renderPhoto(frame, PHOTO_WIDTH, PHOTO_HEIGHT, backgrounds[index] ?? null),
+    ),
+    caption,
+    art,
   );
 }
 
@@ -99,7 +122,10 @@ let art: Promise<StripArt> | null = null;
  * back to system fonts and text in place of the logo, and the next call tries
  * the logo again. */
 export function loadStripArt(): Promise<StripArt> {
-  art ??= Promise.all([loadFonts(), loadImage(getLocalAssetUrl(BASE_PATH, "tribes2-logo.png"))]).then(([, logo]) => {
+  art ??= Promise.all([
+    loadFonts(),
+    loadImage(getLocalAssetUrl(BASE_PATH, "tribes2-logo.png")),
+  ]).then(([, logo]) => {
     if (!logo) art = null;
     return logo ? { logo } : fallbackStripArt();
   });
@@ -113,14 +139,21 @@ export function fallbackStripArt(): StripArt {
 
 async function loadFonts() {
   try {
-    await Promise.all([captionFont(CAPTION_SIZE), helloFont].map((font) => document.fonts.load(font)));
+    await Promise.all(
+      [captionFont(CAPTION_SIZE), helloFont].map((font) =>
+        document.fonts.load(font),
+      ),
+    );
   } catch {
     // Drawn with the fallback fonts.
   }
 }
 
 /** An image, or null if it can't load. */
-export function loadImage(url: string, crossOrigin?: string): Promise<HTMLImageElement | null> {
+export function loadImage(
+  url: string,
+  crossOrigin?: string,
+): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const image = document.createElement("img");
     if (crossOrigin) image.crossOrigin = crossOrigin;
@@ -139,17 +172,35 @@ function wordmark() {
   context.font = `900 ${Math.round(LOGO_HEIGHT * (bottom - top))}px Impact, "Arial Black", sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText("TRIBES 2", ((left + right) / 2) * LOGO_WIDTH, ((top + bottom) / 2) * LOGO_HEIGHT, (right - left) * LOGO_WIDTH);
+  context.fillText(
+    "TRIBES 2",
+    ((left + right) / 2) * LOGO_WIDTH,
+    ((top + bottom) / 2) * LOGO_HEIGHT,
+    (right - left) * LOGO_WIDTH,
+  );
   return canvas;
 }
 
 /** The photos on a strip of film under "Hello from" the Tribes 2 logo, each
  * with its caption below it. Draw it once loadStripArt() has resolved, so the
  * fonts are ready. Its height depends on the captions. */
-export function renderPhotoStrip(photos: readonly HTMLCanvasElement[], caption: StripCaption, { logo }: StripArt) {
+export function renderPhotoStrip(
+  photos: readonly HTMLCanvasElement[],
+  caption: StripCaption,
+  { logo }: StripArt,
+) {
   const measure = createCanvas(1, 1).context;
-  const captions = captionLayouts(measure, [caption.skin, caption.model, caption.armor]);
-  const band = Math.max(MIN_BAND, ...captions.map((layout) => (layout ? Math.ceil(layout.blockHeight + BAND_PADDING * 2) : 0)));
+  const captions = captionLayouts(measure, [
+    caption.skin,
+    caption.model,
+    caption.armor,
+  ]);
+  const band = Math.max(
+    MIN_BAND,
+    ...captions.map((layout) =>
+      layout ? Math.ceil(layout.blockHeight + BAND_PADDING * 2) : 0,
+    ),
+  );
   const header = layoutHeader(measure, logo);
   const firstTop = header.bottom + HEADER_GAP;
   const period = PHOTO_HEIGHT + band;
@@ -162,19 +213,28 @@ export function renderPhotoStrip(photos: readonly HTMLCanvasElement[], caption: 
   // Like a roll of film, the edge print repeats once per frame, beside the
   // header too.
   context.fillStyle = GOLD;
-  for (let index = -Math.ceil(firstTop / period); frameTop(index) < height; index++) {
+  for (
+    let index = -Math.ceil(firstTop / period);
+    frameTop(index) < height;
+    index++
+  ) {
     drawEdgePrint(context, frameTop(index), height);
   }
   photos.forEach((photo, index) => {
     drawPhoto(context, photo, frameTop(index));
     const layout = captions[index];
-    if (layout) drawCaption(context, layout, frameTop(index) + PHOTO_HEIGHT + band / 2);
+    if (layout)
+      drawCaption(context, layout, frameTop(index) + PHOTO_HEIGHT + band / 2);
   });
   drawHeader(context, header, logo);
   return canvas;
 }
 
-function drawPhoto(context: CanvasRenderingContext2D, photo: HTMLCanvasElement, top: number) {
+function drawPhoto(
+  context: CanvasRenderingContext2D,
+  photo: HTMLCanvasElement,
+  top: number,
+) {
   context.save();
   context.beginPath();
   context.roundRect(SIDE, top, PHOTO_WIDTH, PHOTO_HEIGHT, PHOTO_RADIUS);
@@ -187,7 +247,13 @@ function drawPhoto(context: CanvasRenderingContext2D, photo: HTMLCanvasElement, 
   context.strokeStyle = PRINT_EDGE;
   context.lineWidth = 1.5;
   context.beginPath();
-  context.roundRect(SIDE + 0.75, top + 0.75, PHOTO_WIDTH - 1.5, PHOTO_HEIGHT - 1.5, PHOTO_RADIUS - 0.75);
+  context.roundRect(
+    SIDE + 0.75,
+    top + 0.75,
+    PHOTO_WIDTH - 1.5,
+    PHOTO_HEIGHT - 1.5,
+    PHOTO_RADIUS - 0.75,
+  );
   context.stroke();
   context.restore();
 }
@@ -211,31 +277,65 @@ const DOUBLE_BAR = { top: 266, width: 32, thick: 11, gap: 5, thin: 8 };
 const BAR_TRIANGLE = { top: 295, width: 21, height: 25 };
 const EDGE_CLEARANCE = 12; // marks stay this far from the strip's ends
 
-function drawEdgePrint(context: CanvasRenderingContext2D, photoTop: number, height: number) {
+function drawEdgePrint(
+  context: CanvasRenderingContext2D,
+  photoTop: number,
+  height: number,
+) {
   // Each mark is drawn whole or not at all, so the strip never starts or ends
   // on a cut-off group.
-  const fits = (top: number, bottom: number) => top >= EDGE_CLEARANCE && bottom <= height - EDGE_CLEARANCE;
+  const fits = (top: number, bottom: number) =>
+    top >= EDGE_CLEARANCE && bottom <= height - EDGE_CLEARANCE;
   for (const [first, count] of DASH_GROUPS) {
-    const top = photoTop + DASH.firstCenter + first * DASH.pitch - DASH.height / 2;
+    const top =
+      photoTop + DASH.firstCenter + first * DASH.pitch - DASH.height / 2;
     if (!fits(top, top + (count - 1) * DASH.pitch + DASH.height)) continue;
     for (let index = 0; index < count; index++) {
-      context.fillRect(DASH.x, Math.round(top + index * DASH.pitch), DASH.width, DASH.height);
+      context.fillRect(
+        DASH.x,
+        Math.round(top + index * DASH.pitch),
+        DASH.width,
+        DASH.height,
+      );
     }
   }
   const triangleTop = photoTop + TOP_TRIANGLE.top;
   if (fits(triangleTop, triangleTop + TOP_TRIANGLE.height)) {
-    triangle(context, MARK_X, triangleTop, TOP_TRIANGLE.width, TOP_TRIANGLE.height);
+    triangle(
+      context,
+      MARK_X,
+      triangleTop,
+      TOP_TRIANGLE.width,
+      TOP_TRIANGLE.height,
+    );
   }
   const barTop = photoTop + DOUBLE_BAR.top;
   if (fits(barTop, photoTop + BAR_TRIANGLE.top + BAR_TRIANGLE.height)) {
     const left = MARK_X - DOUBLE_BAR.width / 2;
     context.fillRect(left, barTop, DOUBLE_BAR.width, DOUBLE_BAR.thick);
-    context.fillRect(left, barTop + DOUBLE_BAR.thick + DOUBLE_BAR.gap, DOUBLE_BAR.width, DOUBLE_BAR.thin);
-    triangle(context, MARK_X, photoTop + BAR_TRIANGLE.top, BAR_TRIANGLE.width, BAR_TRIANGLE.height);
+    context.fillRect(
+      left,
+      barTop + DOUBLE_BAR.thick + DOUBLE_BAR.gap,
+      DOUBLE_BAR.width,
+      DOUBLE_BAR.thin,
+    );
+    triangle(
+      context,
+      MARK_X,
+      photoTop + BAR_TRIANGLE.top,
+      BAR_TRIANGLE.width,
+      BAR_TRIANGLE.height,
+    );
   }
 }
 
-function triangle(context: CanvasRenderingContext2D, centerX: number, apexY: number, width: number, height: number) {
+function triangle(
+  context: CanvasRenderingContext2D,
+  centerX: number,
+  apexY: number,
+  width: number,
+  height: number,
+) {
   context.beginPath();
   context.moveTo(centerX, apexY);
   context.lineTo(centerX + width / 2, apexY + height);
@@ -261,10 +361,20 @@ interface FitLimits {
   minTracking: number;
 }
 
-const ONE_LINE: FitLimits = { maxWidth: 560, minSize: 24, maxSize: CAPTION_SIZE, minTracking: 0.1 };
+const ONE_LINE: FitLimits = {
+  maxWidth: 560,
+  minSize: 24,
+  maxSize: CAPTION_SIZE,
+  minTracking: 0.1,
+};
 // Two lines are never set larger than one line could be, so a longer name
 // doesn't come out bigger.
-const TWO_LINES: FitLimits = { maxWidth: 600, minSize: 20, maxSize: ONE_LINE.minSize, minTracking: 0.06 };
+const TWO_LINES: FitLimits = {
+  maxWidth: 600,
+  minSize: 20,
+  maxSize: ONE_LINE.minSize,
+  minTracking: 0.06,
+};
 
 interface CaptionFit {
   /** Each line's graphemes. A right-to-left caption is one unspaced string. */
@@ -286,13 +396,23 @@ const captionFont = (size: number) => `${size}px ${MONO}`;
 
 /** Each photo's caption, all at the size the longest one needs, so the skin
  * name is never smaller than the others. An empty caption is null. */
-export function captionLayouts(context: Measurer, texts: readonly string[]): (CaptionLayout | null)[] {
+export function captionLayouts(
+  context: Measurer,
+  texts: readonly string[],
+): (CaptionLayout | null)[] {
   const fits = texts.map((text) => {
     const clean = cleanText(text);
     return clean ? fitCaption(context, clean) : null;
   });
   const size = Math.min(...fits.map((fit) => fit?.size ?? Infinity));
-  return fits.map((fit) => fit && withMetrics(context, fit.size === size ? fit : refit(context, fit.lines, size)));
+  return fits.map(
+    (fit) =>
+      fit &&
+      withMetrics(
+        context,
+        fit.size === size ? fit : refit(context, fit.lines, size),
+      ),
+  );
 }
 
 function cleanText(text: string) {
@@ -301,9 +421,12 @@ function cleanText(text: string) {
 
 // Text is handled as grapheme clusters, so accents and composed emoji stay
 // whole when spaced, measured, broken or cut.
-const segmenter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter() : null;
+const segmenter =
+  typeof Intl.Segmenter === "function" ? new Intl.Segmenter() : null;
 function graphemes(text: string) {
-  return segmenter ? Array.from(segmenter.segment(text), (part) => part.segment) : Array.from(text);
+  return segmenter
+    ? Array.from(segmenter.segment(text), (part) => part.segment)
+    : Array.from(text);
 }
 
 function trimSpaces(glyphs: string[]) {
@@ -314,7 +437,11 @@ function trimSpaces(glyphs: string[]) {
   return glyphs.slice(start, end);
 }
 
-function spacedWidth(context: Measurer, glyphs: readonly string[], tracking: number) {
+function spacedWidth(
+  context: Measurer,
+  glyphs: readonly string[],
+  tracking: number,
+) {
   let width = 0;
   for (const glyph of glyphs) width += context.measureText(glyph).width;
   return width + tracking * Math.max(0, glyphs.length - 1);
@@ -323,7 +450,10 @@ function spacedWidth(context: Measurer, glyphs: readonly string[], tracking: num
 // Right-to-left scripts can't be spaced one character at a time. Skin names
 // come from file names too, so they can be in any script. (Built with RegExp
 // because this tsconfig's ES5 target rejects the u flag.)
-const RIGHT_TO_LEFT = new RegExp("[\\p{Script=Arabic}\\p{Script=Hebrew}\\p{Script=Syriac}\\p{Script=Thaana}\\p{Script=Nko}]", "u");
+const RIGHT_TO_LEFT = new RegExp(
+  "[\\p{Script=Arabic}\\p{Script=Hebrew}\\p{Script=Syriac}\\p{Script=Thaana}\\p{Script=Nko}]",
+  "u",
+);
 
 function fitCaption(context: Measurer, text: string): CaptionFit {
   if (RIGHT_TO_LEFT.test(text)) return unspacedLine(context, text);
@@ -331,7 +461,11 @@ function fitCaption(context: Measurer, text: string): CaptionFit {
   const everyBreak = glyphs.map((_, index) => index);
   return (
     fitLines(context, [glyphs], ONE_LINE) ??
-    fitLines(context, balancedLines(context, glyphs, wordBreaks(glyphs)), TWO_LINES) ??
+    fitLines(
+      context,
+      balancedLines(context, glyphs, wordBreaks(glyphs)),
+      TWO_LINES,
+    ) ??
     fitLines(context, balancedLines(context, glyphs, everyBreak), TWO_LINES) ??
     truncatedLines(context, glyphs)
   );
@@ -340,7 +474,11 @@ function fitCaption(context: Measurer, text: string): CaptionFit {
 /** The largest size within the limits at which every line fits maxWidth with
  * at least the minimum letter spacing, and the spacing closest to the full
  * spacing that still fits. */
-function fitLines(context: Measurer, lines: string[][] | null, limits: FitLimits): CaptionFit | null {
+function fitLines(
+  context: Measurer,
+  lines: string[][] | null,
+  limits: FitLimits,
+): CaptionFit | null {
   if (!lines) return null;
   for (let size = limits.maxSize; size >= limits.minSize; size -= SIZE_STEP) {
     context.font = captionFont(size);
@@ -348,7 +486,11 @@ function fitLines(context: Measurer, lines: string[][] | null, limits: FitLimits
     for (const glyphs of lines) {
       const bare = spacedWidth(context, glyphs, 0);
       if (bare > limits.maxWidth) tracking = -Infinity;
-      else if (glyphs.length > 1) tracking = Math.min(tracking, (limits.maxWidth - bare) / (glyphs.length - 1));
+      else if (glyphs.length > 1)
+        tracking = Math.min(
+          tracking,
+          (limits.maxWidth - bare) / (glyphs.length - 1),
+        );
     }
     if (tracking >= limits.minTracking * size) return { lines, size, tracking };
   }
@@ -358,17 +500,29 @@ function fitLines(context: Measurer, lines: string[][] | null, limits: FitLimits
 /** The same lines at a smaller size, with as much spacing as fits. */
 function refit(context: Measurer, lines: string[][], size: number): CaptionFit {
   const maxWidth = lines.length > 1 ? TWO_LINES.maxWidth : ONE_LINE.maxWidth;
-  return fitLines(context, lines, { maxWidth, minSize: size, maxSize: size, minTracking: 0 }) ?? { lines, size, tracking: 0 };
+  return (
+    fitLines(context, lines, {
+      maxWidth,
+      minSize: size,
+      maxSize: size,
+      minTracking: 0,
+    }) ?? { lines, size, tracking: 0 }
+  );
 }
 
 /** Where a line may break between words: at a space, or after the "-" or "_"
  * that many skin names use instead of spaces. */
 function wordBreaks(glyphs: string[]) {
-  return glyphs.flatMap((glyph, index) => (glyph === " " ? [index] : glyph === "-" || glyph === "_" ? [index + 1] : []));
+  return glyphs.flatMap((glyph, index) =>
+    glyph === " " ? [index] : glyph === "-" || glyph === "_" ? [index + 1] : [],
+  );
 }
 
 // Letters of scripts whose words get a hyphen when broken across lines.
-const HYPHENATED = new RegExp("^[\\p{Script=Latin}\\p{Script=Greek}\\p{Script=Cyrillic}]", "u");
+const HYPHENATED = new RegExp(
+  "^[\\p{Script=Latin}\\p{Script=Greek}\\p{Script=Cyrillic}]",
+  "u",
+);
 
 /** The lines before and after a break position; a word split in two gets a
  * hyphen. */
@@ -376,7 +530,11 @@ function breakAt(glyphs: string[], index: number) {
   const first = trimSpaces(glyphs.slice(0, index));
   const second = trimSpaces(glyphs.slice(index));
   const splitsWord = glyphs[index - 1] !== " " && glyphs[index] !== " ";
-  if (splitsWord && HYPHENATED.test(first[first.length - 1] ?? "") && HYPHENATED.test(second[0] ?? "")) {
+  if (
+    splitsWord &&
+    HYPHENATED.test(first[first.length - 1] ?? "") &&
+    HYPHENATED.test(second[0] ?? "")
+  ) {
     first.push("-");
   }
   return [first, second];
@@ -391,7 +549,9 @@ function balancedLines(context: Measurer, glyphs: string[], breaks: number[]) {
   for (const index of breaks) {
     const lines = breakAt(glyphs, index);
     if (!lines[0].length || !lines[1].length) continue;
-    const width = Math.max(...lines.map((line) => spacedWidth(context, line, tracking)));
+    const width = Math.max(
+      ...lines.map((line) => spacedWidth(context, line, tracking)),
+    );
     if (!best || width < best.width) best = { lines, width };
   }
   return best?.lines ?? null;
@@ -404,7 +564,8 @@ function truncatedLines(context: Measurer, glyphs: string[]): CaptionFit {
   const { maxWidth, minSize: size } = TWO_LINES;
   const tracking = TWO_LINES.minTracking * size;
   context.font = captionFont(size);
-  const fits = (line: string[]) => spacedWidth(context, line, tracking) <= maxWidth;
+  const fits = (line: string[]) =>
+    spacedWidth(context, line, tracking) <= maxWidth;
   // Fill the first line, leaving room for a hyphen.
   let end = 1;
   while (end < glyphs.length && fits([...glyphs.slice(0, end + 1), "-"])) end++;
@@ -412,45 +573,75 @@ function truncatedLines(context: Measurer, glyphs: string[]): CaptionFit {
   if (space > end / 2) end = space;
   const [first, rest] = breakAt(glyphs, end);
   let second = rest;
-  while (second.length && !fits([...second, "…"])) second = trimSpaces(second.slice(0, -1));
+  while (second.length && !fits([...second, "…"]))
+    second = trimSpaces(second.slice(0, -1));
   return { lines: [first, [...second, "…"]], size, tracking };
 }
 
 /** One line drawn as a single string, so the browser orders and joins its
  * letters: as large as fits, else cut short with "…" at the smallest size. */
 function unspacedLine(context: Measurer, text: string): CaptionFit {
-  const fits = (line: string) => context.measureText(line).width <= ONE_LINE.maxWidth;
+  const fits = (line: string) =>
+    context.measureText(line).width <= ONE_LINE.maxWidth;
   for (let size = CAPTION_SIZE; size >= TWO_LINES.minSize; size -= SIZE_STEP) {
     context.font = captionFont(size);
     if (fits(text)) return { lines: [[text]], size, tracking: 0 };
   }
   context.font = captionFont(TWO_LINES.minSize);
   let glyphs = graphemes(text);
-  while (glyphs.length > 1 && !fits(`${glyphs.join("").trimEnd()}…`)) glyphs = glyphs.slice(0, -1);
-  return { lines: [[`${glyphs.join("").trimEnd()}…`]], size: TWO_LINES.minSize, tracking: 0 };
+  while (glyphs.length > 1 && !fits(`${glyphs.join("").trimEnd()}…`))
+    glyphs = glyphs.slice(0, -1);
+  return {
+    lines: [[`${glyphs.join("").trimEnd()}…`]],
+    size: TWO_LINES.minSize,
+    tracking: 0,
+  };
 }
 
 function withMetrics(context: Measurer, fit: CaptionFit): CaptionLayout {
   context.font = captionFont(fit.size);
   const cap = context.measureText("H").actualBoundingBoxAscent;
   const pitch = fit.size * LINE_PITCH;
-  return { ...fit, cap, pitch, blockHeight: cap + (fit.lines.length - 1) * pitch };
+  return {
+    ...fit,
+    cap,
+    pitch,
+    blockHeight: cap + (fit.lines.length - 1) * pitch,
+  };
 }
 
 /** Centers the caption's cap height on centerY. */
-function drawCaption(context: CanvasRenderingContext2D, layout: CaptionLayout, centerY: number) {
+function drawCaption(
+  context: CanvasRenderingContext2D,
+  layout: CaptionLayout,
+  centerY: number,
+) {
   context.save();
   context.font = captionFont(layout.size);
   const firstBaseline = centerY - layout.blockHeight / 2 + layout.cap;
   layout.lines.forEach((glyphs, index) => {
     const x = (STRIP_WIDTH - spacedWidth(context, glyphs, layout.tracking)) / 2;
-    drawSpaced(context, glyphs, x, Math.round(firstBaseline + index * layout.pitch), layout.tracking, AMBER);
+    drawSpaced(
+      context,
+      glyphs,
+      x,
+      Math.round(firstBaseline + index * layout.pitch),
+      layout.tracking,
+      AMBER,
+    );
   });
   context.restore();
 }
 
 /** Letter-spaced text from x, in the context's current font. */
-function drawSpaced(context: CanvasRenderingContext2D, glyphs: readonly string[], x: number, baseline: number, tracking: number, color: string) {
+function drawSpaced(
+  context: CanvasRenderingContext2D,
+  glyphs: readonly string[],
+  x: number,
+  baseline: number,
+  tracking: number,
+  color: string,
+) {
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
   context.fillStyle = color;
@@ -507,12 +698,30 @@ function layoutHeader(context: Measurer, logo: Picture): HeaderLayout {
   context.font = helloFont;
   const ink = tiltedInk(context, HELLO, HELLO_TILT);
   const helloY = TOP - ink.top;
-  const logoTop = Math.round(helloY + ink.bottom - HELLO_OVERLAP - LOGO_ART.top * logoHeight);
+  const logoTop = Math.round(
+    helloY + ink.bottom - HELLO_OVERLAP - LOGO_ART.top * logoHeight,
+  );
   context.font = siteFont;
-  const siteBaseline = Math.round(logoTop + WORDMARK.bottom * logoHeight + SITE_GAP + context.measureText("H").actualBoundingBoxAscent);
+  const siteBaseline = Math.round(
+    logoTop +
+      WORDMARK.bottom * logoHeight +
+      SITE_GAP +
+      context.measureText("H").actualBoundingBoxAscent,
+  );
   // The address has no descenders.
-  const bottom = Math.max(siteBaseline, Math.round(logoTop + LOGO_ART.bottom * logoHeight));
-  return { helloX: SIDE - ink.left, helloY, logoX, logoTop, logoHeight, siteBaseline, bottom };
+  const bottom = Math.max(
+    siteBaseline,
+    Math.round(logoTop + LOGO_ART.bottom * logoHeight),
+  );
+  return {
+    helloX: SIDE - ink.left,
+    helloY,
+    logoX,
+    logoTop,
+    logoHeight,
+    siteBaseline,
+    bottom,
+  };
 }
 
 /** How far a rotated line of text reaches left of and above (negative) and
@@ -527,8 +736,14 @@ function tiltedInk(context: Measurer, text: string, angle: number) {
   for (const glyph of graphemes(text)) {
     const x = context.measureText(before).width;
     const ink = context.measureText(glyph);
-    for (const gx of [x - ink.actualBoundingBoxLeft, x + ink.actualBoundingBoxRight]) {
-      for (const gy of [-ink.actualBoundingBoxAscent, ink.actualBoundingBoxDescent]) {
+    for (const gx of [
+      x - ink.actualBoundingBoxLeft,
+      x + ink.actualBoundingBoxRight,
+    ]) {
+      for (const gy of [
+        -ink.actualBoundingBoxAscent,
+        ink.actualBoundingBoxDescent,
+      ]) {
         left = Math.min(left, gx * cos - gy * sin);
         const y = gx * sin + gy * cos;
         top = Math.min(top, y);
@@ -540,7 +755,11 @@ function tiltedInk(context: Measurer, text: string, angle: number) {
   return { left, top, bottom };
 }
 
-function drawHeader(context: CanvasRenderingContext2D, header: HeaderLayout, logo: Picture) {
+function drawHeader(
+  context: CanvasRenderingContext2D,
+  header: HeaderLayout,
+  logo: Picture,
+) {
   const { logoX, logoTop, logoHeight } = header;
   context.drawImage(logo, logoX, logoTop, LOGO_WIDTH, logoHeight);
 
@@ -570,6 +789,13 @@ function drawHeader(context: CanvasRenderingContext2D, header: HeaderLayout, log
   context.font = siteFont;
   const glyphs = graphemes(SITE);
   const tracking = SITE_TRACKING * SITE_SIZE;
-  drawSpaced(context, glyphs, (STRIP_WIDTH - spacedWidth(context, glyphs, tracking)) / 2, header.siteBaseline, tracking, GOLD);
+  drawSpaced(
+    context,
+    glyphs,
+    (STRIP_WIDTH - spacedWidth(context, glyphs, tracking)) / 2,
+    header.siteBaseline,
+    tracking,
+    GOLD,
+  );
   context.restore();
 }

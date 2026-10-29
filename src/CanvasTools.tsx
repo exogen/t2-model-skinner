@@ -396,8 +396,7 @@ export default function CanvasTools() {
                             }}
                           />
                           <label htmlFor="FilterLayer-SelectedLayer">
-                            selected (
-                            {selectedObjects.length.toLocaleString()})
+                            selected ({selectedObjects.length.toLocaleString()})
                           </label>
                         </li>
                       ) : (
@@ -413,9 +412,7 @@ export default function CanvasTools() {
                                 setLayerMode("BaseLayer");
                               }}
                             />{" "}
-                            <label htmlFor="FilterLayer-BaseLayer">
-                              base
-                            </label>
+                            <label htmlFor="FilterLayer-BaseLayer">base</label>
                           </li>
                           <li>
                             <input
@@ -432,7 +429,7 @@ export default function CanvasTools() {
                               all (
                               {canvas?._objects
                                 .filter(
-                                  (object) => object instanceof FabricImage
+                                  (object) => object instanceof FabricImage,
                                 )
                                 .length.toLocaleString() ?? 0}
                               )
@@ -457,7 +454,7 @@ export default function CanvasTools() {
                       if (colorOnly && activeCanvasType !== "color")
                         return null;
                       const sliderValue = Math.round(
-                        (value ?? defaultValue) * scale
+                        (value ?? defaultValue) * scale,
                       );
                       return (
                         <div className="Field" key={label}>
@@ -478,14 +475,14 @@ export default function CanvasTools() {
                               onChange={(value: number | number[]) => {
                                 setValue(
                                   (Array.isArray(value) ? value[0] : value) /
-                                    scale
+                                    scale,
                                 );
                               }}
                             />
                           </div>
                         </div>
                       );
-                    }
+                    },
                   )}
                 </div>
               </div>
@@ -639,13 +636,11 @@ export default function CanvasTools() {
                                     newSelectedExportMaterials[i] =
                                       event.target.checked;
                                     return newSelectedExportMaterials;
-                                  }
+                                  },
                                 );
                               }}
                             />
-                            <label
-                              htmlFor={`MaterialSelect-${material.name}`}
-                            >
+                            <label htmlFor={`MaterialSelect-${material.name}`}>
                               {material.label}
                             </label>
                           </li>
@@ -665,10 +660,7 @@ export default function CanvasTools() {
                     onChange={(value) => {
                       setExportFileType(value);
                       try {
-                        localStorage.setItem(
-                          "exportFileType",
-                          value
-                        );
+                        localStorage.setItem("exportFileType", value);
                       } catch (err) {
                         // Probably blocked. That's okay.
                       }

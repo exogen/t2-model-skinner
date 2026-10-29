@@ -38,7 +38,11 @@ async function fetchManifest({ signal }: { signal: AbortSignal }) {
 
 /** The skin manifest, loaded once per page and shared by everything that
  * uses it. A failed load waits for `retry`. */
-export default function useManifest(): [Manifest, boolean, { error: boolean; retry: () => void }] {
+export default function useManifest(): [
+  Manifest,
+  boolean,
+  { error: boolean; retry: () => void },
+] {
   const { data, error, isFetching, refetch } = useQuery({
     queryKey: [SKIN_MANIFEST_URL],
     queryFn: fetchManifest,
@@ -48,7 +52,13 @@ export default function useManifest(): [Manifest, boolean, { error: boolean; ret
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-  const retry = useCallback(() => { void refetch(); }, [refetch]);
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
   // A retry clears the error while it loads.
-  return [data ?? defaultManifest, data !== undefined, { error: !!error && !isFetching, retry }];
+  return [
+    data ?? defaultManifest,
+    data !== undefined,
+    { error: !!error && !isFetching, retry },
+  ];
 }

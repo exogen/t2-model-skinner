@@ -45,7 +45,16 @@ function useWholeSeconds(time: number | null, tick: Tick) {
 /** Whole seconds left in a countdown, and whole seconds recorded (up to
  * MAX_RECORDING_SECONDS). Each is null outside its phase. */
 export function useActivityClock(activity: RecorderActivity | null) {
-  const countdown = useWholeSeconds(activity && "endsAt" in activity ? activity.endsAt : null, secondsLeft);
-  const elapsed = useWholeSeconds(activity?.phase === "recording" ? activity.startedAt : null, secondsSince);
-  return { countdown, elapsed: elapsed === null ? null : Math.min(elapsed, MAX_RECORDING_SECONDS) };
+  const countdown = useWholeSeconds(
+    activity && "endsAt" in activity ? activity.endsAt : null,
+    secondsLeft,
+  );
+  const elapsed = useWholeSeconds(
+    activity?.phase === "recording" ? activity.startedAt : null,
+    secondsSince,
+  );
+  return {
+    countdown,
+    elapsed: elapsed === null ? null : Math.min(elapsed, MAX_RECORDING_SECONDS),
+  };
 }

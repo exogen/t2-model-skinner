@@ -15,15 +15,24 @@ function points(side = 1) {
 }
 
 function expectDirection(actual, expected) {
-  assert.ok(actual.distanceTo(expected) < 1e-10, `${actual.toArray()} vs ${expected.toArray()}`);
+  assert.ok(
+    actual.distanceTo(expected) < 1e-10,
+    `${actual.toArray()} vs ${expected.toArray()}`,
+  );
 }
 
 function expectFrame(actual, rotation = new Quaternion()) {
   assert.ok(actual);
   assert.ok(actual.rotation.toArray().every(Number.isFinite));
   assert.ok(Math.abs(actual.rotation.length() - 1) < 1e-10);
-  expectDirection(FORWARD.clone().applyQuaternion(actual.rotation), FORWARD.clone().applyQuaternion(rotation));
-  expectDirection(UP.clone().applyQuaternion(actual.rotation), UP.clone().applyQuaternion(rotation));
+  expectDirection(
+    FORWARD.clone().applyQuaternion(actual.rotation),
+    FORWARD.clone().applyQuaternion(rotation),
+  );
+  expectDirection(
+    UP.clone().applyQuaternion(actual.rotation),
+    UP.clone().applyQuaternion(rotation),
+  );
   expectDirection(actual.up, UP.clone().applyQuaternion(rotation));
 }
 
@@ -41,7 +50,9 @@ describe("footFrame", () => {
     ]) {
       it(`preserves a real ${name} on side ${side}, even against previous up`, () => {
         const rotation = new Quaternion().setFromAxisAngle(axis, angle);
-        const transformed = points(side).map((point) => point.applyQuaternion(rotation));
+        const transformed = points(side).map((point) =>
+          point.applyQuaternion(rotation),
+        );
         expectFrame(footFrame(...transformed, UP), rotation);
       });
     }
@@ -56,8 +67,14 @@ describe("footFrame", () => {
       for (const noise of [-0.001, 0, 0.001, -0.00001, 0.00001]) {
         const result = footFrame(
           ankle.clone().multiplyScalar(scale),
-          heel.clone().add(new Vector3(0, noise, 0)).multiplyScalar(scale),
-          toe.clone().add(new Vector3(0, noise, 0)).multiplyScalar(scale),
+          heel
+            .clone()
+            .add(new Vector3(0, noise, 0))
+            .multiplyScalar(scale),
+          toe
+            .clone()
+            .add(new Vector3(0, noise, 0))
+            .multiplyScalar(scale),
           previousUp,
         );
         expectFrame(result);
@@ -79,7 +96,15 @@ describe("footFrame", () => {
     const ankle = new Vector3(0, 0, 0);
     const heel = new Vector3(0, 0, -0.08).applyQuaternion(rotation);
     const toe = new Vector3(0, 0, 0.2).applyQuaternion(rotation);
-    expectFrame(footFrame(ankle, heel, toe, new Vector3(0, 3, 1).applyQuaternion(rotation)), rotation);
+    expectFrame(
+      footFrame(
+        ankle,
+        heel,
+        toe,
+        new Vector3(0, 3, 1).applyQuaternion(rotation),
+      ),
+      rotation,
+    );
   });
 
   it("projects the supplied up without mutating landmarks or history", () => {
@@ -98,7 +123,13 @@ describe("footFrame", () => {
     const ankle = new Vector3(0, 0, 0);
     const heel = new Vector3(0, 0, -0.08);
     const toe = new Vector3(0, 0, 0.2);
-    for (const fallback of [undefined, new Vector3(), FORWARD, new Vector3(NaN, 1, 0), new Vector3(0, Infinity, 0)]) {
+    for (const fallback of [
+      undefined,
+      new Vector3(),
+      FORWARD,
+      new Vector3(NaN, 1, 0),
+      new Vector3(0, Infinity, 0),
+    ]) {
       assert.equal(footFrame(ankle, heel, toe, fallback), null);
     }
     assert.equal(footFrame(ankle, heel, heel, UP), null);
@@ -112,7 +143,23 @@ describe("footFrame", () => {
         assert.equal(footFrame(...input, UP), null);
       }
     }
-    assert.equal(footFrame(new Vector3(), new Vector3(1e308, 0, 0), new Vector3(-1e308, 0, 0), UP), null);
-    assert.equal(footFrame(new Vector3(0, 1e308, 0), new Vector3(0, 0, -1), new Vector3(0, 0, 1), UP), null);
+    assert.equal(
+      footFrame(
+        new Vector3(),
+        new Vector3(1e308, 0, 0),
+        new Vector3(-1e308, 0, 0),
+        UP,
+      ),
+      null,
+    );
+    assert.equal(
+      footFrame(
+        new Vector3(0, 1e308, 0),
+        new Vector3(0, 0, -1),
+        new Vector3(0, 0, 1),
+        UP,
+      ),
+      null,
+    );
   });
 });

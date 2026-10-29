@@ -1021,3 +1021,25 @@ h6 {
     display: none;
   }
 }
+
+/* Stable gallery composition, independent of the responsive editor layout. */
+main[data-capture] {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+main[data-capture] .Viewport {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+main[data-capture] .ModelViewer {
+  width: 680px;
+  min-width: 680px;
+  height: 800px;
+  min-height: 800px;
+}
+main[data-capture] .ModelTools,
+main[data-capture] .CanvasInteractions {
+  display: none;
+}

@@ -57,8 +57,8 @@ export default function CanvasInteractions({
           // A dropped folder can't be read.
           (await imageFileType(file).catch(() => undefined))
             ? readImageFile(file)
-            : null
-        )
+            : null,
+        ),
       );
       const urls = images.filter((url): url is string => url !== null);
       if (urls.length) {
@@ -114,13 +114,17 @@ export default function CanvasInteractions({
     if (clipboard.holds(html)) {
       event.preventDefault();
       pasteSelection().catch(() =>
-        showMessage("The copied layers couldn't be pasted.", "Unable to paste")
+        showMessage("The copied layers couldn't be pasted.", "Unable to paste"),
       );
     } else if (files.length) {
       // Skin files open only by dropping them, so a stray paste can't
       // replace the skin.
       event.preventDefault();
-      void addImageFiles(files, "Unable to paste", "Only images can be pasted here.");
+      void addImageFiles(
+        files,
+        "Unable to paste",
+        "Only images can be pasted here.",
+      );
     } else {
       const url = findImageUrl(text);
       if (url) {
@@ -273,7 +277,9 @@ export default function CanvasInteractions({
         const target = event.target as HTMLElement;
         if (
           event.defaultPrevented ||
-          target.closest('input, textarea, select, [role="slider"], [role="combobox"], [role="listbox"]')
+          target.closest(
+            'input, textarea, select, [role="slider"], [role="combobox"], [role="listbox"]',
+          )
         ) {
           return;
         }
@@ -301,12 +307,7 @@ export default function CanvasInteractions({
               }
           }
         }
-        if (
-          event.altKey ||
-          event.ctrlKey ||
-          event.metaKey ||
-          event.shiftKey
-        ) {
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
           return;
         }
         switch (event.key) {

@@ -15,7 +15,7 @@ export interface HistoryState {
 export function createCanvasHistory(
   canvas: Canvas,
   onChange: () => void,
-  onHistoryChange: (state: HistoryState) => void
+  onHistoryChange: (state: HistoryState) => void,
 ) {
   let past: CanvasSnapshot[] = [];
   let future: CanvasSnapshot[] = [];
@@ -80,7 +80,7 @@ export function createCanvasHistory(
         snapshot.objects,
         {
           signal: controller.signal,
-        }
+        },
       );
       if (controller.signal.aborted || revision !== startedAt) {
         objects.forEach((object) => object.dispose());

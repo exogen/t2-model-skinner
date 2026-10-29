@@ -6,7 +6,7 @@ import { modelToModelType, type MaterialDefinition } from "./models";
 import type { ImageFunctions } from "./imageProcessing.worker";
 
 export function createZipFile(
-  files: Array<{ name: string; data: ArrayBuffer | Blob }>
+  files: Array<{ name: string; data: ArrayBuffer | Blob }>,
 ) {
   const zip = new JSZip();
   for (const file of files) {
@@ -15,7 +15,11 @@ export function createZipFile(
   return zip;
 }
 
-export async function saveZipFile(zip: JSZip, name: string, { signal }: { signal?: AbortSignal } = {}) {
+export async function saveZipFile(
+  zip: JSZip,
+  name: string,
+  { signal }: { signal?: AbortSignal } = {},
+) {
   signal?.throwIfAborted();
   const blob = await zip.generateAsync({ type: "blob" });
   signal?.throwIfAborted();
@@ -45,7 +49,7 @@ export async function exportSkinTextures(
     model: string;
     sizeMultiplier: number;
   },
-  combineColorAndAlpha: ImageFunctions["combineColorAndAlphaImageUrls"]
+  combineColorAndAlpha: ImageFunctions["combineColorAndAlphaImageUrls"],
 ) {
   name = name.trim() || "MyCustomSkin";
   const modelType = modelToModelType(model);
@@ -67,24 +71,22 @@ export async function exportSkinTextures(
             ? await combineColorAndAlpha({ colorImageUrl, metallicImageUrl })
             : colorImageUrl,
         };
-      }
-    )
+      },
+    ),
   );
 
   if (format === "png") {
-    images.forEach(({ imageUrl, filename }) =>
-      savePngFile(imageUrl, filename)
-    );
+    images.forEach(({ imageUrl, filename }) => savePngFile(imageUrl, filename));
   } else if (format === "vl2") {
     const files = await Promise.all(
       images.map(async ({ imageUrl, filename }) => ({
         name: filename,
         data: await imageUrlToArrayBuffer(imageUrl),
-      }))
+      })),
     );
     const camelCaseModel = model.replace(
       /(?:^([a-z])|_([a-z]))/g,
-      (match, a, b) => (a || b).toUpperCase()
+      (match, a, b) => (a || b).toUpperCase(),
     );
     const prefix = {
       player: "zPlayerSkin",
@@ -98,7 +100,10 @@ export async function exportSkinTextures(
 
 export async function collectFiles(
   files: string[],
-  { skipNotFound = false, signal }: { skipNotFound?: boolean; signal?: AbortSignal } = {}
+  {
+    skipNotFound = false,
+    signal,
+  }: { skipNotFound?: boolean; signal?: AbortSignal } = {},
 ) {
   const results = await Promise.all(
     files.map(async (fileName) => {
@@ -109,7 +114,7 @@ export async function collectFiles(
           return null;
         }
         throw new Error(
-          `Unable to download ${fileName}: ${res.status} ${res.statusText}`
+          `Unable to download ${fileName}: ${res.status} ${res.statusText}`,
         );
       }
       const arrayBuffer = await res.arrayBuffer();
@@ -117,7 +122,7 @@ export async function collectFiles(
         name: fileName.replace(/@1x\.png$/, ".png"),
         data: arrayBuffer,
       };
-    })
+    }),
   );
   return results.filter((fileInfo) => fileInfo != null);
 }

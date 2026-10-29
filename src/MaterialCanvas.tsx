@@ -55,7 +55,7 @@ export default function MaterialCanvas({
             optional: materialDef.hasDefault === false,
             convert,
           },
-    [snapshot, url, fallbackUrl, materialDef.hasDefault, convert]
+    [snapshot, url, fallbackUrl, materialDef.hasDefault, convert],
   );
   const textureSize = useMemo<[number, number]>(() => {
     const [width, height] = materialDef.size ?? [512, 512];
@@ -81,7 +81,7 @@ export default function MaterialCanvas({
           (result) => {
             setPreviewError(null);
             setMetallicImageUrl(file, result, frameIndex);
-          }
+          },
         ).catch(() => setPreviewError("Unable to update metallic preview"));
       }
     },
@@ -96,7 +96,7 @@ export default function MaterialCanvas({
       setMetallicImageUrl,
       updatePreview,
       convertGrayscaleImageUrlToMetallicRoughness,
-    ]
+    ],
   );
 
   return (

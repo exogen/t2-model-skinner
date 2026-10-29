@@ -36,7 +36,8 @@ function detectorApi() {
 
 function queueDetector(initialization) {
   const api = detectorApi();
-  if (initialization) api.initialize.mockReturnValueOnce(initialization.promise);
+  if (initialization)
+    api.initialize.mockReturnValueOnce(initialization.promise);
   fixture.apis.push(api);
   return api;
 }
@@ -60,12 +61,19 @@ function prepareVideo(node) {
 function Harness({ videoKey = 0, showVideo = true }) {
   const value = usePoseTracking();
   const { videoRef: captureRef } = value;
-  const videoRef = useCallback((node) => {
-    if (node) prepareVideo(node);
-    captureRef(node);
-  }, [captureRef]);
-  useLayoutEffect(() => { tracking = value; }, [value]);
-  return showVideo ? React.createElement("video", { key: videoKey, ref: videoRef }) : null;
+  const videoRef = useCallback(
+    (node) => {
+      if (node) prepareVideo(node);
+      captureRef(node);
+    },
+    [captureRef],
+  );
+  useLayoutEffect(() => {
+    tracking = value;
+  }, [value]);
+  return showVideo
+    ? React.createElement("video", { key: videoKey, ref: videoRef })
+    : null;
 }
 
 beforeEach(async () => {
@@ -85,11 +93,23 @@ beforeEach(async () => {
   fixture.apis = [];
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
   vi.stubGlobal("OffscreenCanvas", class {});
-  vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ close: vi.fn() })));
-  vi.stubGlobal("Worker", class {
-    constructor() { this.listeners = {}; this.terminate = vi.fn(); workers.push(this); }
-    addEventListener(type, listener) { this.listeners[type] = listener; }
-  });
+  vi.stubGlobal(
+    "createImageBitmap",
+    vi.fn(async () => ({ close: vi.fn() })),
+  );
+  vi.stubGlobal(
+    "Worker",
+    class {
+      constructor() {
+        this.listeners = {};
+        this.terminate = vi.fn();
+        workers.push(this);
+      }
+      addEventListener(type, listener) {
+        this.listeners[type] = listener;
+      }
+    },
+  );
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
   host = document.createElement("div");
   document.body.append(host);
@@ -111,10 +131,14 @@ async function start() {
 }
 
 async function replaceVideo(showVideo = true) {
-  await act(async () => root.render(React.createElement(Harness, {
-    videoKey: ++videoVersion,
-    showVideo,
-  })));
+  await act(async () =>
+    root.render(
+      React.createElement(Harness, {
+        videoKey: ++videoVersion,
+        showVideo,
+      }),
+    ),
+  );
   video = host.querySelector("video");
 }
 
@@ -135,20 +159,27 @@ async function runConfigurationTimer() {
 
 async function setHidden(hidden) {
   vi.spyOn(document, "hidden", "get").mockReturnValue(hidden);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
 }
 
 test("camera and tracker start only after explicit activation, then stop releases both", async () => {
   expect(getUserMedia).not.toHaveBeenCalled();
   expect(workers).toHaveLength(0);
   await start();
-  expect(fixture.api.initialize).toHaveBeenCalledWith({
-    wasmUrl: "/mocap/tasks-vision-1.1.1",
-    modelUrl: "/mocap/pose_landmarker_full_v1.task",
-    handModelUrl: "/mocap/hand_landmarker_v1.task",
-    faceModelUrl: "/mocap/blaze_face_short_range_v1.tflite",
-  }, DEFAULT_POSE_SETTINGS);
-  expect(getUserMedia).toHaveBeenCalledWith(expect.objectContaining({ audio: false }));
+  expect(fixture.api.initialize).toHaveBeenCalledWith(
+    {
+      wasmUrl: "/mocap/tasks-vision-1.1.1",
+      modelUrl: "/mocap/pose_landmarker_full_v1.task",
+      handModelUrl: "/mocap/hand_landmarker_v1.task",
+      faceModelUrl: "/mocap/blaze_face_short_range_v1.tflite",
+    },
+    DEFAULT_POSE_SETTINGS,
+  );
+  expect(getUserMedia).toHaveBeenCalledWith(
+    expect.objectContaining({ audio: false }),
+  );
   expect(video.srcObject).toBe(stream);
   expect(tracking.status).toBe("lost");
   await act(async () => tracking.stop());
@@ -161,8 +192,12 @@ test("camera and tracker start only after explicit activation, then stop release
 });
 
 test("unavailable detailed hands warn without preventing body tracking, and disabling clears the warning", async () => {
-  const warning = "Detailed hand tracking could not start. Body tracking is still active.";
-  fixture.api.initialize.mockResolvedValueOnce({ delegate: "GPU", handWarning: warning });
+  const warning =
+    "Detailed hand tracking could not start. Body tracking is still active.";
+  fixture.api.initialize.mockResolvedValueOnce({
+    delegate: "GPU",
+    handWarning: warning,
+  });
   await start();
   expect(tracking.error).toBe(warning);
   const pose = { landmarks: [], worldLandmarks: [], timestamp: 100, hands: [] };
@@ -177,7 +212,10 @@ test("unavailable detailed hands warn without preventing body tracking, and disa
   await changeSettings({ handTracking: false });
   expect(tracking.latestPose.current).toBeNull();
   await runConfigurationTimer();
-  expect(next.initialize).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ handTracking: false }));
+  expect(next.initialize).toHaveBeenCalledWith(
+    expect.any(Object),
+    expect.objectContaining({ handTracking: false }),
+  );
   expect(tracking.error).toBeNull();
   expect(getUserMedia).toHaveBeenCalledOnce();
   expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
@@ -187,7 +225,9 @@ test("stopping during loading prevents a later camera permission request", async
   const initialization = Promise.withResolvers();
   fixture.api.initialize.mockReturnValue(initialization.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   expect(tracking.status).toBe("loading");
   await act(async () => tracking.stop());
   await expect(started).resolves.toBe(false);
@@ -200,7 +240,9 @@ test("stopping while permission is pending closes a camera granted later", async
   const permission = Promise.withResolvers();
   getUserMedia.mockReturnValue(permission.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   expect(tracking.status).toBe("requesting");
   await act(async () => tracking.stop());
   await expect(started).resolves.toBe(false);
@@ -211,7 +253,9 @@ test("stopping while permission is pending closes a camera granted later", async
 });
 
 test("camera denial reports a useful error and releases the worker", async () => {
-  getUserMedia.mockRejectedValue(new DOMException("Permission denied", "NotAllowedError"));
+  getUserMedia.mockRejectedValue(
+    new DOMException("Permission denied", "NotAllowedError"),
+  );
   await act(async () => expect(await tracking.start()).toBe(false));
   expect(tracking.status).toBe("error");
   expect(tracking.error).toMatch(/access was denied/);
@@ -223,12 +267,21 @@ test("only one inference can be in flight and poses are published without queuin
   fixture.api.detect.mockReturnValueOnce(inference.promise);
   await start();
   let first;
-  await act(async () => { first = nextFrame(100); });
+  await act(async () => {
+    first = nextFrame(100);
+  });
   expect(fixture.api.detect).toHaveBeenCalledOnce();
   await act(async () => nextFrame(133));
   expect(fixture.api.detect).toHaveBeenCalledOnce();
-  const pose = { landmarks: [{ x: 1, y: 2, z: 3 }], worldLandmarks: [{ x: 1, y: 2, z: 3 }], timestamp: 100 };
-  await act(async () => { inference.resolve(pose); await first; });
+  const pose = {
+    landmarks: [{ x: 1, y: 2, z: 3 }],
+    worldLandmarks: [{ x: 1, y: 2, z: 3 }],
+    timestamp: 100,
+  };
+  await act(async () => {
+    inference.resolve(pose);
+    await first;
+  });
   expect(tracking.latestPose.current).toBe(pose);
   expect(tracking.status).toBe("tracking");
   await act(async () => nextFrame(166));
@@ -241,13 +294,17 @@ test("hiding the tab pauses camera frames and clears stale poses, then resumes",
   await start();
   tracking.latestPose.current = { timestamp: 1 };
   vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
   expect(tracking.status).toBe("paused");
   expect(tracking.latestPose.current).toBeNull();
   expect(stream.getTracks()[0].enabled).toBe(false);
   expect(callbacks.size).toBe(0);
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
   expect(tracking.status).toBe("lost");
   expect(stream.getTracks()[0].enabled).toBe(true);
   expect(callbacks.size).toBe(1);
@@ -257,15 +314,22 @@ test("camera pauses if the tab hides while initial video playback is still pendi
   const playback = Promise.withResolvers();
   video.play.mockReturnValue(playback.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   expect(video.play).toHaveBeenCalledOnce();
   expect(video.srcObject).toBe(stream);
   vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
   expect(stream.getVideoTracks()[0].enabled).toBe(false);
   expect(tracking.status).toBe("paused");
   expect(callbacks.size).toBe(0);
-  await act(async () => { playback.resolve(); await started; });
+  await act(async () => {
+    playback.resolve();
+    await started;
+  });
   expect(stream.getVideoTracks()[0].enabled).toBe(false);
   expect(tracking.status).toBe("paused");
 });
@@ -322,10 +386,15 @@ test("a preview replaced during permission attaches only the current video", asy
   const permission = Promise.withResolvers();
   getUserMedia.mockReturnValue(permission.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   const previous = video;
   await replaceVideo();
-  await act(async () => { permission.resolve(stream); await started; });
+  await act(async () => {
+    permission.resolve(stream);
+    await started;
+  });
   expect(previous.srcObject).toBeNull();
   expect(previous.play).not.toHaveBeenCalled();
   expect(video.srcObject).toBe(stream);
@@ -337,7 +406,9 @@ test("a preview replaced during permission attaches only the current video", asy
 test("startup can wait for a preview to mount without requesting the camera again", async () => {
   await replaceVideo(false);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   expect(getUserMedia).toHaveBeenCalledOnce();
   expect(callbacks.size).toBe(0);
   expect(tracking.error).toBeNull();
@@ -353,54 +424,78 @@ test("replacing a preview during startup ignores its stale play rejection", asyn
   const nextPlayback = Promise.withResolvers();
   video.play.mockReturnValue(previousPlayback.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
-  configureNextVideo = (node) => node.play.mockReturnValue(nextPlayback.promise);
+  await act(async () => {
+    started = tracking.start();
+  });
+  configureNextVideo = (node) =>
+    node.play.mockReturnValue(nextPlayback.promise);
   await replaceVideo();
-  await act(async () => previousPlayback.reject(new DOMException("Playback interrupted", "AbortError")));
+  await act(async () =>
+    previousPlayback.reject(
+      new DOMException("Playback interrupted", "AbortError"),
+    ),
+  );
   expect(tracking.error).toBeNull();
   expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
   expect(video.srcObject).toBe(stream);
-  await act(async () => { nextPlayback.resolve(); expect(await started).toBe(true); });
+  await act(async () => {
+    nextPlayback.resolve();
+    expect(await started).toBe(true);
+  });
   expect(callbacks.size).toBe(1);
   expect(getUserMedia).toHaveBeenCalledOnce();
 });
 
-test.each(["resolve", "reject"])("old-video inference cannot overwrite or stop a replacement when it %ss", async (settle) => {
-  const inference = Promise.withResolvers();
-  fixture.api.detect.mockReturnValueOnce(inference.promise);
-  await start();
-  let oldFrame;
-  await act(async () => { oldFrame = nextFrame(100); });
-  const oldBitmap = await globalThis.createImageBitmap.mock.results[0].value;
-  await replaceVideo();
-  await act(async () => nextFrame(133));
-  expect(fixture.api.detect).toHaveBeenCalledOnce();
-  await act(async () => {
-    inference[settle](settle === "resolve" ? { timestamp: 100 } : new Error("Old frame failed"));
-    await oldFrame;
-  });
-  expect(tracking.latestPose.current).toBeNull();
-  expect(tracking.error).toBeNull();
-  expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
-  expect(oldBitmap.close).toHaveBeenCalledOnce();
-  const pose = { timestamp: 166 };
-  fixture.api.detect.mockResolvedValueOnce(pose);
-  await act(async () => nextFrame(166));
-  expect(globalThis.createImageBitmap.mock.lastCall[0]).toBe(video);
-  expect(fixture.api.detect).toHaveBeenCalledTimes(2);
-  expect(tracking.latestPose.current).toBe(pose);
-  expect(callbacks.size).toBe(1);
-});
+test.each(["resolve", "reject"])(
+  "old-video inference cannot overwrite or stop a replacement when it %ss",
+  async (settle) => {
+    const inference = Promise.withResolvers();
+    fixture.api.detect.mockReturnValueOnce(inference.promise);
+    await start();
+    let oldFrame;
+    await act(async () => {
+      oldFrame = nextFrame(100);
+    });
+    const oldBitmap = await globalThis.createImageBitmap.mock.results[0].value;
+    await replaceVideo();
+    await act(async () => nextFrame(133));
+    expect(fixture.api.detect).toHaveBeenCalledOnce();
+    await act(async () => {
+      inference[settle](
+        settle === "resolve"
+          ? { timestamp: 100 }
+          : new Error("Old frame failed"),
+      );
+      await oldFrame;
+    });
+    expect(tracking.latestPose.current).toBeNull();
+    expect(tracking.error).toBeNull();
+    expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
+    expect(oldBitmap.close).toHaveBeenCalledOnce();
+    const pose = { timestamp: 166 };
+    fixture.api.detect.mockResolvedValueOnce(pose);
+    await act(async () => nextFrame(166));
+    expect(globalThis.createImageBitmap.mock.lastCall[0]).toBe(video);
+    expect(fixture.api.detect).toHaveBeenCalledTimes(2);
+    expect(tracking.latestPose.current).toBe(pose);
+    expect(callbacks.size).toBe(1);
+  },
+);
 
 test("a bitmap from a detached video is closed without running stale inference", async () => {
   const capture = Promise.withResolvers();
   globalThis.createImageBitmap.mockReturnValueOnce(capture.promise);
   await start();
   let oldFrame;
-  await act(async () => { oldFrame = nextFrame(100); });
+  await act(async () => {
+    oldFrame = nextFrame(100);
+  });
   await replaceVideo();
   const bitmap = { close: vi.fn() };
-  await act(async () => { capture.resolve(bitmap); await oldFrame; });
+  await act(async () => {
+    capture.resolve(bitmap);
+    await oldFrame;
+  });
   expect(bitmap.close).toHaveBeenCalledOnce();
   expect(fixture.api.detect).not.toHaveBeenCalled();
   await act(async () => nextFrame(133));
@@ -411,7 +506,9 @@ test("detaching and remounting a preview while hidden preserves the paused camer
   await start();
   const previous = video;
   vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
   await replaceVideo(false);
   expect(previous.srcObject).toBeNull();
   expect(callbacks.size).toBe(0);
@@ -422,7 +519,9 @@ test("detaching and remounting a preview while hidden preserves the paused camer
   expect(tracking.status).toBe("paused");
   expect(callbacks.size).toBe(0);
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
   expect(stream.getTracks()[0].enabled).toBe(true);
   expect(callbacks.size).toBe(1);
   await act(async () => root.render(null));
@@ -433,7 +532,10 @@ test("detaching and remounting a preview while hidden preserves the paused camer
 
 test("a current replacement playback failure stops the camera", async () => {
   await start();
-  configureNextVideo = (node) => node.play.mockRejectedValue(new DOMException("Playback denied", "NotAllowedError"));
+  configureNextVideo = (node) =>
+    node.play.mockRejectedValue(
+      new DOMException("Playback denied", "NotAllowedError"),
+    );
   await replaceVideo();
   expect(tracking.status).toBe("error");
   expect(tracking.error).toMatch(/access was denied/);
@@ -446,10 +548,15 @@ test("stopping pending playback prevents later remounts or play completions from
   const playback = Promise.withResolvers();
   video.play.mockReturnValue(playback.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   await act(async () => tracking.stop());
   await replaceVideo();
-  await act(async () => { playback.resolve(); expect(await started).toBe(false); });
+  await act(async () => {
+    playback.resolve();
+    expect(await started).toBe(false);
+  });
   expect(video.srcObject).toBeNull();
   expect(video.play).not.toHaveBeenCalled();
   expect(callbacks.size).toBe(0);
@@ -457,21 +564,31 @@ test("stopping pending playback prevents later remounts or play completions from
 });
 
 test("animation-frame fallback cancels replaced videos and never duplicates its callback queue", async () => {
-  const fallback = (node) => { node.requestVideoFrameCallback = undefined; };
+  const fallback = (node) => {
+    node.requestVideoFrameCallback = undefined;
+  };
   fallback(video);
-  vi.stubGlobal("requestAnimationFrame", vi.fn((callback) => {
-    const id = ++nextCallback;
-    callbacks.set(id, callback);
-    return id;
-  }));
-  vi.stubGlobal("cancelAnimationFrame", vi.fn((id) => callbacks.delete(id)));
+  vi.stubGlobal(
+    "requestAnimationFrame",
+    vi.fn((callback) => {
+      const id = ++nextCallback;
+      callbacks.set(id, callback);
+      return id;
+    }),
+  );
+  vi.stubGlobal(
+    "cancelAnimationFrame",
+    vi.fn((id) => callbacks.delete(id)),
+  );
   await start();
   configureNextVideo = fallback;
   await replaceVideo();
   expect(globalThis.cancelAnimationFrame).toHaveBeenCalledOnce();
   const canceledCallback = callbacks.values().next().value;
   vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-  await act(async () => document.dispatchEvent(new window.Event("visibilitychange")));
+  await act(async () =>
+    document.dispatchEvent(new window.Event("visibilitychange")),
+  );
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
   await act(async () => {
     document.dispatchEvent(new window.Event("visibilitychange"));
@@ -497,9 +614,12 @@ test("switching model quality keeps the camera and publishes only the new detect
   expect(tracking.switching).toBe(true);
   expect(tracking.latestPose.current).toBeNull();
   await runConfigurationTimer();
-  expect(next.initialize).toHaveBeenCalledWith(expect.objectContaining({
-    modelUrl: "/mocap/pose_landmarker_lite_v1.task",
-  }), expect.objectContaining({ model: "lite" }));
+  expect(next.initialize).toHaveBeenCalledWith(
+    expect.objectContaining({
+      modelUrl: "/mocap/pose_landmarker_lite_v1.task",
+    }),
+    expect.objectContaining({ model: "lite" }),
+  );
   expect(workers[0].terminate).not.toHaveBeenCalled();
   await act(async () => nextFrame(100));
   expect(fixture.api.detect).not.toHaveBeenCalled();
@@ -529,9 +649,14 @@ test("debounced settings changes create only the latest requested detector", asy
   expect(workers).toHaveLength(1);
   await runConfigurationTimer();
   expect(workers).toHaveLength(2);
-  expect(next.initialize).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
-    model: "lite", minDetectionConfidence: 0.7, handTracking: false,
-  }));
+  expect(next.initialize).toHaveBeenCalledWith(
+    expect.any(Object),
+    expect.objectContaining({
+      model: "lite",
+      minDetectionConfidence: 0.7,
+      handTracking: false,
+    }),
+  );
   expect(getUserMedia).toHaveBeenCalledOnce();
 });
 
@@ -568,7 +693,9 @@ test("settings changed during initial loading select the new detector before req
   const firstLoad = Promise.withResolvers();
   fixture.api.initialize.mockReturnValueOnce(firstLoad.promise);
   let started;
-  await act(async () => { started = tracking.start(); });
+  await act(async () => {
+    started = tracking.start();
+  });
   const nextLoad = Promise.withResolvers();
   const next = queueDetector(nextLoad);
   await changeSettings({ model: "lite" });
@@ -576,57 +703,73 @@ test("settings changed during initial loading select the new detector before req
   await act(async () => firstLoad.resolve({ delegate: "GPU" }));
   expect(getUserMedia).not.toHaveBeenCalled();
   expect(workers[0].terminate).toHaveBeenCalledOnce();
-  await act(async () => { nextLoad.resolve({ delegate: "GPU" }); expect(await started).toBe(true); });
+  await act(async () => {
+    nextLoad.resolve({ delegate: "GPU" });
+    expect(await started).toBe(true);
+  });
   expect(next.initialize).toHaveBeenCalledOnce();
   expect(getUserMedia).toHaveBeenCalledOnce();
   expect(tracking.settings.model).toBe("lite");
   expect(video.srcObject).toBe(stream);
 });
 
-test.each([false, true])("stopping during a detector switch releases all resources (load started: %s)", async (loadStarted) => {
-  await start();
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  const initialization = Promise.withResolvers();
-  queueDetector(initialization);
-  await changeSettings({ model: "lite" });
-  if (loadStarted) await runConfigurationTimer();
-  await act(async () => tracking.stop());
-  await act(async () => initialization.resolve({ delegate: "GPU" }));
-  await runConfigurationTimer();
-  expect(workers).toHaveLength(loadStarted ? 2 : 1);
-  for (const worker of workers) expect(worker.terminate).toHaveBeenCalledOnce();
-  expect(stream.getTracks()[0].stop).toHaveBeenCalledOnce();
-  expect(video.srcObject).toBeNull();
-  expect(callbacks.size).toBe(0);
-  expect(tracking.status).toBe("idle");
-  expect(tracking.switching).toBe(false);
-  expect(tracking.latestPose.current).toBeNull();
-});
+test.each([false, true])(
+  "stopping during a detector switch releases all resources (load started: %s)",
+  async (loadStarted) => {
+    await start();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const initialization = Promise.withResolvers();
+    queueDetector(initialization);
+    await changeSettings({ model: "lite" });
+    if (loadStarted) await runConfigurationTimer();
+    await act(async () => tracking.stop());
+    await act(async () => initialization.resolve({ delegate: "GPU" }));
+    await runConfigurationTimer();
+    expect(workers).toHaveLength(loadStarted ? 2 : 1);
+    for (const worker of workers)
+      expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(stream.getTracks()[0].stop).toHaveBeenCalledOnce();
+    expect(video.srcObject).toBeNull();
+    expect(callbacks.size).toBe(0);
+    expect(tracking.status).toBe("idle");
+    expect(tracking.switching).toBe(false);
+    expect(tracking.latestPose.current).toBeNull();
+  },
+);
 
-test.each(["resolve", "reject"])("old-detector inference cannot overwrite a successful switch when it %ss", async (settle) => {
-  const inference = Promise.withResolvers();
-  fixture.api.detect.mockReturnValueOnce(inference.promise);
-  await start();
-  let oldFrame;
-  await act(async () => { oldFrame = nextFrame(100); });
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  const next = queueDetector();
-  await changeSettings({ model: "lite" });
-  await runConfigurationTimer();
-  const pose = { timestamp: 200 };
-  next.detect.mockResolvedValueOnce(pose);
-  await act(async () => nextFrame(200));
-  await act(async () => {
-    inference[settle](settle === "resolve" ? { timestamp: 100 } : new Error("Stale inference"));
-    await oldFrame;
-  });
-  expect(tracking.latestPose.current).toBe(pose);
-  expect(tracking.error).toBeNull();
-  expect(tracking.status).toBe("tracking");
-  expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
-  const bitmap = await globalThis.createImageBitmap.mock.results[0].value;
-  expect(bitmap.close).toHaveBeenCalledOnce();
-});
+test.each(["resolve", "reject"])(
+  "old-detector inference cannot overwrite a successful switch when it %ss",
+  async (settle) => {
+    const inference = Promise.withResolvers();
+    fixture.api.detect.mockReturnValueOnce(inference.promise);
+    await start();
+    let oldFrame;
+    await act(async () => {
+      oldFrame = nextFrame(100);
+    });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const next = queueDetector();
+    await changeSettings({ model: "lite" });
+    await runConfigurationTimer();
+    const pose = { timestamp: 200 };
+    next.detect.mockResolvedValueOnce(pose);
+    await act(async () => nextFrame(200));
+    await act(async () => {
+      inference[settle](
+        settle === "resolve"
+          ? { timestamp: 100 }
+          : new Error("Stale inference"),
+      );
+      await oldFrame;
+    });
+    expect(tracking.latestPose.current).toBe(pose);
+    expect(tracking.error).toBeNull();
+    expect(tracking.status).toBe("tracking");
+    expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
+    const bitmap = await globalThis.createImageBitmap.mock.results[0].value;
+    expect(bitmap.close).toHaveBeenCalledOnce();
+  },
+);
 
 test("rig smoothing updates and defaults reset do not rebuild the detector or interrupt its pose", async () => {
   await start();
@@ -650,57 +793,73 @@ test("rig smoothing updates and defaults reset do not rebuild the detector or in
   expect(tracking.latestPose.current).toBe(pose);
 });
 
-test.each(["initialize", "worker"])("a failed replacement %s preserves the working detector and latest rig smoothing", async (failure) => {
-  await start();
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  const initialization = Promise.withResolvers();
-  queueDetector(initialization);
-  await changeSettings({ model: "lite" });
-  await runConfigurationTimer();
-  await changeSettings({ smoothing: "classic" });
-  await act(async () => {
-    if (failure === "initialize") initialization.reject(new Error("Model unavailable"));
-    else workers[1].listeners.error();
-  });
-  expect(tracking.settings).toEqual({ ...DEFAULT_POSE_SETTINGS, smoothing: "classic" });
-  expect(tracking.error).toMatch(/previous settings are still active/);
-  expect(tracking.switching).toBe(false);
-  expect(workers[0].terminate).not.toHaveBeenCalled();
-  expect(workers[1].terminate).toHaveBeenCalledOnce();
-  const pose = { timestamp: 100 };
-  fixture.api.detect.mockResolvedValueOnce(pose);
-  await act(async () => nextFrame(100));
-  expect(tracking.latestPose.current).toBe(pose);
-  expect(getUserMedia).toHaveBeenCalledOnce();
-  expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
-});
+test.each(["initialize", "worker"])(
+  "a failed replacement %s preserves the working detector and latest rig smoothing",
+  async (failure) => {
+    await start();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const initialization = Promise.withResolvers();
+    queueDetector(initialization);
+    await changeSettings({ model: "lite" });
+    await runConfigurationTimer();
+    await changeSettings({ smoothing: "classic" });
+    await act(async () => {
+      if (failure === "initialize")
+        initialization.reject(new Error("Model unavailable"));
+      else workers[1].listeners.error();
+    });
+    expect(tracking.settings).toEqual({
+      ...DEFAULT_POSE_SETTINGS,
+      smoothing: "classic",
+    });
+    expect(tracking.error).toMatch(/previous settings are still active/);
+    expect(tracking.switching).toBe(false);
+    expect(workers[0].terminate).not.toHaveBeenCalled();
+    expect(workers[1].terminate).toHaveBeenCalledOnce();
+    const pose = { timestamp: 100 };
+    fixture.api.detect.mockResolvedValueOnce(pose);
+    await act(async () => nextFrame(100));
+    expect(tracking.latestPose.current).toBe(pose);
+    expect(getUserMedia).toHaveBeenCalledOnce();
+    expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
+  },
+);
 
-test.each(["resolve", "reject"])("inference from before a failed switch stays stale when the old detector resumes (%s)", async (settle) => {
-  const inference = Promise.withResolvers();
-  fixture.api.detect.mockReturnValueOnce(inference.promise);
-  await start();
-  let oldFrame;
-  await act(async () => { oldFrame = nextFrame(100); });
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  const next = queueDetector();
-  next.initialize.mockRejectedValueOnce(new Error("Cannot load comparison"));
-  await changeSettings({ model: "lite" });
-  await runConfigurationTimer();
-  const fallbackError = tracking.error;
-  expect(fallbackError).toMatch(/previous settings/);
-  await act(async () => {
-    inference[settle](settle === "resolve" ? { timestamp: 100 } : new Error("Old frame failed"));
-    await oldFrame;
-  });
-  expect(tracking.latestPose.current).toBeNull();
-  expect(tracking.status).toBe("lost");
-  expect(tracking.error).toBe(fallbackError);
-  expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
-  const fresh = { timestamp: 200 };
-  fixture.api.detect.mockResolvedValueOnce(fresh);
-  await act(async () => nextFrame(200));
-  expect(tracking.latestPose.current).toBe(fresh);
-});
+test.each(["resolve", "reject"])(
+  "inference from before a failed switch stays stale when the old detector resumes (%s)",
+  async (settle) => {
+    const inference = Promise.withResolvers();
+    fixture.api.detect.mockReturnValueOnce(inference.promise);
+    await start();
+    let oldFrame;
+    await act(async () => {
+      oldFrame = nextFrame(100);
+    });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const next = queueDetector();
+    next.initialize.mockRejectedValueOnce(new Error("Cannot load comparison"));
+    await changeSettings({ model: "lite" });
+    await runConfigurationTimer();
+    const fallbackError = tracking.error;
+    expect(fallbackError).toMatch(/previous settings/);
+    await act(async () => {
+      inference[settle](
+        settle === "resolve"
+          ? { timestamp: 100 }
+          : new Error("Old frame failed"),
+      );
+      await oldFrame;
+    });
+    expect(tracking.latestPose.current).toBeNull();
+    expect(tracking.status).toBe("lost");
+    expect(tracking.error).toBe(fallbackError);
+    expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
+    const fresh = { timestamp: 200 };
+    fixture.api.detect.mockResolvedValueOnce(fresh);
+    await act(async () => nextFrame(200));
+    expect(tracking.latestPose.current).toBe(fresh);
+  },
+);
 
 test("switching while hidden keeps the camera paused until visibility returns", async () => {
   await start();
@@ -725,24 +884,33 @@ test("switching while hidden keeps the camera paused until visibility returns", 
   expect(getUserMedia).toHaveBeenCalledOnce();
 });
 
-test.each(["resolve", "reject"])("inference started before hiding is stale after the tab becomes visible again (%s)", async (settle) => {
-  const inference = Promise.withResolvers();
-  fixture.api.detect.mockReturnValueOnce(inference.promise);
-  await start();
-  let oldFrame;
-  await act(async () => { oldFrame = nextFrame(100); });
-  await setHidden(true);
-  await setHidden(false);
-  await act(async () => {
-    inference[settle](settle === "resolve" ? { timestamp: 100 } : new Error("Pre-pause frame failed"));
-    await oldFrame;
-  });
-  expect(tracking.latestPose.current).toBeNull();
-  expect(tracking.error).toBeNull();
-  expect(tracking.status).toBe("lost");
-  expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
-  const fresh = { timestamp: 200 };
-  fixture.api.detect.mockResolvedValueOnce(fresh);
-  await act(async () => nextFrame(200));
-  expect(tracking.latestPose.current).toBe(fresh);
-});
+test.each(["resolve", "reject"])(
+  "inference started before hiding is stale after the tab becomes visible again (%s)",
+  async (settle) => {
+    const inference = Promise.withResolvers();
+    fixture.api.detect.mockReturnValueOnce(inference.promise);
+    await start();
+    let oldFrame;
+    await act(async () => {
+      oldFrame = nextFrame(100);
+    });
+    await setHidden(true);
+    await setHidden(false);
+    await act(async () => {
+      inference[settle](
+        settle === "resolve"
+          ? { timestamp: 100 }
+          : new Error("Pre-pause frame failed"),
+      );
+      await oldFrame;
+    });
+    expect(tracking.latestPose.current).toBeNull();
+    expect(tracking.error).toBeNull();
+    expect(tracking.status).toBe("lost");
+    expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
+    const fresh = { timestamp: 200 };
+    fixture.api.detect.mockResolvedValueOnce(fresh);
+    await act(async () => nextFrame(200));
+    expect(tracking.latestPose.current).toBe(fresh);
+  },
+);

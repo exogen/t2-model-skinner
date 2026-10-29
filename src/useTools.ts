@@ -25,7 +25,7 @@ interface ToolsContextValue {
   setLayerMode: (layerMode: string) => void;
   deleteSelection: () => void;
   copySelection: (
-    cut?: boolean
+    cut?: boolean,
   ) => { id: string; image: HTMLCanvasElement | null } | null;
   pasteSelection: () => Promise<void>;
   undo: () => void;
@@ -60,7 +60,7 @@ interface ToolsContextValue {
   setSelectedMaterialIndex: (materialIndex: number) => void;
   selectedFrameIndex: number;
   setSelectedFrameIndex: (
-    frameIndex: number | ((frameIndex: number) => number)
+    frameIndex: number | ((frameIndex: number) => number),
   ) => void;
   textureSize: [number, number];
   hasMetallic: boolean;
@@ -68,12 +68,12 @@ interface ToolsContextValue {
   frameCount: number;
   sizeMultiplier: number;
   setSizeMultiplier: (
-    sizeMultiplier: number | ((sizeMultiplier: number) => number)
+    sizeMultiplier: number | ((sizeMultiplier: number) => number),
   ) => void;
   selectedExportMaterials: boolean[];
   setSelectedExportMaterials: (
     selectedExportMaterials:
-      boolean[] | ((selectedExportMaterials: boolean[]) => boolean[])
+      boolean[] | ((selectedExportMaterials: boolean[]) => boolean[]),
   ) => void;
 }
 

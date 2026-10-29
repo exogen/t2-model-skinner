@@ -31,7 +31,7 @@ type OpenProject = {
 
 function sameTextureUrls(
   a: Record<string, string[]>,
-  b: Record<string, string[]>
+  b: Record<string, string[]>,
 ) {
   return (
     a === b ||
@@ -39,16 +39,12 @@ function sameTextureUrls(
       Object.entries(a).every(
         ([key, urls]) =>
           urls.length === b[key]?.length &&
-          urls.every((url, frame) => url === b[key][frame])
+          urls.every((url, frame) => url === b[key][frame]),
       ))
   );
 }
 
-export default function EditorProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function EditorProvider({ children }: { children: ReactNode }) {
   const warrior = useWarrior();
   const [project, setProject] = useState<OpenProject | null>(null);
   const [preferredSize, setPreferredSize] = useState(1);
@@ -83,13 +79,16 @@ export default function EditorProvider({
       warrior.setSelectedSkinType(opened.localFile ? "local" : "project");
       warrior.setSelectedSkin(opened.localFile ?? opened.name);
     },
-    [warrior]
+    [warrior],
   );
 
   const activeProject =
     project?.model === warrior.selectedModel &&
-    ((warrior.selectedSkinType === "project" && !project.localFile && project.name === warrior.selectedSkin) ||
-      (warrior.selectedSkinType === "local" && project.localFile === warrior.selectedSkin))
+    ((warrior.selectedSkinType === "project" &&
+      !project.localFile &&
+      project.name === warrior.selectedSkin) ||
+      (warrior.selectedSkinType === "local" &&
+        project.localFile === warrior.selectedSkin))
       ? project
       : null;
   // A project's dimensions belong to the document, not the default preference.
@@ -171,7 +170,7 @@ function EditorSession({
   const { basePath } = useSettings();
   const { loadImage } = useImageLoader();
   const [detectedSize, setDetectedSize] = useState<number | undefined | null>(
-    null
+    null,
   );
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const resolveSize = useAsyncTask();
@@ -184,59 +183,76 @@ function EditorSession({
           source.model,
           source.images,
           source.skin ? source.defaultImages : {},
-          loadImage
+          loadImage,
         ),
-      setDetectedSize
+      setDetectedSize,
     ).catch((error: unknown) => {
       setResolutionError(
         error instanceof Error
           ? error.message
-          : "Unable to determine texture size"
+          : "Unable to determine texture size",
       );
     });
   }, [project, awaitingLocalProject, source, loadImage, resolveSize]);
-  const isResolvingSize = awaitingLocalProject || (!project && detectedSize === null && !resolutionError);
+  const isResolvingSize =
+    awaitingLocalProject ||
+    (!project && detectedSize === null && !resolutionError);
   const sizeMultiplier = project
     ? preferredSize
     : (detectedSize ?? preferredSize);
   const runTask = useAsyncTask();
   const runLoad = useAsyncTask(true);
-  const prepareProject = useCallback(async (file: File | Blob, signal: AbortSignal) => {
-    const document = await readSkinProjectZip(file);
-    signal.throwIfAborted();
-    const target = getProjectTarget(document, selectedModel);
-    // Preflight before replacing the current session. Each mounted canvas
-    // owns its Fabric objects; the document itself stores only snapshots.
-    const prepared = await prepareSkinProject(document, signal);
-    Object.values(prepared).forEach(({ color, metallic }) =>
-      [...color, ...metallic].forEach((object) => object.dispose())
-    );
-    const filename = "name" in file ? String(file.name).replace(/\.skin$/i, "") : "";
-    return {
-      document: { ...document, name: document.name || filename },
-      ...target,
-      name: filename || "Project",
-    };
-  }, [selectedModel]);
+  const prepareProject = useCallback(
+    async (file: File | Blob, signal: AbortSignal) => {
+      const document = await readSkinProjectZip(file);
+      signal.throwIfAborted();
+      const target = getProjectTarget(document, selectedModel);
+      // Preflight before replacing the current session. Each mounted canvas
+      // owns its Fabric objects; the document itself stores only snapshots.
+      const prepared = await prepareSkinProject(document, signal);
+      Object.values(prepared).forEach(({ color, metallic }) =>
+        [...color, ...metallic].forEach((object) => object.dispose()),
+      );
+      const filename =
+        "name" in file ? String(file.name).replace(/\.skin$/i, "") : "";
+      return {
+        document: { ...document, name: document.name || filename },
+        ...target,
+        name: filename || "Project",
+      };
+    },
+    [selectedModel],
+  );
   const loadSkinProject = useCallback(
     async (file: File | Blob) => {
       await runLoad((signal) => prepareProject(file, signal), openProject);
     },
-    [runLoad, openProject, prepareProject]
+    [runLoad, openProject, prepareProject],
   );
 
-  const loadLocalProject = useCallback(async (file: string) => {
-    await runLoad(async (signal) => {
-      const entry = getLocalProject(file);
-      if (!entry) throw new Error("This local project is no longer available.");
-      const response = await fetch(getLocalAssetUrl(basePath, `projects/${entry.file}`), { signal });
-      if (!response.ok) throw new Error(`Unable to load ${entry.name} (${response.status}).`);
-      const bytes = await response.arrayBuffer();
-      signal.throwIfAborted();
-      const opened = await prepareProject(new File([bytes], entry.file.split("/").at(-1)!), signal);
-      return { ...opened, localFile: entry.file };
-    }, openProject);
-  }, [basePath, runLoad, openProject, prepareProject]);
+  const loadLocalProject = useCallback(
+    async (file: string) => {
+      await runLoad(async (signal) => {
+        const entry = getLocalProject(file);
+        if (!entry)
+          throw new Error("This local project is no longer available.");
+        const response = await fetch(
+          getLocalAssetUrl(basePath, `projects/${entry.file}`),
+          { signal },
+        );
+        if (!response.ok)
+          throw new Error(`Unable to load ${entry.name} (${response.status}).`);
+        const bytes = await response.arrayBuffer();
+        signal.throwIfAborted();
+        const opened = await prepareProject(
+          new File([bytes], entry.file.split("/").at(-1)!),
+          signal,
+        );
+        return { ...opened, localFile: entry.file };
+      }, openProject);
+    },
+    [basePath, runLoad, openProject, prepareProject],
+  );
 
   const loadSkinFiles = useCallback(
     async (files: File[]) => {
@@ -256,7 +272,7 @@ function EditorSession({
             ...Array.from(foundModels.keys()),
           ]) {
             const skin = Array.from(
-              foundModels.get(model)?.values() ?? []
+              foundModels.get(model)?.values() ?? [],
             ).find((skin) => skin.isComplete);
             if (!skin) continue;
             if (model !== warrior.actualModel) warrior.setSelectedModel(model);
@@ -266,10 +282,10 @@ function EditorSession({
             warrior.setAnimationPaused(false);
             return;
           }
-        }
+        },
       );
     },
-    [loadSkinProject, runLoad, warrior]
+    [loadSkinProject, runLoad, warrior],
   );
 
   return (

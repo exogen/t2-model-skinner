@@ -10,7 +10,7 @@ export default function CanvasProvider({ children }: { children: ReactNode }) {
         return { ...canvases, [canvasId]: canvasInfo };
       });
     },
-    []
+    [],
   );
 
   const unregisterCanvas = useCallback((canvasId: string) => {

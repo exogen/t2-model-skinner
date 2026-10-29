@@ -53,7 +53,7 @@ export default function CanvasToggle() {
             type="button"
             onClick={() => {
               setSelectedFrameIndex(
-                (index) => (frameCount + index - 1) % frameCount
+                (index) => (frameCount + index - 1) % frameCount,
               );
             }}
           >

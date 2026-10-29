@@ -8,13 +8,16 @@ export function standardTPose() {
     landmarks[index] = { x, y: -y, z: -z, visibility: 1, presence: 1 };
   };
   set(0, 0, 0.75, 0.12);
-  for (const [side, sign] of [[0, 1], [1, -1]]) {
+  for (const [side, sign] of [
+    [0, 1],
+    [1, -1],
+  ]) {
     const eye = side === 0 ? 1 : 4;
     set(eye, sign * 0.03, 0.79, 0.095);
     set(eye + 1, sign * 0.055, 0.79, 0.08);
     set(eye + 2, sign * 0.08, 0.79, 0.06);
     set(7 + side, sign * 0.1, 0.75);
-    set(9 + side, sign * 0.035, 0.70, 0.095);
+    set(9 + side, sign * 0.035, 0.7, 0.095);
     set(11 + side, sign * 0.3, 0.5);
     set(13 + side, sign * 0.6, 0.5);
     set(15 + side, sign * 0.9, 0.5);

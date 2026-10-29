@@ -18,7 +18,7 @@ export async function detectTextureSizeMultiplier(
   model: string,
   images: Record<string, string[]>,
   defaults: Record<string, string[]>,
-  loadImage: (url: string) => Promise<ArrayBuffer>
+  loadImage: (url: string) => Promise<ArrayBuffer>,
 ): Promise<number | undefined> {
   const sizes = new Map<string, Promise<[number, number] | undefined>>();
   const loadSize = (url: string) => {
@@ -31,7 +31,7 @@ export async function detectTextureSizeMultiplier(
   // Shared/hidden copies may have different default sizes. Only the material
   // which supplies that texture to the preview determines its resolution.
   const materials = modelConfig.materials[actualModel].filter((material) =>
-    isTextureSourceMaterial(material, actualModel)
+    isTextureSourceMaterial(material, actualModel),
   );
   const scales = await Promise.all(
     materials.flatMap((material) => {
@@ -62,12 +62,12 @@ export async function detectTextureSizeMultiplier(
           if (size[0] > width || size[1] > height) {
             throw new Error(
               `Unsupported texture size: ${size[0]} × ${size[1]} for ${material.label ?? file}. ` +
-              `Use power-of-two multiples of ${width} × ${height}, up to ${width * 4} × ${height * 4}.`
+                `Use power-of-two multiples of ${width} × ${height}, up to ${width * 4} × ${height * 4}.`,
             );
           }
-        }
+        },
       );
-    })
+    }),
   );
   const supported = scales.filter((scale) => scale != null);
   // A shared resolution must preserve the largest material/frame in the skin.

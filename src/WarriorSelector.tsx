@@ -19,8 +19,13 @@ function renderSkinLabel(label: string, value: string) {
   const skin = value.slice(separator + 1);
   const name = type === "local" ? getLocalProject(skin)?.name : skin;
   return name === "Thriller" ? (
-    <><span className={styles.Thriller}>{name}</span>{label.slice(name.length)}</>
-  ) : label;
+    <>
+      <span className={styles.Thriller}>{name}</span>
+      {label.slice(name.length)}
+    </>
+  ) : (
+    label
+  );
 }
 
 export default function WarriorSelector() {
@@ -38,8 +43,11 @@ export default function WarriorSelector() {
     importedSkins,
   } = useWarrior();
   const {
-    setSelectedMaterialIndex, loadSkinFiles, loadLocalProject,
-    cancelSkinLoad, loadedLocalProject,
+    setSelectedMaterialIndex,
+    loadSkinFiles,
+    loadLocalProject,
+    cancelSkinLoad,
+    loadedLocalProject,
   } = useTools();
   const [importError, setImportError] = useState<string | null>(null);
   const [failedProject, setFailedProject] = useState<string | null>(null);
@@ -49,21 +57,28 @@ export default function WarriorSelector() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [manifest, isManifestLoaded] = useManifest();
 
-  const openLocalProject = useCallback(async (file: string) => {
-    const generation = ++requestGeneration.current;
-    setPendingProject(file);
-    setImportError(null);
-    setFailedProject(null);
-    try {
-      await loadLocalProject(file);
-    } catch (error) {
-      if (generation !== requestGeneration.current) return;
-      setImportError(error instanceof Error ? error.message : "Unable to open this project");
-      setFailedProject(file);
-    } finally {
-      if (generation === requestGeneration.current) setPendingProject(null);
-    }
-  }, [loadLocalProject]);
+  const openLocalProject = useCallback(
+    async (file: string) => {
+      const generation = ++requestGeneration.current;
+      setPendingProject(file);
+      setImportError(null);
+      setFailedProject(null);
+      try {
+        await loadLocalProject(file);
+      } catch (error) {
+        if (generation !== requestGeneration.current) return;
+        setImportError(
+          error instanceof Error
+            ? error.message
+            : "Unable to open this project",
+        );
+        setFailedProject(file);
+      } finally {
+        if (generation === requestGeneration.current) setPendingProject(null);
+      }
+    },
+    [loadLocalProject],
+  );
 
   useEffect(() => {
     if (selectedSkinType !== "local" || !selectedSkin) {
@@ -76,10 +91,13 @@ export default function WarriorSelector() {
     }
   }, [selectedSkinType, selectedSkin, loadedLocalProject, openLocalProject]);
 
-  useEffect(() => () => {
-    requestGeneration.current++;
-    attemptedLocalSelection.current = null;
-  }, []);
+  useEffect(
+    () => () => {
+      requestGeneration.current++;
+      attemptedLocalSelection.current = null;
+    },
+    [],
+  );
 
   const cancelPendingProject = () => {
     requestGeneration.current++;
@@ -93,7 +111,12 @@ export default function WarriorSelector() {
     // A URL project is already the selected editor state. Merely opening the
     // picker or reselecting its model must not strand that state without a
     // load (or clear the Retry action after a failure).
-    if (selectedSkinType === "local" && selectedSkin && selectedSkin !== loadedLocalProject) return;
+    if (
+      selectedSkinType === "local" &&
+      selectedSkin &&
+      selectedSkin !== loadedLocalProject
+    )
+      return;
     cancelPendingProject();
   };
 
@@ -109,7 +132,7 @@ export default function WarriorSelector() {
     : "";
 
   const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
@@ -120,9 +143,13 @@ export default function WarriorSelector() {
     } catch (error) {
       if (generation !== requestGeneration.current) return;
       setImportError(
-        error instanceof Error ? error.message : "Unable to open this skin"
+        error instanceof Error ? error.message : "Unable to open this skin",
       );
-      if (selectedSkinType === "local" && selectedSkin && selectedSkin !== loadedLocalProject) {
+      if (
+        selectedSkinType === "local" &&
+        selectedSkin &&
+        selectedSkin !== loadedLocalProject
+      ) {
         setFailedProject(selectedSkin);
       }
     } finally {
@@ -136,7 +163,10 @@ export default function WarriorSelector() {
     label: project.name,
   }));
   if (selectedSkinType === "project" && selectedSkin) {
-    projectOptions.push({ value: `project/${selectedSkin}`, label: selectedSkin });
+    projectOptions.push({
+      value: `project/${selectedSkin}`,
+      label: selectedSkin,
+    });
   }
   if (defaultNames.length) {
     skinGroups.push({
@@ -150,9 +180,14 @@ export default function WarriorSelector() {
   if (projectOptions.length) {
     skinGroups.push({ label: "Projects", options: projectOptions });
   }
-  skinGroups.push(...skinOptionGroups(actualModel, {
-    importedSkins, manifest, isManifestLoaded, alwaysShowCustom: selectedModelType === "player",
-  }));
+  skinGroups.push(
+    ...skinOptionGroups(actualModel, {
+      importedSkins,
+      manifest,
+      isManifestLoaded,
+      alwaysShowCustom: selectedModelType === "player",
+    }),
+  );
 
   return (
     <div className="Toolbar">
@@ -193,7 +228,16 @@ export default function WarriorSelector() {
         <label htmlFor="SkinSelect">
           Skin
           {pendingProject ? (
-            <span role="status" style={{ marginLeft: "0.5em", fontSize: "0.8em", textTransform: "none" }}>Loading…</span>
+            <span
+              role="status"
+              style={{
+                marginLeft: "0.5em",
+                fontSize: "0.8em",
+                textTransform: "none",
+              }}
+            >
+              Loading…
+            </span>
           ) : null}
         </label>
         <div className="Buttons">
@@ -204,11 +248,19 @@ export default function WarriorSelector() {
             value={skinSelectValue}
             onReselect={() => {
               cancelPendingProject();
-              if (selectedSkinType === "local" && selectedSkin && selectedSkin !== loadedLocalProject) {
+              if (
+                selectedSkinType === "local" &&
+                selectedSkin &&
+                selectedSkin !== loadedLocalProject
+              ) {
                 void openLocalProject(selectedSkin);
               }
             }}
-            selectedLabel={(selectedSkinType === "local" ? getLocalProject(selectedSkin)?.name : selectedSkin) ?? undefined}
+            selectedLabel={
+              (selectedSkinType === "local"
+                ? getLocalProject(selectedSkin)?.name
+                : selectedSkin) ?? undefined
+            }
             renderLabel={renderSkinLabel}
             options={skinGroups}
             onChange={(value) => {
@@ -251,7 +303,14 @@ export default function WarriorSelector() {
       {importError ? (
         <p role="alert">
           {importError}
-          {failedProject ? <button type="button" onClick={() => void openLocalProject(failedProject)}>Retry</button> : null}
+          {failedProject ? (
+            <button
+              type="button"
+              onClick={() => void openLocalProject(failedProject)}
+            >
+              Retry
+            </button>
+          ) : null}
         </p>
       ) : null}
       <div className="Field GalleryField">

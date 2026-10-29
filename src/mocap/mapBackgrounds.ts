@@ -29,9 +29,21 @@ export function mapImageUrl(mission: string, image: number) {
 export function parseMaps(json: unknown): MapEntry[] {
   if (!json || typeof json !== "object") return [];
   const maps = Object.values(json).flatMap((value: unknown) => {
-    const { missionName, displayName, imageCount } = (value ?? {}) as Record<string, unknown>;
-    if (typeof missionName !== "string" || !missionName || typeof imageCount !== "number" || imageCount < 1) return [];
-    const name = typeof displayName === "string" && displayName.trim() ? displayName.trim() : missionName;
+    const { missionName, displayName, imageCount } = (value ?? {}) as Record<
+      string,
+      unknown
+    >;
+    if (
+      typeof missionName !== "string" ||
+      !missionName ||
+      typeof imageCount !== "number" ||
+      imageCount < 1
+    )
+      return [];
+    const name =
+      typeof displayName === "string" && displayName.trim()
+        ? displayName.trim()
+        : missionName;
     return [{ mission: missionName, name, imageCount: Math.floor(imageCount) }];
   });
   const counts = new Map<string, number>();
@@ -42,7 +54,12 @@ export function parseMaps(json: unknown): MapEntry[] {
       label: (counts.get(name) ?? 0) > 1 ? `${name} (${mission})` : name,
       imageCount,
     }))
-    .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }));
+    .sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
+    );
 }
 
 let maps: Promise<MapEntry[]> | null = null;
@@ -52,7 +69,10 @@ let maps: Promise<MapEntry[]> | null = null;
 export function loadMaps(): Promise<MapEntry[]> {
   maps ??= fetch(MAPS_URL)
     .then((response) => {
-      if (!response.ok) throw new Error(`The map list could not load (HTTP ${response.status}).`);
+      if (!response.ok)
+        throw new Error(
+          `The map list could not load (HTTP ${response.status}).`,
+        );
       return response.json();
     })
     .then((json) => {
@@ -71,7 +91,10 @@ const images = new Map<string, Promise<HTMLImageElement | null>>();
 
 /** A screenshot, loaded so that a canvas it's drawn on can still be saved.
  * Null if it can't load; the next call tries again. */
-function loadMapImage(mission: string, image: number): Promise<HTMLImageElement | null> {
+function loadMapImage(
+  mission: string,
+  image: number,
+): Promise<HTMLImageElement | null> {
   const url = mapImageUrl(mission, image);
   let loading = images.get(url);
   if (!loading) {
@@ -80,29 +103,47 @@ function loadMapImage(mission: string, image: number): Promise<HTMLImageElement 
       return element;
     });
     images.set(url, loading);
-    if (images.size > IMAGE_CACHE_SIZE) images.delete(images.keys().next().value!);
+    if (images.size > IMAGE_CACHE_SIZE)
+      images.delete(images.keys().next().value!);
   }
   return loading;
 }
 
 /** A screenshot for each of `count` photos: the map's first ones in order,
  * starting over when it has fewer. Empty if none load in time. */
-export function loadMapPictures(mission: string, count: number): Promise<HTMLImageElement[]> {
+export function loadMapPictures(
+  mission: string,
+  count: number,
+): Promise<HTMLImageElement[]> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<HTMLImageElement[]>((resolve) => {
     timer = setTimeout(() => resolve([]), LOAD_SECONDS * 1000);
   });
-  return Promise.race([mapPictures(mission, count), late]).finally(() => clearTimeout(timer));
+  return Promise.race([mapPictures(mission, count), late]).finally(() =>
+    clearTimeout(timer),
+  );
 }
 
-async function mapPictures(mission: string, count: number): Promise<HTMLImageElement[]> {
+async function mapPictures(
+  mission: string,
+  count: number,
+): Promise<HTMLImageElement[]> {
   // Without the list, screenshots that don't exist fail to load and are
   // skipped.
-  const imageCount = await loadMaps().then((list) => list.find((map) => map.mission === mission)?.imageCount, () => undefined);
-  const numbers = Array.from({ length: Math.min(count, imageCount ?? count) }, (_, index) => index + 1);
-  const loaded = (await Promise.all(numbers.map((image) => loadMapImage(mission, image))))
-    .filter((image): image is HTMLImageElement => !!image);
-  return loaded.length ? Array.from({ length: count }, (_, index) => loaded[index % loaded.length]) : [];
+  const imageCount = await loadMaps().then(
+    (list) => list.find((map) => map.mission === mission)?.imageCount,
+    () => undefined,
+  );
+  const numbers = Array.from(
+    { length: Math.min(count, imageCount ?? count) },
+    (_, index) => index + 1,
+  );
+  const loaded = (
+    await Promise.all(numbers.map((image) => loadMapImage(mission, image)))
+  ).filter((image): image is HTMLImageElement => !!image);
+  return loaded.length
+    ? Array.from({ length: count }, (_, index) => loaded[index % loaded.length])
+    : [];
 }
 
 // The map chosen last, for Retake and later booths. Like the recordings, it

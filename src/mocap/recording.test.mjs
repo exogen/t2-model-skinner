@@ -3,20 +3,31 @@ import { Box3, Object3D, PerspectiveCamera, Quaternion, Vector3 } from "three";
 import { createPlayerRig } from "./rig";
 import { createPoseFraming } from "./cameraFraming";
 import {
-  applyRecording, createTake, formatTime, framableKeys, framingAt, MAX_RECORDING_SECONDS, MIN_KEY_INTERVAL, readPose,
+  applyRecording,
+  createTake,
+  formatTime,
+  framableKeys,
+  framingAt,
+  MAX_RECORDING_SECONDS,
+  MIN_KEY_INTERVAL,
+  readPose,
 } from "./recording";
 import { emptyPose, neutralBodyPose, settle } from "./handTestUtils.mjs";
 import { loadPlayer } from "./playerTestUtils.mjs";
 
 function bones(count = 2) {
-  return Array.from({ length: count }, (_, index) => Object.assign(new Object3D(), { name: `Bip01_${index}` }));
+  return Array.from({ length: count }, (_, index) =>
+    Object.assign(new Object3D(), { name: `Bip01_${index}` }),
+  );
 }
 
 const tPose = (bend = 0) => neutralBodyPose({ hands: false, bend });
 
 function expectRotations(nodes, expected, tolerance = 1e-6) {
   nodes.forEach((node, index) => {
-    expect(node.quaternion.angleTo(expected[index]), node.name).toBeLessThan(tolerance);
+    expect(node.quaternion.angleTo(expected[index]), node.name).toBeLessThan(
+      tolerance,
+    );
   });
 }
 
@@ -24,16 +35,21 @@ test("a take keys every 60 hz frame and at most one key per 1/80 s on faster dis
   const jittered = createTake(bones(), "lmale", { landmarks: [] });
   jittered.add(0, []);
   const deltas = [0.015, 0.018, 0.0166, 0.017, 0.0155];
-  for (let i = 0; i < 60; i++) expect(jittered.add(deltas[i % deltas.length], [])).toBe(true);
+  for (let i = 0; i < 60; i++)
+    expect(jittered.add(deltas[i % deltas.length], [])).toBe(true);
   expect(jittered.finish().times).toHaveLength(61);
 
-  for (const [rate, perSecond] of [[120, 60], [144, 72]]) {
+  for (const [rate, perSecond] of [
+    [120, 60],
+    [144, 72],
+  ]) {
     const take = createTake(bones(), "lmale", { landmarks: [] });
     take.add(0, []);
     for (let i = 0; i < rate; i++) take.add(1 / rate, []);
     const { times } = take.finish();
     expect(times).toHaveLength(perSecond + 1);
-    for (let i = 1; i < times.length; i++) expect(times[i] - times[i - 1]).toBeGreaterThan(MIN_KEY_INTERVAL - 1e-6);
+    for (let i = 1; i < times.length; i++)
+      expect(times[i] - times[i - 1]).toBeGreaterThan(MIN_KEY_INTERVAL - 1e-6);
   }
 });
 
@@ -60,7 +76,11 @@ test("a take refuses keys after sixty seconds and trims its buffers", () => {
   expect(recording.duration).toBeGreaterThan(MAX_RECORDING_SECONDS - 0.02);
   expect(recording.rotations).toHaveLength(keys * nodes.length * 4);
   expect(recording.framing).toHaveLength(keys * 22);
-  expect(recording).toMatchObject({ kind: "recording", model: "lmale", nodes: ["Bip01_0", "Bip01_1", "Bip01_2"] });
+  expect(recording).toMatchObject({
+    kind: "recording",
+    model: "lmale",
+    nodes: ["Bip01_0", "Bip01_1", "Bip01_2"],
+  });
 });
 
 test("the first key uses the seed framing when the live input is empty and hidden points stay missing", () => {
@@ -70,7 +90,11 @@ test("the first key uses the seed framing when the live input is empty and hidde
   const live = [];
   live[0] = { x: 0.5, y: 0.25, z: 0, visibility: 0.9 };
   live[23] = { x: 1.2, y: 0.5, z: 0, visibility: 1 };
-  const take = createTake(bones(), "lmale", { landmarks: seed, imageWidth: 640, imageHeight: 480 });
+  const take = createTake(bones(), "lmale", {
+    landmarks: seed,
+    imageWidth: 640,
+    imageHeight: 480,
+  });
   take.add(0, []);
   take.add(1 / 60, live, 1280, 720);
   const recording = take.finish();
@@ -82,7 +106,9 @@ test("the first key uses the seed framing when the live input is empty and hidde
   expect(second[0]).toEqual({ x: 0.5, y: 0.25, z: 0 });
   // The first image size seen is kept for the whole recording.
   expect([recording.imageWidth, recording.imageHeight]).toEqual([640, 480]);
-  expect(framingAt(readPose(bones(), "lmale", { landmarks: [] }), 0)).toEqual([]);
+  expect(framingAt(readPose(bones(), "lmale", { landmarks: [] }), 0)).toEqual(
+    [],
+  );
 });
 
 function torso(x) {
@@ -95,7 +121,11 @@ function torso(x) {
 test("the first key uses the seed whenever framing can't measure the live input", () => {
   const oneShoulder = [];
   oneShoulder[11] = { x: 0.2, y: 0.3, z: 0, visibility: 1 };
-  const take = createTake(bones(), "lmale", { landmarks: torso(0.6), imageWidth: 640, imageHeight: 480 });
+  const take = createTake(bones(), "lmale", {
+    landmarks: torso(0.6),
+    imageWidth: 640,
+    imageHeight: 480,
+  });
   take.add(0, oneShoulder, 1280, 720);
   take.add(1 / 60, oneShoulder, 1280, 720);
   const recording = take.finish();
@@ -111,7 +141,8 @@ test("each key knows the last key at or before it that framing can measure", () 
   face[2] = { x: 0.48, y: 0.2, z: 0, visibility: 1 };
   face[5] = { x: 0.52, y: 0.2, z: 0, visibility: 1 };
   const take = createTake(bones(), "lmale", { landmarks: [] });
-  for (const landmarks of [oneShoulder, torso(0.6), oneShoulder, face, []]) take.add(1 / 60, landmarks);
+  for (const landmarks of [oneShoulder, torso(0.6), oneShoulder, face, []])
+    take.add(1 / 60, landmarks);
   expect(Array.from(framableKeys(take.finish()))).toEqual([-1, 1, 1, 3, 3]);
 });
 
@@ -126,7 +157,11 @@ test("same-model playback restores sampled rotations and slerps between keys", a
   const second = rig.nodes.map((node) => node.quaternion.clone());
   take.add(0.5, []);
   const recording = take.finish();
-  expect(Math.max(...second.map((rotation, index) => rotation.angleTo(first[index])))).toBeGreaterThan(0.2);
+  expect(
+    Math.max(
+      ...second.map((rotation, index) => rotation.angleTo(first[index])),
+    ),
+  ).toBeGreaterThan(0.2);
 
   rig.reset();
   expect(applyRecording(recording, rig.nodes, 0)).toBe(0);
@@ -134,7 +169,12 @@ test("same-model playback restores sampled rotations and slerps between keys", a
   expect(applyRecording(recording, rig.nodes, 0.5)).toBe(1);
   expectRotations(rig.nodes, second);
   applyRecording(recording, rig.nodes, 0.25);
-  expectRotations(rig.nodes, first.map((rotation, index) => new Quaternion().slerpQuaternions(rotation, second[index], 0.5)));
+  expectRotations(
+    rig.nodes,
+    first.map((rotation, index) =>
+      new Quaternion().slerpQuaternions(rotation, second[index], 0.5),
+    ),
+  );
   // Times outside the recording hold its ends.
   applyRecording(recording, rig.nodes, 9);
   expectRotations(rig.nodes, second);
@@ -162,7 +202,9 @@ test("a pose applies its single key at any time", () => {
   for (const time of [0, 5, -1]) {
     target[0].quaternion.identity();
     expect(applyRecording(pose, target, time)).toBe(0);
-    expect(target[0].quaternion.angleTo(nodes[0].quaternion)).toBeLessThan(1e-6);
+    expect(target[0].quaternion.angleTo(nodes[0].quaternion)).toBeLessThan(
+      1e-6,
+    );
   }
 });
 
@@ -177,13 +219,26 @@ test("replayed framing input gives the same framed camera as live input", async 
   camera.lookAt(center);
   camera.updateWorldMatrix(true, false);
   const landmarks = emptyPose();
-  for (const [index, x, y] of [[0, 0.5, 0.2], [2, 0.52, 0.18], [5, 0.48, 0.18], [7, 0.54, 0.19], [8, 0.46, 0.19],
-    [11, 0.6, 0.32], [12, 0.4, 0.32], [23, 0.56, 0.62], [24, 0.44, 0.62]]) {
+  for (const [index, x, y] of [
+    [0, 0.5, 0.2],
+    [2, 0.52, 0.18],
+    [5, 0.48, 0.18],
+    [7, 0.54, 0.19],
+    [8, 0.46, 0.19],
+    [11, 0.6, 0.32],
+    [12, 0.4, 0.32],
+    [23, 0.56, 0.62],
+    [24, 0.44, 0.62],
+  ]) {
     landmarks[index] = { x, y, z: 0.1, visibility: 0.9, presence: 0.95 };
   }
   const live = createPoseFraming(scene);
   live.setInput(landmarks, 640, 480);
-  const pose = readPose(rig.nodes, "lmale", { landmarks, imageWidth: 640, imageHeight: 480 });
+  const pose = readPose(rig.nodes, "lmale", {
+    landmarks,
+    imageWidth: 640,
+    imageHeight: 480,
+  });
   const replay = createPoseFraming(scene);
   replay.setInput(framingAt(pose, 0), pose.imageWidth, pose.imageHeight);
   const expected = live.update(camera, 1 / 60);

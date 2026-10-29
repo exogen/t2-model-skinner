@@ -74,15 +74,20 @@ export default function Select({
   const deferredOpen = useDeferredValue(isOpen);
   const showOptions = deferredOpen || !searchable;
   const allOptions = useMemo(
-    () => options.flatMap((option) => "options" in option ? option.options : [option]),
+    () =>
+      options.flatMap((option) =>
+        "options" in option ? option.options : [option],
+      ),
     [options],
   );
   const matches = useMemo(
     () => new Set(matchSorter(allOptions, search, { keys: ["label"] })),
     [allOptions, search],
   );
-  const label = allOptions.find((option) => option.value === value)?.label
-    ?? selectedLabel ?? value;
+  const label =
+    allOptions.find((option) => option.value === value)?.label ??
+    selectedLabel ??
+    value;
 
   const renderOption = (option: SelectOption) => (
     <Option
@@ -118,7 +123,9 @@ export default function Select({
           if (event.key !== "Escape") event.stopPropagation();
         }}
       >
-        <span className={styles.Value}>{renderLabel ? renderLabel(label, value) : label}</span>
+        <span className={styles.Value}>
+          {renderLabel ? renderLabel(label, value) : label}
+        </span>
         <ComboboxSelectArrow className={styles.Arrow} />
       </ComboboxSelect>
       <ComboboxPopover
@@ -149,22 +156,28 @@ export default function Select({
           </div>
         ) : null}
         <ComboboxList className={styles.List}>
-          {showOptions ? options.map((option) => {
-            if (!("options" in option)) {
-              return matches.has(option) ? renderOption(option) : null;
-            }
-            const items = option.options.filter((item) => matches.has(item));
-            return items.length ? (
-              <ComboboxGroup key={option.label} className={styles.Group}>
-                <ComboboxGroupLabel className={styles.GroupLabel}>
-                  {option.label}
-                </ComboboxGroupLabel>
-                {items.map(renderOption)}
-              </ComboboxGroup>
-            ) : null;
-          }) : null}
+          {showOptions
+            ? options.map((option) => {
+                if (!("options" in option)) {
+                  return matches.has(option) ? renderOption(option) : null;
+                }
+                const items = option.options.filter((item) =>
+                  matches.has(item),
+                );
+                return items.length ? (
+                  <ComboboxGroup key={option.label} className={styles.Group}>
+                    <ComboboxGroupLabel className={styles.GroupLabel}>
+                      {option.label}
+                    </ComboboxGroupLabel>
+                    {items.map(renderOption)}
+                  </ComboboxGroup>
+                ) : null;
+              })
+            : null}
           {showOptions && !matches.size ? (
-            <div className={styles.Empty} role="status">No matches found</div>
+            <div className={styles.Empty} role="status">
+              No matches found
+            </div>
           ) : null}
         </ComboboxList>
       </ComboboxPopover>
@@ -180,7 +193,12 @@ type OptionProps = {
 };
 
 // Memoized, so typing a search re-renders only the options it adds or removes.
-const Option = memo(function Option({ option, selected, renderLabel, onReselect }: OptionProps) {
+const Option = memo(function Option({
+  option,
+  selected,
+  renderLabel,
+  onReselect,
+}: OptionProps) {
   return (
     <ComboboxItem
       value={option.value}
@@ -192,7 +210,9 @@ const Option = memo(function Option({ option, selected, renderLabel, onReselect 
       }}
     >
       <ComboboxItemCheck className={styles.Check} />
-      <span>{renderLabel ? renderLabel(option.label, option.value) : option.label}</span>
+      <span>
+        {renderLabel ? renderLabel(option.label, option.value) : option.label}
+      </span>
     </ComboboxItem>
   );
 });

@@ -48,13 +48,11 @@ const copyOffset = 20;
 function requireReadyCanvas(info: CanvasInfo | undefined) {
   if (info?.status === "error") {
     throw new Error(
-      "A texture failed to load. Reload the skin before exporting."
+      "A texture failed to load. Reload the skin before exporting.",
     );
   }
   if (!info || info.status !== "ready" || info.canvas.disposed) {
-    throw new Error(
-      "Wait for all textures to finish loading before exporting"
-    );
+    throw new Error("Wait for all textures to finish loading before exporting");
   }
   return info.canvas;
 }
@@ -87,15 +85,13 @@ function setObjectLocked(object: FabricObject, locked: boolean) {
 
 // Determines if a material is editable based on its properties.
 function isEditableMaterial(material: MaterialDefinition | null | undefined) {
-  return Boolean(
-    material && material.selectable !== false && !material.hidden
-  );
+  return Boolean(material && material.selectable !== false && !material.hidden);
 }
 
 function getExportCanvases(
   materialDefs: MaterialDefinition[],
   canvases: Record<string, CanvasInfo>,
-  sizeMultiplier: number
+  sizeMultiplier: number,
 ) {
   return materialDefs.flatMap((material) => {
     const [width, height] = material.size ?? defaultTextureSize;
@@ -111,16 +107,16 @@ function getExportCanvases(
         frameIndex,
         textureSize,
         colorCanvas: requireReadyCanvas(
-          canvases[`${material.name}:color:${frameIndex}:${sizeMultiplier}`]
+          canvases[`${material.name}:color:${frameIndex}:${sizeMultiplier}`],
         ),
         metallicCanvas: hasMetallicMap(material)
           ? requireReadyCanvas(
               canvases[
                 `${material.name}:metallic:${frameIndex}:${sizeMultiplier}`
-              ]
+              ],
             )
           : null,
-      })
+      }),
     );
   });
 }
@@ -182,7 +178,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const baseSize = materialDef.size ?? defaultTextureSize;
   const textureSize: [number, number] = useMemo(
     () => [baseSize[0] * sizeMultiplier, baseSize[1] * sizeMultiplier],
-    [baseSize, sizeMultiplier]
+    [baseSize, sizeMultiplier],
   );
 
   const hasMetallic = hasMetallicMap(materialDef);
@@ -203,7 +199,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
 
   const [, updateFilterControls] = useState(0);
   const [selectedObjects, setSelectedObjects] = useState<FabricObject[]>(
-    () => []
+    () => [],
   );
 
   const activeCanvas = materialDef
@@ -257,7 +253,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
                   ? new filters.Brightness({ brightness: value })
                   : new filters.Contrast({ contrast: value });
           const index = object.filters.findIndex(
-            (existing) => existing.type === name
+            (existing) => existing.type === name,
           );
           // Replace in place: filter order is part of the image's appearance.
           if (index < 0) object.filters.push(filter);
@@ -268,11 +264,11 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       updateFilterControls((revision) => revision + 1);
       notifyChange?.();
     },
-    [canvas, status, layerMode, selectedObjects, notifyChange]
+    [canvas, status, layerMode, selectedObjects, notifyChange],
   );
 
   const getFilter = (
-    name: keyof ObjectFilters
+    name: keyof ObjectFilters,
   ): [number | null, (value: number) => void] => {
     const defaultValue = name === "Opacity" ? 1 : 0;
     let applyObjects = selectedObjects;
@@ -282,7 +278,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       applyObjects = canvas?.getObjects().slice(0, 1) ?? [];
     }
     applyObjects = applyObjects.filter(
-      (object) => object instanceof FabricImage
+      (object) => object instanceof FabricImage,
     );
     if (applyObjects.length) {
       const getValue = (i: number) =>
@@ -314,15 +310,15 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       updateFilterControls((revision) => revision + 1);
       notifyChange();
     },
-    [canvas, status, selectedObjects, notifyChange]
+    [canvas, status, selectedObjects, notifyChange],
   );
   const lockSelection = useCallback(
     () => setSelectionLocked(true),
-    [setSelectionLocked]
+    [setSelectionLocked],
   );
   const unlockSelection = useCallback(
     () => setSelectionLocked(false),
-    [setSelectionLocked]
+    [setSelectionLocked],
   );
 
   const bringForward = useCallback(() => {
@@ -370,7 +366,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
               const scale = Math.min(
                 1,
                 textureSize[0] / image.width,
-                textureSize[1] / image.height
+                textureSize[1] / image.height,
               );
               image.set({ scaleX: scale, scaleY: scale });
               if (activeCanvasType === "metallic") makeGrayscale(image);
@@ -385,11 +381,10 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
           if (metallicCanvas) setDrawingMode(false);
           images.forEach((image) => canvas.centerObject(image));
           canvas.add(...images);
-          if (images.length)
-            canvas.setActiveObject(images[images.length - 1]);
+          if (images.length) canvas.setActiveObject(images[images.length - 1]);
           canvas.requestRenderAll();
         },
-        (images) => images.forEach((image) => image.dispose())
+        (images) => images.forEach((image) => image.dispose()),
       );
     },
     [
@@ -400,7 +395,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       activeCanvasType,
       metallicCanvas,
       setDrawingMode,
-    ]
+    ],
   );
 
   const duplicate = useCallback(async () => {
@@ -426,7 +421,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         canvas.setActiveObject(copy);
         notifyChange();
       },
-      (copy) => copy.dispose()
+      (copy) => copy.dispose(),
     );
   }, [canvas, status, runTask, notifyChange]);
 
@@ -449,7 +444,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         .getActiveObjects()
         .filter(
           (object) =>
-            object.selectable !== false && !(cut && isLockedObject(object))
+            object.selectable !== false && !(cut && isLockedObject(object)),
         )
         .sort((a, b) => order.indexOf(a) - order.indexOf(b));
       if (!objects.length) return null;
@@ -464,7 +459,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       if (cut) removeObjects(canvas, objects);
       return { id: clip.id, image };
     },
-    [canvas, status, clipboard, sizeMultiplier, baseSize]
+    [canvas, status, clipboard, sizeMultiplier, baseSize],
   );
 
   const pasteSelection = useCallback(async () => {
@@ -504,7 +499,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
           const scale = Math.min(
             sizeMultiplier / clip.sizeMultiplier,
             textureSize[0] / bounds.width,
-            textureSize[1] / bounds.height
+            textureSize[1] / bounds.height,
           );
           const center = [
             canvasPadding + textureSize[0] / 2 + offset,
@@ -537,11 +532,11 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         canvas.setActiveObject(
           objects.length > 1
             ? new ActiveSelection(objects, { canvas })
-            : objects[0]
+            : objects[0],
         );
         canvas.requestRenderAll();
       },
-      (objects) => objects.forEach((object) => object.dispose())
+      (objects) => objects.forEach((object) => object.dispose()),
     );
   }, [
     canvas,
@@ -586,7 +581,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
         setDrawingMode(false);
         setActiveCanvasType("metallic");
       },
-      (image) => image.dispose()
+      (image) => image.dispose(),
     );
   }, [
     activeCanvasType,
@@ -603,13 +598,13 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
   const exportSkin = useCallback(
     async ({ format, name = "" }: { format: string; name: string }) => {
       const selectedMaterials = materialDefs.filter(
-        (_, index) => selectedExportMaterials[index] !== false
+        (_, index) => selectedExportMaterials[index] !== false,
       );
       // Capture every canvas before importing the encoder or starting a worker.
       const snapshots = getExportCanvases(
         selectedMaterials,
         canvases,
-        sizeMultiplier
+        sizeMultiplier,
       ).map(
         ({
           material,
@@ -632,13 +627,13 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
             colorImageUrl: colorCanvas.toDataURL(options),
             metallicImageUrl: metallicCanvas?.toDataURL(options),
           };
-        }
+        },
       );
       const { exportSkinTextures } = await import("./exportUtils");
       await exportSkinTextures(
         snapshots,
         { format, name, model: actualModel, sizeMultiplier },
-        combineColorAndAlphaImageUrls
+        combineColorAndAlphaImageUrls,
       );
     },
     [
@@ -649,18 +644,14 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       canvasPadding,
       actualModel,
       combineColorAndAlphaImageUrls,
-    ]
+    ],
   );
 
   const exportSkinProject = useCallback(
     async (name: string) => {
       // Project saves include fixed materials and every frame; material selection
       // applies only to texture exports.
-      const inputs = getExportCanvases(
-        materialDefs,
-        canvases,
-        sizeMultiplier
-      );
+      const inputs = getExportCanvases(materialDefs, canvases, sizeMultiplier);
       if (!inputs.length) return;
       name = name.trim() || "MyCustomSkin";
       const snapshot = captureSkinProject(inputs, selectedModel, name);
@@ -668,7 +659,7 @@ export default function ToolsProvider({ children }: { children: ReactNode }) {
       const zip = await createSkinProjectZip(snapshot);
       await saveZipFile(zip, `${name}.skin`);
     },
-    [materialDefs, canvases, sizeMultiplier, selectedModel]
+    [materialDefs, canvases, sizeMultiplier, selectedModel],
   );
 
   const context = {

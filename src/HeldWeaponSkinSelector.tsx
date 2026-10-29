@@ -7,7 +7,11 @@ import { skinOptionGroups } from "./skinOptions";
 // The chosen skin's name, even before the skin lists have loaded.
 function skinLabel(skin: string | null) {
   const name = skin?.slice(skin.indexOf("/") + 1);
-  return !name ? "Default" : name === "__untitled__" ? "Untitled Imported Skin" : name;
+  return !name
+    ? "Default"
+    : name === "__untitled__"
+      ? "Untitled Imported Skin"
+      : name;
 }
 
 export default function HeldWeaponSkinSelector({ weapon }: { weapon: string }) {
@@ -27,7 +31,12 @@ export default function HeldWeaponSkinSelector({ weapon }: { weapon: string }) {
         onChange={(value) => setHeldWeaponSkin(value || null)}
         options={[
           { value: "", label: "Default" },
-          ...skinOptionGroups(weapon, { importedSkins, manifest, isManifestLoaded, alwaysShowCustom: true }),
+          ...skinOptionGroups(weapon, {
+            importedSkins,
+            manifest,
+            isManifestLoaded,
+            alwaysShowCustom: true,
+          }),
         ]}
       />
     </>

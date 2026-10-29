@@ -1,12 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getEnv } from "fabric";
-import {
-  act,
-  canvas,
-  editor,
-  image,
-  input,
-} from "./skinProjectTestUtils.mjs";
+import { act, canvas, editor, image, input } from "./skinProjectTestUtils.mjs";
 import { captureSkinProject, createSkinProjectZip } from "./skinProjectUtils";
 
 const catalog = vi.hoisted(() => [
@@ -32,17 +26,20 @@ function response(bytes) {
   return {
     ok: true,
     status: 200,
-    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    arrayBuffer: async () =>
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   };
 }
 
 function projectFetch(handler) {
   const fetch = globalThis.fetch;
-  return vi.spyOn(globalThis, "fetch").mockImplementation((url, options) =>
-    String(url).startsWith("/t2-model-skinner/projects/")
-      ? handler(String(url), options)
-      : fetch(url, options)
-  );
+  return vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation((url, options) =>
+      String(url).startsWith("/t2-model-skinner/projects/")
+        ? handler(String(url), options)
+        : fetch(url, options),
+    );
 }
 
 function currentCanvas(app) {
@@ -52,8 +49,14 @@ function currentCanvas(app) {
 test("a local project keeps its filename identity, document name, HD size, and edits across unrelated updates", async () => {
   const source = canvas();
   source.add(image({ left: 864 }));
-  const project = captureSkinProject([input("base", source, null, [1024, 1024])], "mfemale", "Document Name");
-  const bytes = await (await createSkinProjectZip(project)).generateAsync({ type: "nodebuffer" });
+  const project = captureSkinProject(
+    [input("base", source, null, [1024, 1024])],
+    "mfemale",
+    "Document Name",
+  );
+  const bytes = await (
+    await createSkinProjectZip(project)
+  ).generateAsync({ type: "nodebuffer" });
   const fetch = projectFetch(async () => response(bytes));
   const app = await editor();
   try {
@@ -69,7 +72,7 @@ test("a local project keeps its filename identity, document name, HD size, and e
     expect(currentCanvas(app).item(0).left).toBe(864);
     expect(fetch).toHaveBeenCalledExactlyOnceWith(
       "/t2-model-skinner/projects/sets/A%20%2B%20%2350%25%20%F0%9F%8D%82.skin",
-      { signal: expect.any(globalThis.AbortSignal) }
+      { signal: expect.any(globalThis.AbortSignal) },
     );
     const opened = currentCanvas(app);
     const added = image({ left: 456 });
@@ -103,7 +106,9 @@ test("an unknown project filename is rejected before fetching", async () => {
   try {
     const before = currentCanvas(app);
     await act(async () => {
-      await expect(app.tools.loadLocalProject("../unknown.skin")).rejects.toThrow("no longer available");
+      await expect(
+        app.tools.loadLocalProject("../unknown.skin"),
+      ).rejects.toThrow("no longer available");
     });
     expect(fetch).not.toHaveBeenCalled();
     expect(currentCanvas(app)).toBe(before);

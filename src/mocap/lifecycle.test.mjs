@@ -3,14 +3,24 @@ import { afterEach, expect, test, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { getEnv } from "fabric";
-import { AnimationMixer, PerspectiveCamera, Quaternion, Scene, Vector3 } from "three";
+import {
+  AnimationMixer,
+  PerspectiveCamera,
+  Quaternion,
+  Scene,
+  Vector3,
+} from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import Viewer from "../Viewer";
 import { ModelViewerContext } from "../useModelViewer";
 import MocapPose from "./MocapPose";
 import { createPlayerRig } from "./rig";
 import { createPoseFraming } from "./cameraFraming";
-import { framingLandmarks, mirrorPoseLandmarks, mirrorTrackedHands } from "./mirrorPose";
+import {
+  framingLandmarks,
+  mirrorPoseLandmarks,
+  mirrorTrackedHands,
+} from "./mirrorPose";
 import { loadPlayer } from "./playerTestUtils.mjs";
 import { idleRecorder } from "./recorderTestUtils";
 import { createTake, framingAt } from "./recording";
@@ -27,13 +37,26 @@ function viewerHarness(gltf = null, runtime = poseRuntime) {
   const callbacks = new Set();
   const poseCallbacks = new Set();
   Object.assign(viewer, {
-    scene: new Scene(), camera: new PerspectiveCamera(),
+    scene: new Scene(),
+    camera: new PerspectiveCamera(),
     controls: { target: new Vector3(), update: vi.fn() },
-    model: gltf, rig: gltf && runtime ? runtime.createPlayerRig(gltf.scene) : null, poseRuntime: runtime,
+    model: gltf,
+    rig: gltf && runtime ? runtime.createPlayerRig(gltf.scene) : null,
+    poseRuntime: runtime,
     mixer: gltf ? new AnimationMixer(gltf.scene) : null,
-    action: null, poseAnimationTime: 0, posing: false, paused: false, originalTextures: new Set(), renderMode: "skin", randomColorGeometries: new Map(),
-    playbackSpeed: 1, disposed: false, modelGeneration: 0,
-    invalidate: vi.fn(), resetCamera: vi.fn(), fitModel: vi.fn(),
+    action: null,
+    poseAnimationTime: 0,
+    posing: false,
+    paused: false,
+    originalTextures: new Set(),
+    renderMode: "skin",
+    randomColorGeometries: new Map(),
+    playbackSpeed: 1,
+    disposed: false,
+    modelGeneration: 0,
+    invalidate: vi.fn(),
+    resetCamera: vi.fn(),
+    fitModel: vi.fn(),
     subscribeFrame(callback) {
       callbacks.add(callback);
       return () => callbacks.delete(callback);
@@ -49,15 +72,33 @@ function viewerHarness(gltf = null, runtime = poseRuntime) {
 
 function transforms(scene) {
   const result = [];
-  scene.traverse((node) => result.push([node, node.position.clone(), node.quaternion.clone(), node.scale.clone()]));
+  scene.traverse((node) =>
+    result.push([
+      node,
+      node.position.clone(),
+      node.quaternion.clone(),
+      node.scale.clone(),
+    ]),
+  );
   return result;
 }
 
 function expectTransforms(expected) {
   for (const [node, position, quaternion, scale] of expected) {
-    expect(node.position.distanceTo(position), `${node.name} position`).toBeLessThan(1e-9);
-    expect(node.quaternion.clone().normalize().angleTo(quaternion.clone().normalize()), `${node.name} rotation`).toBeLessThan(1e-6);
-    expect(node.scale.distanceTo(scale), `${node.name} scale`).toBeLessThan(1e-9);
+    expect(
+      node.position.distanceTo(position),
+      `${node.name} position`,
+    ).toBeLessThan(1e-9);
+    expect(
+      node.quaternion
+        .clone()
+        .normalize()
+        .angleTo(quaternion.clone().normalize()),
+      `${node.name} rotation`,
+    ).toBeLessThan(1e-6);
+    expect(node.scale.distanceTo(scale), `${node.name} scale`).toBeLessThan(
+      1e-9,
+    );
   }
 }
 
@@ -72,28 +113,35 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-test.each(["lmale", "hmale", "lfemale", "hbioderm"])("%s resumes the same animation time and pose after live posing", async (name) => {
-  const gltf = await loadPlayer(name, true);
-  const { viewer } = viewerHarness(gltf);
-  const rest = transforms(gltf.scene);
-  const clip = gltf.animations.find((clip) => clip.name === "Forward");
-  viewer.setAnimation(clip.name, false, 0.5);
-  viewer.mixer.update(clip.duration * 0.37);
-  const time = viewer.action.time;
-  const animated = transforms(gltf.scene);
-  expect(animated.some(([node, position], i) => position.distanceTo(rest[i][1]) > 1e-7)).toBe(true);
-  viewer.setPoseMode(true);
-  expectTransforms(rest);
-  expect(viewer.action.isRunning()).toBe(false);
-  const pelvis = gltf.scene.getObjectByName("Bip01_Pelvis");
-  pelvis.quaternion.setFromAxisAngle({ x: 0, y: 1, z: 0 }, 1);
-  viewer.setPoseMode(false);
-  expect(viewer.action.time).toBeCloseTo(time, 10);
-  expect(viewer.action.isRunning()).toBe(true);
-  expectTransforms(animated);
-  viewer.mixer.update(0.01);
-  expect(viewer.action.time).toBeCloseTo(time + 0.01, 10);
-});
+test.each(["lmale", "hmale", "lfemale", "hbioderm"])(
+  "%s resumes the same animation time and pose after live posing",
+  async (name) => {
+    const gltf = await loadPlayer(name, true);
+    const { viewer } = viewerHarness(gltf);
+    const rest = transforms(gltf.scene);
+    const clip = gltf.animations.find((clip) => clip.name === "Forward");
+    viewer.setAnimation(clip.name, false, 0.5);
+    viewer.mixer.update(clip.duration * 0.37);
+    const time = viewer.action.time;
+    const animated = transforms(gltf.scene);
+    expect(
+      animated.some(
+        ([node, position], i) => position.distanceTo(rest[i][1]) > 1e-7,
+      ),
+    ).toBe(true);
+    viewer.setPoseMode(true);
+    expectTransforms(rest);
+    expect(viewer.action.isRunning()).toBe(false);
+    const pelvis = gltf.scene.getObjectByName("Bip01_Pelvis");
+    pelvis.quaternion.setFromAxisAngle({ x: 0, y: 1, z: 0 }, 1);
+    viewer.setPoseMode(false);
+    expect(viewer.action.time).toBeCloseTo(time, 10);
+    expect(viewer.action.isRunning()).toBe(true);
+    expectTransforms(animated);
+    viewer.mixer.update(0.01);
+    expect(viewer.action.time).toBeCloseTo(time + 0.01, 10);
+  },
+);
 
 test("a paused animation remains paused at the saved time when live posing stops", async () => {
   const gltf = await loadPlayer("lmale", true);
@@ -110,8 +158,13 @@ test("a paused animation remains paused at the saved time when live posing stops
   expectTransforms(pose);
 });
 
-test.each(["lmale", "hbioderm"].flatMap((model) => [false, true].map((paused) => [model, paused])))(
-  "%s binds its exported rest pose lazily without changing an existing animation (paused=%s)", async (name, paused) => {
+test.each(
+  ["lmale", "hbioderm"].flatMap((model) =>
+    [false, true].map((paused) => [model, paused]),
+  ),
+)(
+  "%s binds its exported rest pose lazily without changing an existing animation (paused=%s)",
+  async (name, paused) => {
     const gltf = await loadPlayer(name, true);
     const rest = transforms(gltf.scene);
     const { viewer } = viewerHarness(gltf, null);
@@ -144,8 +197,13 @@ test("ordinary model loading does not create a rig, and a runtime arriving durin
   const second = await loadPlayer("hbioderm", true);
   const { viewer } = viewerHarness(null, null);
   let resolve;
-  vi.spyOn(GLTFLoader.prototype, "loadAsync").mockResolvedValueOnce(first)
-    .mockReturnValueOnce(new Promise((ready) => { resolve = ready; }));
+  vi.spyOn(GLTFLoader.prototype, "loadAsync")
+    .mockResolvedValueOnce(first)
+    .mockReturnValueOnce(
+      new Promise((ready) => {
+        resolve = ready;
+      }),
+    );
   const loaded = await viewer.load("/lmale.anim.glb", {});
   expect(loaded.rig).toBeNull();
   expect(viewer.rig).toBeNull();
@@ -160,7 +218,10 @@ test("ordinary model loading does not create a rig, and a runtime arriving durin
   expect(next.rig).not.toBeNull();
   expect(next.rig).not.toBe(firstRig);
   expect(viewer.setPoseRuntime(runtime)).toBe(next.rig);
-  expect(bind.mock.calls.map(([scene]) => scene)).toEqual([first.scene, second.scene]);
+  expect(bind.mock.calls.map(([scene]) => scene)).toEqual([
+    first.scene,
+    second.scene,
+  ]);
 });
 
 test("a model load canceled before lazy runtime installation cannot create a stale rig", async () => {
@@ -169,7 +230,11 @@ test("a model load canceled before lazy runtime installation cannot create a sta
   const { viewer } = viewerHarness(null, null);
   let resolve;
   vi.spyOn(GLTFLoader.prototype, "loadAsync")
-    .mockReturnValueOnce(new Promise((ready) => { resolve = ready; }))
+    .mockReturnValueOnce(
+      new Promise((ready) => {
+        resolve = ready;
+      }),
+    )
     .mockResolvedValueOnce(current);
   const pending = viewer.load("/lmale.glb", {});
   viewer.cancelLoad();
@@ -213,13 +278,21 @@ test("player meshes keep culling disabled outside mocap because animation bounds
   vi.spyOn(GLTFLoader.prototype, "loadAsync").mockResolvedValueOnce(gltf);
   await viewer.load("/lmale.anim.glb", {});
   const meshes = [];
-  gltf.scene.traverse((node) => { if (node.isSkinnedMesh) meshes.push(node); });
+  gltf.scene.traverse((node) => {
+    if (node.isSkinnedMesh) meshes.push(node);
+  });
   expect(meshes.length).toBeGreaterThan(0);
   for (const mesh of meshes) expect(mesh.frustumCulled, mesh.name).toBe(false);
 });
 
 async function mountPose(context, active = true) {
-  fixture.mocap ??= { active, tracking: { latestPose: { current: null }, settings: { smoothing: "classic" } } };
+  fixture.mocap ??= {
+    active,
+    tracking: {
+      latestPose: { current: null },
+      settings: { smoothing: "classic" },
+    },
+  };
   fixture.mocap.active = active;
   fixture.mocap.tracking.recorder ??= idleRecorder();
   if (!reactRoot) {
@@ -227,9 +300,15 @@ async function mountPose(context, active = true) {
     document.body.appendChild(host);
     reactRoot = createRoot(host);
   }
-  await act(async () => reactRoot.render(React.createElement(
-    ModelViewerContext.Provider, { value: context }, React.createElement(MocapPose),
-  )));
+  await act(async () =>
+    reactRoot.render(
+      React.createElement(
+        ModelViewerContext.Provider,
+        { value: context },
+        React.createElement(MocapPose),
+      ),
+    ),
+  );
 }
 
 test("pose subscriptions are replaced when the scene changes and removed when mocap stops", async () => {
@@ -240,10 +319,20 @@ test("pose subscriptions are replaced when the scene changes and removed when mo
   const secondRig = createPlayerRig(second.scene);
   const resetFirst = vi.spyOn(firstRig, "reset");
   const resetSecond = vi.spyOn(secondRig, "reset");
-  await mountPose({ viewer, scene: first.scene, rig: firstRig, model: { materials: [] } });
+  await mountPose({
+    viewer,
+    scene: first.scene,
+    rig: firstRig,
+    model: { materials: [] },
+  });
   expect(callbacks.size).toBe(1);
   expect(poseCallbacks.size).toBe(1);
-  const secondContext = { viewer, scene: second.scene, rig: secondRig, model: { materials: [] } };
+  const secondContext = {
+    viewer,
+    scene: second.scene,
+    rig: secondRig,
+    model: { materials: [] },
+  };
   await mountPose(secondContext);
   expect(callbacks.size).toBe(1);
   expect(poseCallbacks.size).toBe(1);
@@ -258,13 +347,33 @@ test("inference stalls return the avatar toward rest rather than repeating an ol
   const gltf = await loadPlayer("lmale");
   const { viewer, callbacks } = viewerHarness(gltf);
   const apply = vi.spyOn(viewer.rig, "applyPose");
-  fixture.mocap = { active: true, tracking: { settings: { smoothing: "classic" }, latestPose: { current: {
-    worldLandmarks: [{ x: 1, y: 2, z: 3 }], timestamp: performance.now(),
-  } } } };
-  await mountPose({ viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } });
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: {
+        current: {
+          worldLandmarks: [{ x: 1, y: 2, z: 3 }],
+          timestamp: performance.now(),
+        },
+      },
+    },
+  };
+  await mountPose({
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  });
   for (const frame of callbacks) frame(1 / 60);
-  expect(apply).toHaveBeenLastCalledWith(mirrorPoseLandmarks(fixture.mocap.tracking.latestPose.current.worldLandmarks), 1 / 60,
-    fixture.mocap.tracking.latestPose.current.timestamp, []);
+  expect(apply).toHaveBeenLastCalledWith(
+    mirrorPoseLandmarks(
+      fixture.mocap.tracking.latestPose.current.worldLandmarks,
+    ),
+    1 / 60,
+    fixture.mocap.tracking.latestPose.current.timestamp,
+    [],
+  );
   fixture.mocap.tracking.latestPose.current.timestamp -= 1000;
   for (const frame of callbacks) frame(1 / 60);
   expect(apply).toHaveBeenLastCalledWith([], 1 / 60, undefined, []);
@@ -277,19 +386,45 @@ test("hands-only input reaches the base pose and runs fallback with each final r
   const fallback = vi.fn();
   viewer.rig.applyHandFallback = fallback;
   const hand = {
-    side: "left", confidence: 0.95,
+    side: "left",
+    confidence: 0.95,
     landmarks: Array.from({ length: 21 }, () => ({ x: 0.25, y: 0.4, z: 0 })),
-    worldLandmarks: Array.from({ length: 21 }, () => ({ x: 0.1, y: 0.2, z: 0.3 })),
+    worldLandmarks: Array.from({ length: 21 }, () => ({
+      x: 0.1,
+      y: 0.2,
+      z: 0.3,
+    })),
   };
-  const pose = { landmarks: [], worldLandmarks: [], hands: [hand], timestamp: performance.now(), imageWidth: 640, imageHeight: 480 };
-  fixture.mocap = { active: true, tracking: {
-    settings: { smoothing: "classic" }, latestPose: { current: pose },
-  } };
-  const context = { viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } };
+  const pose = {
+    landmarks: [],
+    worldLandmarks: [],
+    hands: [hand],
+    timestamp: performance.now(),
+    imageWidth: 640,
+    imageHeight: 480,
+  };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: pose },
+    },
+  };
+  const context = {
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  };
   await mountPose(context);
   const renderCamera = new PerspectiveCamera(35, 0.75);
   for (const frame of callbacks) frame(1 / 60);
-  expect(apply).toHaveBeenLastCalledWith([], 1 / 60, pose.timestamp, mirrorTrackedHands([hand]));
+  expect(apply).toHaveBeenLastCalledWith(
+    [],
+    1 / 60,
+    pose.timestamp,
+    mirrorTrackedHands([hand]),
+  );
   for (const frame of poseCallbacks) frame(1 / 60, renderCamera, 4 / 3);
   expect(fallback).toHaveBeenLastCalledWith(renderCamera, 4 / 3, 1 / 60);
   renderCamera.zoom = 2;
@@ -310,14 +445,34 @@ test("camera image landmarks and dimensions reach framing, stale input clears, a
   const { viewer, callbacks } = viewerHarness(gltf);
   const move = vi.spyOn(viewer, "setPoseFraming").mockImplementation(() => {});
   const reset = vi.spyOn(viewer, "resetPoseFraming");
-  const landmarks = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: 0 }));
+  const landmarks = Array.from({ length: 33 }, () => ({
+    x: 0,
+    y: 0,
+    z: 0,
+    visibility: 0,
+  }));
   landmarks[23] = { x: 0.7, y: 0.6, z: 0, visibility: 1 };
   landmarks[24] = { x: 0.8, y: 0.6, z: 0, visibility: 1 };
-  const pose = { landmarks, worldLandmarks: [], timestamp: performance.now(), imageWidth: 640, imageHeight: 480 };
-  fixture.mocap = { active: true, tracking: {
-    settings: { smoothing: "classic" }, latestPose: { current: pose },
-  } };
-  const context = { viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } };
+  const pose = {
+    landmarks,
+    worldLandmarks: [],
+    timestamp: performance.now(),
+    imageWidth: 640,
+    imageHeight: 480,
+  };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: pose },
+    },
+  };
+  const context = {
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  };
   await mountPose(context);
   for (const frame of callbacks) frame(0.1);
   expect(move).toHaveBeenLastCalledWith(framingLandmarks(pose), 640, 480);
@@ -336,8 +491,19 @@ test("camera image landmarks and dimensions reach framing, stale input clears, a
 test("changing smoothing updates the rig without resetting the pose or replacing its frame subscription", async () => {
   const gltf = await loadPlayer("lmale");
   const { viewer, callbacks } = viewerHarness(gltf);
-  const context = { viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } };
-  fixture.mocap = { active: true, tracking: { settings: { smoothing: "classic" }, latestPose: { current: null } } };
+  const context = {
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: null },
+    },
+  };
   const setSmoothing = vi.spyOn(viewer.rig, "setSmoothing");
   const reset = vi.spyOn(viewer.rig, "reset");
   await mountPose(context);
@@ -354,13 +520,31 @@ test("the rig displays newly arrived slow inference using its original capture t
   const { viewer, callbacks } = viewerHarness(gltf);
   const apply = vi.spyOn(viewer.rig, "applyPose");
   const now = performance.now();
-  const pose = { worldLandmarks: [{ x: 1, y: 2, z: 3 }], timestamp: now - 850, receivedAt: now };
-  fixture.mocap = { active: true, tracking: {
-    settings: { smoothing: "classic" }, latestPose: { current: pose },
-  } };
-  await mountPose({ viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } });
+  const pose = {
+    worldLandmarks: [{ x: 1, y: 2, z: 3 }],
+    timestamp: now - 850,
+    receivedAt: now,
+  };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: pose },
+    },
+  };
+  await mountPose({
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  });
   for (const frame of callbacks) frame(1 / 60);
-  expect(apply).toHaveBeenLastCalledWith(mirrorPoseLandmarks(pose.worldLandmarks), 1 / 60, pose.timestamp, []);
+  expect(apply).toHaveBeenLastCalledWith(
+    mirrorPoseLandmarks(pose.worldLandmarks),
+    1 / 60,
+    pose.timestamp,
+    [],
+  );
   const mirrored = apply.mock.lastCall[0];
   vi.spyOn(performance, "now").mockReturnValue(now + 900);
   for (const frame of callbacks) frame(1 / 60);
@@ -375,21 +559,42 @@ test("presentation mirroring reuses each camera result and leaves the preview's 
   const gltf = await loadPlayer("lmale");
   const { viewer, callbacks } = viewerHarness(gltf);
   const apply = vi.spyOn(viewer.rig, "applyPose").mockImplementation(() => {});
-  const worldLandmarks = Object.freeze(Array.from({ length: 33 }, (_, index) => Object.freeze({
-    x: index / 33, y: index / 22, z: index / 44, visibility: 1,
-  })));
-  const landmarks = Object.freeze(worldLandmarks.map((point) => Object.freeze({ ...point, x: 0.2 })));
+  const worldLandmarks = Object.freeze(
+    Array.from({ length: 33 }, (_, index) =>
+      Object.freeze({
+        x: index / 33,
+        y: index / 22,
+        z: index / 44,
+        visibility: 1,
+      }),
+    ),
+  );
+  const landmarks = Object.freeze(
+    worldLandmarks.map((point) => Object.freeze({ ...point, x: 0.2 })),
+  );
   const now = performance.now();
-  const hands = Object.freeze([Object.freeze({
-    side: "left", confidence: 0.95,
-    landmarks: Object.freeze(landmarks.slice(0, 21)),
-    worldLandmarks: Object.freeze(worldLandmarks.slice(0, 21)),
-  })]);
+  const hands = Object.freeze([
+    Object.freeze({
+      side: "left",
+      confidence: 0.95,
+      landmarks: Object.freeze(landmarks.slice(0, 21)),
+      worldLandmarks: Object.freeze(worldLandmarks.slice(0, 21)),
+    }),
+  ]);
   const pose = { landmarks, worldLandmarks, hands, timestamp: now };
-  fixture.mocap = { active: true, tracking: {
-    settings: { smoothing: "none" }, latestPose: { current: pose },
-  } };
-  await mountPose({ viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } });
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "none" },
+      latestPose: { current: pose },
+    },
+  };
+  await mountPose({
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  });
   for (const frame of callbacks) frame(1 / 60);
   const first = apply.mock.lastCall[0];
   expect(first).toEqual(mirrorPoseLandmarks(worldLandmarks));
@@ -408,7 +613,10 @@ test("presentation mirroring reuses each camera result and leaves the preview's 
   expect(apply.mock.lastCall[3]).not.toBe(firstHands);
   expect(apply.mock.lastCall[2]).toBe(now + 1);
 
-  fixture.mocap.tracking.latestPose.current = { ...pose, timestamp: now - 5000 };
+  fixture.mocap.tracking.latestPose.current = {
+    ...pose,
+    timestamp: now - 5000,
+  };
   for (const frame of callbacks) frame(1 / 60);
   const missing = apply.mock.lastCall[0];
   expect(missing).toEqual([]);
@@ -429,7 +637,9 @@ function framingInput(offset = 0) {
 function turnRecording(rig) {
   const pelvis = rig.nodes.find((node) => node.name === "Bip01_Pelvis");
   const rest = pelvis.quaternion.clone();
-  const turned = rest.clone().premultiply(new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0.5));
+  const turned = rest
+    .clone()
+    .premultiply(new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0.5));
   const take = createTake(rig.nodes, "lmale", { landmarks: [] });
   take.add(0, framingInput(), 640, 480);
   pelvis.quaternion.copy(turned);
@@ -438,14 +648,31 @@ function turnRecording(rig) {
   const recording = { ...take.finish(), id: 1, label: "Animation 1" };
   // Playback normalizes, and the exported rest rotation is slightly off unit
   // length, which angleTo would magnify.
-  return { recording, pelvis, rest: rest.normalize(), turned: turned.normalize() };
+  return {
+    recording,
+    pelvis,
+    rest: rest.normalize(),
+    turned: turned.normalize(),
+  };
 }
 
 async function mountPlayback(gltf, selected) {
   const harness = viewerHarness(gltf);
   const recorder = idleRecorder({ recordings: [selected], selected });
-  fixture.mocap = { active: true, tracking: { settings: { smoothing: "classic" }, latestPose: { current: null }, recorder } };
-  const context = { viewer: harness.viewer, scene: gltf.scene, rig: harness.viewer.rig, model: { materials: [] } };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: null },
+      recorder,
+    },
+  };
+  const context = {
+    viewer: harness.viewer,
+    scene: gltf.scene,
+    rig: harness.viewer.rig,
+    model: { materials: [] },
+  };
   await mountPose(context);
   return { ...harness, recorder, context };
 }
@@ -455,17 +682,50 @@ test("live frames are sampled after the hand fallback finishes the bones", async
   const { viewer, callbacks, poseCallbacks } = viewerHarness(gltf);
   const apply = vi.spyOn(viewer.rig, "applyPose");
   const fallback = vi.spyOn(viewer.rig, "applyHandFallback");
-  const framing = vi.spyOn(viewer, "setPoseFraming").mockImplementation(() => {});
-  const landmarks = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 0, visibility: 1 }));
-  const pose = { landmarks, worldLandmarks: [], timestamp: performance.now(), imageWidth: 640, imageHeight: 480 };
+  const framing = vi
+    .spyOn(viewer, "setPoseFraming")
+    .mockImplementation(() => {});
+  const landmarks = Array.from({ length: 33 }, () => ({
+    x: 0.5,
+    y: 0.5,
+    z: 0,
+    visibility: 1,
+  }));
+  const pose = {
+    landmarks,
+    worldLandmarks: [],
+    timestamp: performance.now(),
+    imageWidth: 640,
+    imageHeight: 480,
+  };
   const recorder = idleRecorder();
-  fixture.mocap = { active: true, tracking: { settings: { smoothing: "classic" }, latestPose: { current: pose }, recorder } };
-  await mountPose({ viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } });
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: pose },
+      recorder,
+    },
+  };
+  await mountPose({
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  });
   for (const frame of callbacks) frame(1 / 60);
-  for (const frame of poseCallbacks) frame(1 / 60, new PerspectiveCamera(), 4 / 3);
-  const order = [apply, fallback, recorder.sampleFrame].map((spy) => spy.mock.invocationCallOrder[0]);
+  for (const frame of poseCallbacks)
+    frame(1 / 60, new PerspectiveCamera(), 4 / 3);
+  const order = [apply, fallback, recorder.sampleFrame].map(
+    (spy) => spy.mock.invocationCallOrder[0],
+  );
   expect(order).toEqual([...order].sort((a, b) => a - b));
-  expect(recorder.sampleFrame).toHaveBeenCalledExactlyOnceWith(1 / 60, framingLandmarks(pose), 640, 480);
+  expect(recorder.sampleFrame).toHaveBeenCalledExactlyOnceWith(
+    1 / 60,
+    framingLandmarks(pose),
+    640,
+    480,
+  );
   expect(recorder.sampleFrame.mock.lastCall[1]).toBe(framing.mock.lastCall[0]);
 });
 
@@ -474,10 +734,25 @@ test("the loaded rig is attached to the recorder while mocap is active", async (
   const { viewer } = viewerHarness(gltf);
   const detach = vi.fn();
   const recorder = idleRecorder({ attach: vi.fn(() => detach) });
-  fixture.mocap = { active: true, tracking: { settings: { smoothing: "classic" }, latestPose: { current: null }, recorder } };
-  const context = { viewer, scene: gltf.scene, rig: viewer.rig, model: { materials: [] } };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: null },
+      recorder,
+    },
+  };
+  const context = {
+    viewer,
+    scene: gltf.scene,
+    rig: viewer.rig,
+    model: { materials: [] },
+  };
   await mountPose(context);
-  expect(recorder.attach).toHaveBeenCalledExactlyOnceWith({ viewer, nodes: viewer.rig.nodes });
+  expect(recorder.attach).toHaveBeenCalledExactlyOnceWith({
+    viewer,
+    nodes: viewer.rig.nodes,
+  });
   await mountPose(context);
   expect(recorder.attach).toHaveBeenCalledOnce();
   await mountPose(context, false);
@@ -488,15 +763,29 @@ test("the view outside the camera area is faded while the photo booth counts dow
   const { viewer } = viewerHarness();
   const fade = vi.spyOn(viewer, "setFadeOutsideCameraArea");
   const recorder = idleRecorder();
-  fixture.mocap = { active: true, tracking: { settings: { smoothing: "classic" }, latestPose: { current: null }, recorder } };
+  fixture.mocap = {
+    active: true,
+    tracking: {
+      settings: { smoothing: "classic" },
+      latestPose: { current: null },
+      recorder,
+    },
+  };
   const context = { viewer, scene: null, rig: null, model: { materials: [] } };
   const mountActivity = (activity, active = true) => {
     fixture.mocap.tracking.recorder = { ...recorder, activity };
     return mountPose(context, active);
   };
-  const countdown = (taken) => ({ phase: "booth-countdown", taken, endsAt: performance.now() + 3000 });
+  const countdown = (taken) => ({
+    phase: "booth-countdown",
+    taken,
+    endsAt: performance.now() + 3000,
+  });
   await mountActivity(null);
-  await mountActivity({ phase: "record-countdown", endsAt: performance.now() + 3000 });
+  await mountActivity({
+    phase: "record-countdown",
+    endsAt: performance.now() + 3000,
+  });
   await mountActivity({ phase: "recording", startedAt: performance.now() });
   expect(fade).not.toHaveBeenCalled();
   await mountActivity(countdown(0));
@@ -515,26 +804,43 @@ test("a selected recording drives the bones and framing while the live rig is su
   const gltf = await loadPlayer("lmale");
   const rig = createPlayerRig(gltf.scene);
   const { recording, pelvis, rest, turned } = turnRecording(rig);
-  const framing = vi.spyOn(Viewer.prototype, "setPoseFraming").mockImplementation(() => {});
-  const { viewer, callbacks, poseCallbacks } = await mountPlayback(gltf, recording);
+  const framing = vi
+    .spyOn(Viewer.prototype, "setPoseFraming")
+    .mockImplementation(() => {});
+  const { viewer, callbacks, poseCallbacks } = await mountPlayback(
+    gltf,
+    recording,
+  );
   const apply = vi.spyOn(viewer.rig, "applyPose");
   expect(callbacks.size).toBe(1);
   expect(poseCallbacks.size).toBe(0);
   for (const frame of callbacks) frame(0.5);
   expect(apply).not.toHaveBeenCalled();
-  expect(pelvis.quaternion.angleTo(new Quaternion().slerpQuaternions(rest, turned, 0.5))).toBeLessThan(1e-6);
+  expect(
+    pelvis.quaternion.angleTo(
+      new Quaternion().slerpQuaternions(rest, turned, 0.5),
+    ),
+  ).toBeLessThan(1e-6);
   expect(framing).toHaveBeenLastCalledWith(framingAt(recording, 0), 640, 480);
-  expect(framing.mock.lastCall[0][11]).toEqual({ x: Math.fround(0.6), y: Math.fround(0.3), z: 0 });
+  expect(framing.mock.lastCall[0][11]).toEqual({
+    x: Math.fround(0.6),
+    y: Math.fround(0.3),
+    z: 0,
+  });
   expect(host.textContent).toContain("Animation 1");
 });
 
 test("playback advances by frame time, loops at the end and holds while paused", async () => {
   const gltf = await loadPlayer("lmale");
-  const { recording, pelvis, rest, turned } = turnRecording(createPlayerRig(gltf.scene));
+  const { recording, pelvis, rest, turned } = turnRecording(
+    createPlayerRig(gltf.scene),
+  );
   vi.spyOn(Viewer.prototype, "setPoseFraming").mockImplementation(() => {});
   const { callbacks, recorder } = await mountPlayback(gltf, recording);
   const at = (alpha) => new Quaternion().slerpQuaternions(rest, turned, alpha);
-  const frame = (delta) => { for (const callback of callbacks) callback(delta); };
+  const frame = (delta) => {
+    for (const callback of callbacks) callback(delta);
+  };
   frame(0.5);
   frame(0.75);
   expect(recorder.playbackRef.current.time).toBeCloseTo(0.25, 6);
@@ -550,10 +856,14 @@ test("playback advances by frame time, loops at the end and holds while paused",
 test("seeking back snaps the framing before the recorded input is applied", async () => {
   const gltf = await loadPlayer("lmale");
   const { recording } = turnRecording(createPlayerRig(gltf.scene));
-  const framing = vi.spyOn(Viewer.prototype, "setPoseFraming").mockImplementation(() => {});
+  const framing = vi
+    .spyOn(Viewer.prototype, "setPoseFraming")
+    .mockImplementation(() => {});
   const reset = vi.spyOn(Viewer.prototype, "resetPoseFraming");
   const { callbacks, recorder } = await mountPlayback(gltf, recording);
-  const frame = (delta) => { for (const callback of callbacks) callback(delta); };
+  const frame = (delta) => {
+    for (const callback of callbacks) callback(delta);
+  };
   frame(0.6);
   frame(1 / 60);
   reset.mockClear();
@@ -563,7 +873,9 @@ test("seeking back snaps the framing before the recorded input is applied", asyn
   framing.mockClear();
   frame(1 / 60);
   expect(reset).toHaveBeenCalledOnce();
-  expect(reset.mock.invocationCallOrder[0]).toBeLessThan(framing.mock.invocationCallOrder[0]);
+  expect(reset.mock.invocationCallOrder[0]).toBeLessThan(
+    framing.mock.invocationCallOrder[0],
+  );
   // While paused, every change of time is a seek.
   recorder.playbackRef.current.paused = true;
   recorder.playbackRef.current.time = 0.15;
@@ -577,7 +889,8 @@ test("returning to the live camera resyncs the rig before live poses resume", as
   const gltf = await loadPlayer("lmale");
   const { recording } = turnRecording(createPlayerRig(gltf.scene));
   vi.spyOn(Viewer.prototype, "setPoseFraming").mockImplementation(() => {});
-  const { viewer, callbacks, poseCallbacks, recorder, context } = await mountPlayback(gltf, recording);
+  const { viewer, callbacks, poseCallbacks, recorder, context } =
+    await mountPlayback(gltf, recording);
   const resync = vi.spyOn(viewer.rig, "resync");
   const reset = vi.spyOn(viewer.rig, "reset");
   const apply = vi.spyOn(viewer.rig, "applyPose");
@@ -589,7 +902,9 @@ test("returning to the live camera resyncs the rig before live poses resume", as
   expect(callbacks.size).toBe(1);
   expect(poseCallbacks.size).toBe(1);
   for (const frame of callbacks) frame(1 / 60);
-  expect(resync.mock.invocationCallOrder[0]).toBeLessThan(apply.mock.invocationCallOrder[0]);
+  expect(resync.mock.invocationCallOrder[0]).toBeLessThan(
+    apply.mock.invocationCallOrder[0],
+  );
   expect(host.textContent).not.toContain("Animation 1");
 });
 
@@ -603,10 +918,14 @@ test("a seek onto a key framing can't measure keeps the framing of the last key 
   take.add(0.5, oneShoulder, 640, 480);
   take.add(0.5, oneShoulder, 640, 480);
   const recording = { ...take.finish(), id: 1, label: "Animation 1" };
-  const framing = vi.spyOn(Viewer.prototype, "setPoseFraming").mockImplementation(() => {});
+  const framing = vi
+    .spyOn(Viewer.prototype, "setPoseFraming")
+    .mockImplementation(() => {});
   const reset = vi.spyOn(Viewer.prototype, "resetPoseFraming");
   const { callbacks, recorder } = await mountPlayback(gltf, recording);
-  const frame = (delta) => { for (const callback of callbacks) callback(delta); };
+  const frame = (delta) => {
+    for (const callback of callbacks) callback(delta);
+  };
   recorder.playbackRef.current.paused = true;
   frame(0);
   recorder.playbackRef.current.time = 0.75;
@@ -615,7 +934,9 @@ test("a seek onto a key framing can't measure keeps the framing of the last key 
   // Key 1 has one shoulder, which framing can't measure: snap to key 0's input.
   expect(reset).toHaveBeenCalledOnce();
   expect(framing).toHaveBeenLastCalledWith(framingAt(recording, 0), 640, 480);
-  expect(reset.mock.invocationCallOrder[0]).toBeLessThan(framing.mock.invocationCallOrder.at(-1));
+  expect(reset.mock.invocationCallOrder[0]).toBeLessThan(
+    framing.mock.invocationCallOrder.at(-1),
+  );
   // Holding still feeds the key's own input, which keeps that framing.
   frame(0);
   expect(framing).toHaveBeenLastCalledWith(framingAt(recording, 1), 640, 480);

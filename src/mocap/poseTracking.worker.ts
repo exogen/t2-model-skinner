@@ -1,12 +1,24 @@
 import * as Comlink from "comlink";
-import { FaceDetector, FilesetResolver, HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
+import {
+  FaceDetector,
+  FilesetResolver,
+  HandLandmarker,
+  PoseLandmarker,
+} from "@mediapipe/tasks-vision";
 import type { PoseFrame } from "./poseTracking";
-import type { Delegate, PoseDetectorAssets, PoseTrackingSettings } from "./poseSettings";
+import type {
+  Delegate,
+  PoseDetectorAssets,
+  PoseTrackingSettings,
+} from "./poseSettings";
 import { sameOriginFetch } from "./workerNetwork";
 import { createHandAssociator } from "./handTracking";
 import { needsFaceTracking, selectCloseupFace } from "./faceTracking";
 
-globalThis.fetch = sameOriginFetch(globalThis.fetch.bind(globalThis), self.location.href);
+globalThis.fetch = sameOriginFetch(
+  globalThis.fetch.bind(globalThis),
+  self.location.href,
+);
 
 let tracker: PoseLandmarker | null = null;
 let handTracker: HandLandmarker | null = null;
@@ -17,7 +29,8 @@ const handAssociator = createHandAssociator();
 
 /** Create a task on the GPU, or on the CPU if that fails while still open. */
 async function createTask<T>(
-  create: (delegate: Delegate) => Promise<T>, checkOpen: () => void,
+  create: (delegate: Delegate) => Promise<T>,
+  checkOpen: () => void,
 ): Promise<{ task: T; delegate: Delegate }> {
   try {
     return { task: await create("GPU"), delegate: "GPU" };
@@ -34,7 +47,8 @@ const api = {
     let body: PoseLandmarker | null = null;
     let hands: HandLandmarker | null = null;
     const checkOpen = () => {
-      if (generation !== current) throw new Error("Motion tracker closed during initialization");
+      if (generation !== current)
+        throw new Error("Motion tracker closed during initialization");
     };
     try {
       const fileset = await FilesetResolver.forVisionTasks(assets.wasmUrl);
@@ -68,9 +82,13 @@ const api = {
           });
         try {
           checkOpen();
-          ({ task: hands, delegate: handDelegate } = await createTask(create, checkOpen));
+          ({ task: hands, delegate: handDelegate } = await createTask(
+            create,
+            checkOpen,
+          ));
         } catch {
-          handWarning = "Detailed hand tracking could not start. Body tracking is still active.";
+          handWarning =
+            "Detailed hand tracking could not start. Body tracking is still active.";
         }
       }
       checkOpen();
@@ -78,16 +96,18 @@ const api = {
       handTracker = hands;
       // Resolve the small close-up task only if body landmarks cannot describe
       // the camera framing. Regular full-body tracking pays no inference cost.
-      if (assets.faceModelUrl) createFaceTracker = async () => {
-        checkOpen();
-        const create = (delegate: Delegate) => FaceDetector.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: assets.faceModelUrl, delegate },
-          canvas: new OffscreenCanvas(1, 1),
-          runningMode: "VIDEO",
-          minDetectionConfidence: 0.5,
-        });
-        return (await createTask(create, checkOpen)).task;
-      };
+      if (assets.faceModelUrl)
+        createFaceTracker = async () => {
+          checkOpen();
+          const create = (delegate: Delegate) =>
+            FaceDetector.createFromOptions(fileset, {
+              baseOptions: { modelAssetPath: assets.faceModelUrl, delegate },
+              canvas: new OffscreenCanvas(1, 1),
+              runningMode: "VIDEO",
+              minDetectionConfidence: 0.5,
+            });
+          return (await createTask(create, checkOpen)).task;
+        };
       return { delegate, handDelegate, handWarning };
     } catch {
       body?.close();
@@ -96,22 +116,31 @@ const api = {
     }
   },
 
-  async detect(bitmap: ImageBitmap, timestamp: number): Promise<PoseFrame | null> {
+  async detect(
+    bitmap: ImageBitmap,
+    timestamp: number,
+  ): Promise<PoseFrame | null> {
     try {
       const current = generation;
       if (!tracker) throw new Error("Motion tracker is not ready");
       const result = tracker.detectForVideo(bitmap, timestamp);
       const landmarks = result.landmarks[0];
       const worldLandmarks = result.worldLandmarks[0];
-      let pose: PoseFrame | null = landmarks?.length && worldLandmarks?.length
-        ? { landmarks, worldLandmarks, timestamp } : null;
+      let pose: PoseFrame | null =
+        landmarks?.length && worldLandmarks?.length
+          ? { landmarks, worldLandmarks, timestamp }
+          : null;
       if (current !== generation) return null;
       if (handTracker) {
         const hands = handAssociator.associate(
-          handTracker.detectForVideo(bitmap, timestamp), pose?.landmarks ?? [],
-          bitmap.width, bitmap.height, timestamp,
+          handTracker.detectForVideo(bitmap, timestamp),
+          pose?.landmarks ?? [],
+          bitmap.width,
+          bitmap.height,
+          timestamp,
         );
-        if (hands.length) pose ??= { landmarks: [], worldLandmarks: [], timestamp };
+        if (hands.length)
+          pose ??= { landmarks: [], worldLandmarks: [], timestamp };
         if (pose) pose.hands = hands;
       }
       if (needsFaceTracking(pose, bitmap.width, bitmap.height)) {
@@ -120,7 +149,10 @@ const api = {
           createFaceTracker = null;
           try {
             const face = await create();
-            if (current !== generation) { face.close(); return null; }
+            if (current !== generation) {
+              face.close();
+              return null;
+            }
             faceTracker = face;
           } catch {
             // An optional face fallback must not stop working body/hand tracking.
@@ -129,7 +161,12 @@ const api = {
         if (current !== generation) return null;
         if (faceTracker) {
           try {
-            const face = selectCloseupFace(faceTracker.detectForVideo(bitmap, timestamp), pose, bitmap.width, bitmap.height);
+            const face = selectCloseupFace(
+              faceTracker.detectForVideo(bitmap, timestamp),
+              pose,
+              bitmap.width,
+              bitmap.height,
+            );
             if (face) {
               pose ??= { landmarks: [], worldLandmarks: [], timestamp };
               pose.face = face;

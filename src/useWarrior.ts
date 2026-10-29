@@ -12,7 +12,7 @@ type WarriorContextValue = {
   setSelectedAnimation: (selectedAnimation: string | null) => void;
   animationPaused: boolean;
   setAnimationPaused: (
-    animationPaused: boolean | ((animationPaused: boolean) => boolean)
+    animationPaused: boolean | ((animationPaused: boolean) => boolean),
   ) => void;
   skinImageUrls: Record<string, string[]>;
   defaultSkinImageUrls: Record<string, string[]>;

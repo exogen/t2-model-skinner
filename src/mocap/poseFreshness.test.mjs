@@ -1,7 +1,12 @@
 import { expect, test } from "vitest";
 import { freshPose } from "./poseTracking";
 
-const frame = (timestamp, receivedAt) => ({ landmarks: [], worldLandmarks: [], timestamp, receivedAt });
+const frame = (timestamp, receivedAt) => ({
+  landmarks: [],
+  worldLandmarks: [],
+  timestamp,
+  receivedAt,
+});
 
 test("fast inference remains fresh for 500ms after arrival and keeps its capture timestamp", () => {
   const pose = frame(100, 200);

@@ -12,12 +12,12 @@ interface SkinContextValue {
   setColorImageUrl: (
     materialFile: string,
     colorImageUrl: string,
-    frameIndex: number
+    frameIndex: number,
   ) => void;
   setMetallicImageUrl: (
     materialFile: string,
     metallicImageUrl: string,
-    frameIndex: number
+    frameIndex: number,
   ) => void;
 }
 

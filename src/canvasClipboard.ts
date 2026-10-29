@@ -16,7 +16,7 @@ const TEXT_ENTRY = [
   '[contenteditable]:not([contenteditable="false"])',
   "input:not([type])",
   ...["text", "search", "url", "tel", "email", "password", "number"].map(
-    (type) => `input[type="${type}"]`
+    (type) => `input[type="${type}"]`,
   ),
 ].join(", ");
 
@@ -46,7 +46,7 @@ export function createCanvasClipboard() {
     set(next: Omit<CanvasClip, "id">) {
       const bytes = crypto.getRandomValues(new Uint8Array(16));
       const id = Array.from(bytes, (byte) =>
-        byte.toString(16).padStart(2, "0")
+        byte.toString(16).padStart(2, "0"),
       ).join("");
       clip = { ...next, id };
       write = "pending";
@@ -91,7 +91,7 @@ function clipHtml(id: string, src: string | null) {
 export function writeClip(
   event: ClipboardEvent,
   id: string,
-  image: HTMLCanvasElement | null
+  image: HTMLCanvasElement | null,
 ): Promise<boolean> {
   event.preventDefault();
   if (typeof ClipboardItem === "function" && navigator.clipboard?.write) {
@@ -100,15 +100,15 @@ export function writeClip(
     // cancel this write in Safari and Firefox.
     const png = image ? canvasBlob(image) : null;
     const html = (png ? png.then(blobToDataUrl) : Promise.resolve(null)).then(
-      (src) => new Blob([clipHtml(id, src)], { type: "text/html" })
+      (src) => new Blob([clipHtml(id, src)], { type: "text/html" }),
     );
     try {
       const item = new ClipboardItem(
-        png ? { "image/png": png, "text/html": html } : { "text/html": html }
+        png ? { "image/png": png, "text/html": html } : { "text/html": html },
       );
       return navigator.clipboard.write([item]).then(
         () => true,
-        () => false
+        () => false,
       );
     } catch {
       return Promise.resolve(false);
@@ -117,7 +117,7 @@ export function writeClip(
   if (!event.clipboardData) return Promise.resolve(false);
   event.clipboardData.setData(
     "text/html",
-    clipHtml(id, image?.toDataURL("image/png") ?? null)
+    clipHtml(id, image?.toDataURL("image/png") ?? null),
   );
   return Promise.resolve(true);
 }
@@ -132,7 +132,8 @@ export function readPaste(data: DataTransfer) {
 }
 
 // Pasted links are downloaded only if they end in an image file name.
-const IMAGE_LINK = /^https:\/\/\S+\.(?:png|jpe?g|gif|webp|bmp|svg)(?:[?#]\S*)?$/i;
+const IMAGE_LINK =
+  /^https:\/\/\S+\.(?:png|jpe?g|gif|webp|bmp|svg)(?:[?#]\S*)?$/i;
 
 const imageTypes = [
   "image/png",

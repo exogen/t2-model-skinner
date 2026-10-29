@@ -9,11 +9,11 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
       setColorImageUrl(
         materialFile: string,
         colorImageUrl: string,
-        frameIndex: number
+        frameIndex: number,
       ) {
         setMaterialSkins((materialSkins) => {
           const newColorImageUrl = Array.from(
-            materialSkins[materialFile]?.colorImageUrl ?? []
+            materialSkins[materialFile]?.colorImageUrl ?? [],
           );
           newColorImageUrl[frameIndex] = colorImageUrl;
           return {
@@ -28,11 +28,11 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
       setMetallicImageUrl(
         materialFile: string,
         metallicImageUrl: string,
-        frameIndex: number
+        frameIndex: number,
       ) {
         setMaterialSkins((materialSkins) => {
           const newMetallicImageUrl = Array.from(
-            materialSkins[materialFile]?.metallicImageUrl ?? []
+            materialSkins[materialFile]?.metallicImageUrl ?? [],
           );
           newMetallicImageUrl[frameIndex] = metallicImageUrl;
           return {
@@ -45,7 +45,7 @@ export default function SkinProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    []
+    [],
   );
 
   const context = useMemo(() => {

@@ -1,5 +1,13 @@
 "use client";
-import { ReactNode, useCallback, useEffect, useId, useRef, useState, type MouseEvent } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { PortalContext } from "@ariakit/react";
 import { FaTimes } from "react-icons/fa";
@@ -10,11 +18,21 @@ import styles from "./Dialog.module.css";
 function onBackdrop(event: MouseEvent<HTMLDialogElement>) {
   if (event.target !== event.currentTarget) return false;
   const rect = event.currentTarget.getBoundingClientRect();
-  return event.clientX < rect.left || event.clientX > rect.right ||
-    event.clientY < rect.top || event.clientY > rect.bottom;
+  return (
+    event.clientX < rect.left ||
+    event.clientX > rect.right ||
+    event.clientY < rect.top ||
+    event.clientY > rect.bottom
+  );
 }
 
-export default function Dialog({ title, icon, children, onClose, className = "" }: {
+export default function Dialog({
+  title,
+  icon,
+  children,
+  onClose,
+  className = "",
+}: {
   title: string;
   className?: string;
   icon?: ReactNode;
@@ -34,7 +52,11 @@ export default function Dialog({ title, icon, children, onClose, className = "" 
   // doesn't close it.
   const pressedBackdrop = useRef(false);
   const titleId = useId();
-  const [returnFocus] = useState(() => typeof document === "undefined" ? null : document.activeElement as HTMLElement | null);
+  const [returnFocus] = useState(() =>
+    typeof document === "undefined"
+      ? null
+      : (document.activeElement as HTMLElement | null),
+  );
 
   // Opens with the first commit, before content effects that move focus.
   useEffect(() => {
@@ -54,15 +76,22 @@ export default function Dialog({ title, icon, children, onClose, className = "" 
       ref={attach}
       className={`${styles.Dialog} ${className}`}
       aria-labelledby={titleId}
-      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
       onKeyDown={(event) => event.stopPropagation()}
-      onDrop={(event) => { event.preventDefault(); event.stopPropagation(); }}
+      onDrop={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       onPointerDownCapture={(event) => {
         // With a dropdown open, like a Select's, a click outside it only
         // closes the dropdown. That's an open Ariakit popover, not an
         // expanded combobox: a list that's always shown, like the photo
         // strip's maps, keeps its combobox expanded.
-        pressedBackdrop.current = onBackdrop(event) &&
+        pressedBackdrop.current =
+          onBackdrop(event) &&
           !event.currentTarget.querySelector("[data-dialog][data-open]");
       }}
       onClick={(event) => {
@@ -75,7 +104,12 @@ export default function Dialog({ title, icon, children, onClose, className = "" 
           <div className={styles.Heading}>
             <h2 id={titleId}>{title}</h2>
           </div>
-          <button type="button" className={styles.Close} aria-label="Close dialog" onClick={onClose}>
+          <button
+            type="button"
+            className={styles.Close}
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
             <FaTimes />
           </button>
         </header>

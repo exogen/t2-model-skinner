@@ -3,7 +3,11 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { getEnv } from "fabric";
 import MocapPreview from "./MocapPreview";
-import { drawFaceSkeleton, drawHandSkeletons, drawPoseSkeleton } from "./posePreview";
+import {
+  drawFaceSkeleton,
+  drawHandSkeletons,
+  drawPoseSkeleton,
+} from "./posePreview";
 import { DEFAULT_POSE_SETTINGS } from "./poseSettings";
 import { idleRecorder } from "./recorderTestUtils";
 
@@ -12,7 +16,10 @@ vi.mock("../MocapProvider", () => ({ useMocap: () => fixture }));
 // Keep dropdown positioning frames separate from the skeleton drawing loop.
 vi.mock("./MocapDebugPanel", async (importOriginal) => {
   const { createElement } = await import("react");
-  return { ...await importOriginal(), default: ({ id }) => createElement("div", { id, "data-debug": "" }) };
+  return {
+    ...(await importOriginal()),
+    default: ({ id }) => createElement("div", { id, "data-debug": "" }),
+  };
 });
 vi.mock("./RecorderControls", async () => {
   const { createElement } = await import("react");
@@ -26,7 +33,7 @@ vi.mock("./RecorderOverlay", async () => {
   return { default: () => createElement("div", { "data-overlay": "" }) };
 });
 vi.mock("./posePreview", async (importOriginal) => ({
-  ...await importOriginal(),
+  ...(await importOriginal()),
   drawPoseSkeleton: vi.fn(),
   drawHandSkeletons: vi.fn(),
   drawFaceSkeleton: vi.fn(),
@@ -65,22 +72,45 @@ beforeEach(() => {
   });
   vi.stubGlobal("cancelAnimationFrame", (id) => callbacks.delete(id));
   resizeObserver = { callback: null, observe: vi.fn(), disconnect: vi.fn() };
-  vi.stubGlobal("ResizeObserver", class {
-    constructor(callback) {
-      resizeObserver.callback = callback;
-      return resizeObserver;
-    }
-  });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback) {
+        resizeObserver.callback = callback;
+        return resizeObserver;
+      }
+    },
+  );
   context = { clearRect: vi.fn(), setTransform: vi.fn() };
-  vi.spyOn(window.HTMLCanvasElement.prototype, "getContext").mockReturnValue(context);
+  vi.spyOn(window.HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+    context,
+  );
   bounds = { width: 600, height: 600 };
-  vi.spyOn(window.HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => bounds);
-  vi.spyOn(window.HTMLVideoElement.prototype, "videoWidth", "get").mockReturnValue(640);
-  vi.spyOn(window.HTMLVideoElement.prototype, "videoHeight", "get").mockReturnValue(480);
+  vi.spyOn(
+    window.HTMLElement.prototype,
+    "getBoundingClientRect",
+  ).mockImplementation(() => bounds);
+  vi.spyOn(
+    window.HTMLVideoElement.prototype,
+    "videoWidth",
+    "get",
+  ).mockReturnValue(640);
+  vi.spyOn(
+    window.HTMLVideoElement.prototype,
+    "videoHeight",
+    "get",
+  ).mockReturnValue(480);
   fixture.tracking = {
-    videoRef: vi.fn(), latestPose: { current: null }, status: "idle", error: null,
-    settings: { ...DEFAULT_POSE_SETTINGS }, updateSettings: vi.fn(), resetSettings: vi.fn(),
-    switching: false, stats: null, recorder: idleRecorder(),
+    videoRef: vi.fn(),
+    latestPose: { current: null },
+    status: "idle",
+    error: null,
+    settings: { ...DEFAULT_POSE_SETTINGS },
+    updateSettings: vi.fn(),
+    resetSettings: vi.fn(),
+    switching: false,
+    stats: null,
+    recorder: idleRecorder(),
   };
   host = document.createElement("div");
   document.body.append(host);
@@ -109,19 +139,41 @@ test("the camera ref stays mounted when inactive and stopping cancels drawing", 
   expect(callbacks.size).toBe(0);
   expect(resizeObserver.disconnect).toHaveBeenCalledOnce();
   expect(host.querySelector("video")).toBe(video);
-  expect(fixture.tracking.videoRef.mock.calls.every(([element]) => element !== null)).toBe(true);
+  expect(
+    fixture.tracking.videoRef.mock.calls.every(([element]) => element !== null),
+  ).toBe(true);
 });
 
 test("draws normalized landmarks, skips duplicate frames, and clears stale poses", async () => {
   await render(true);
   const pose = {
-    landmarks: [{ x: 0.2, y: 0.3, z: 0 }], worldLandmarks: [], timestamp: 100,
-    hands: [{ side: "left", confidence: 0.9, landmarks: [{ x: 0.4, y: 0.3, z: 0 }], worldLandmarks: [] }],
+    landmarks: [{ x: 0.2, y: 0.3, z: 0 }],
+    worldLandmarks: [],
+    timestamp: 100,
+    hands: [
+      {
+        side: "left",
+        confidence: 0.9,
+        landmarks: [{ x: 0.4, y: 0.3, z: 0 }],
+        worldLandmarks: [],
+      },
+    ],
   };
   fixture.tracking.latestPose.current = pose;
   frame(100);
-  expect(drawPoseSkeleton).toHaveBeenCalledWith(context, pose.landmarks, { x: 0, y: 75, width: 600, height: 450 }, pose.hands, undefined);
-  expect(drawHandSkeletons).toHaveBeenCalledWith(context, pose.hands, { x: 0, y: 75, width: 600, height: 450 });
+  expect(drawPoseSkeleton).toHaveBeenCalledWith(
+    context,
+    pose.landmarks,
+    { x: 0, y: 75, width: 600, height: 450 },
+    pose.hands,
+    undefined,
+  );
+  expect(drawHandSkeletons).toHaveBeenCalledWith(context, pose.hands, {
+    x: 0,
+    y: 75,
+    width: 600,
+    height: 450,
+  });
   const clearCount = context.clearRect.mock.calls.length;
   frame(116);
   expect(drawPoseSkeleton).toHaveBeenCalledOnce();
@@ -140,16 +192,33 @@ test("resizing redraws the current pose in the new contained rectangle", async (
   bounds = { width: 800, height: 300 };
   resizeObserver.callback();
   frame(116);
-  expect(drawPoseSkeleton).toHaveBeenLastCalledWith(context, pose.landmarks, { x: 200, y: 0, width: 400, height: 300 }, undefined, undefined);
+  expect(drawPoseSkeleton).toHaveBeenLastCalledWith(
+    context,
+    pose.landmarks,
+    { x: 200, y: 0, width: 400, height: 300 },
+    undefined,
+    undefined,
+  );
   expect(drawPoseSkeleton).toHaveBeenCalledTimes(2);
 });
 
 test("a slow detector's pose stays visible between results and clears on a stall", async () => {
   await render(true);
-  const pose = { landmarks: [{ x: 0.2, y: 0.3, z: 0 }], worldLandmarks: [], timestamp: 100, receivedAt: 950 };
+  const pose = {
+    landmarks: [{ x: 0.2, y: 0.3, z: 0 }],
+    worldLandmarks: [],
+    timestamp: 100,
+    receivedAt: 950,
+  };
   fixture.tracking.latestPose.current = pose;
   frame(950);
-  expect(drawPoseSkeleton).toHaveBeenCalledWith(context, pose.landmarks, { x: 0, y: 75, width: 600, height: 450 }, undefined, undefined);
+  expect(drawPoseSkeleton).toHaveBeenCalledWith(
+    context,
+    pose.landmarks,
+    { x: 0, y: 75, width: 600, height: 450 },
+    undefined,
+    undefined,
+  );
   const clearCount = context.clearRect.mock.calls.length;
   frame(1850);
   expect(context.clearRect).toHaveBeenCalledTimes(clearCount);
@@ -160,10 +229,23 @@ test("a slow detector's pose stays visible between results and clears on a stall
 
 test("face-only tracking draws its own observed points and clears them on loss", async () => {
   await render(true);
-  const face = { confidence: 0.9, landmarks: Array.from({ length: 6 }, () => ({ x: 0.4, y: 0.5, z: 0 })) };
-  fixture.tracking.latestPose.current = { landmarks: [], worldLandmarks: [], face, timestamp: 100 };
+  const face = {
+    confidence: 0.9,
+    landmarks: Array.from({ length: 6 }, () => ({ x: 0.4, y: 0.5, z: 0 })),
+  };
+  fixture.tracking.latestPose.current = {
+    landmarks: [],
+    worldLandmarks: [],
+    face,
+    timestamp: 100,
+  };
   frame(100);
-  expect(drawFaceSkeleton).toHaveBeenCalledWith(context, face, { x: 0, y: 75, width: 600, height: 450 });
+  expect(drawFaceSkeleton).toHaveBeenCalledWith(context, face, {
+    x: 0,
+    y: 75,
+    width: 600,
+    height: 450,
+  });
   const clears = context.clearRect.mock.calls.length;
   frame(601);
   expect(drawFaceSkeleton).toHaveBeenCalledOnce();
@@ -174,7 +256,9 @@ test("pose debug opens over the camera image from the toolbar, in production bui
   vi.stubEnv("NODE_ENV", "production");
   await render(true);
   const [top, stage] = host.querySelector("section").children;
-  const toggle = [...top.querySelectorAll("button")].find((button) => button.textContent === "Pose debug");
+  const toggle = [...top.querySelectorAll("button")].find(
+    (button) => button.textContent === "Pose debug",
+  );
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(host.querySelector("[data-debug]")).toBeNull();
   await act(async () => toggle.click());
@@ -188,10 +272,11 @@ test("pose debug opens over the camera image from the toolbar, in production bui
 });
 
 test("messages show below the camera in place of playback, leaving the top bar to Live and pose debug", async () => {
-  const update = (changes) => act(async () => {
-    Object.assign(fixture.tracking, changes);
-    root.render(React.createElement(MocapPreview));
-  });
+  const update = (changes) =>
+    act(async () => {
+      Object.assign(fixture.tracking, changes);
+      root.render(React.createElement(MocapPreview));
+    });
   await render(true);
   const [top, , bottom] = host.querySelector("section").children;
   const region = bottom.querySelector("[role='status']");
@@ -200,7 +285,9 @@ test("messages show below the camera in place of playback, leaving the top bar t
   await update({ status: "lost" });
   expect(bottom.querySelector("[data-playback]")).toBeNull();
   expect(bottom.querySelector("[role='status']")).toBe(region);
-  expect(region.textContent).toBe("Move into view. Include your legs for full-body tracking.");
+  expect(region.textContent).toBe(
+    "Move into view. Include your legs for full-body tracking.",
+  );
   // Live keeps its space, so the top bar doesn't rewrap.
   expect(top.lastElementChild.firstElementChild).toBe(live);
   expect(live.dataset.off).toBe("true");
@@ -220,10 +307,17 @@ test("the capture and playback bars surround the stage and the skeleton measures
   // Live, then pose debug, at the end of the top bar. Screen readers hear
   // "Live" from the status region below.
   const end = top.lastElementChild;
-  expect([...end.children].map((child) => child.textContent)).toEqual(["Live", "Pose debug"]);
+  expect([...end.children].map((child) => child.textContent)).toEqual([
+    "Live",
+    "Pose debug",
+  ]);
   expect(end.firstElementChild.getAttribute("aria-hidden")).toBe("true");
   expect(bottom.querySelector("[role='status']").textContent).toBe("Live");
-  expect([...stage.children].map((child) => child.localName)).toEqual(["video", "canvas", "div"]);
+  expect([...stage.children].map((child) => child.localName)).toEqual([
+    "video",
+    "canvas",
+    "div",
+  ]);
   expect(stage.querySelector("[data-overlay]")).not.toBeNull();
   expect(bottom.querySelector("[data-playback]")).not.toBeNull();
   expect(resizeObserver.observe).toHaveBeenCalledOnce();

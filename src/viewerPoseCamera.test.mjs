@@ -6,7 +6,9 @@ import Viewer from "./Viewer";
 
 const { document } = getEnv();
 const controllers = [];
-afterEach(() => { controllers.splice(0).forEach((controls) => controls.dispose()); });
+afterEach(() => {
+  controllers.splice(0).forEach((controls) => controls.dispose());
+});
 
 function harness() {
   const camera = new PerspectiveCamera(30, 1.4, 0.001, 100);
@@ -14,17 +16,32 @@ function harness() {
   controllers.push(controls);
   controls.enableDamping = true;
   controls.target.set(0.1, 0.7, -0.2);
-  camera.position.setFromSpherical(new Spherical(3, Math.PI * 75 / 180, 0.5)).add(controls.target);
+  camera.position
+    .setFromSpherical(new Spherical(3, (Math.PI * 75) / 180, 0.5))
+    .add(controls.target);
   controls.update();
   camera.updateWorldMatrix(true, false);
   return Object.assign(Object.create(Viewer.prototype), {
-    camera, controls, posing: false, model: { scene: new Group() },
-    poseFraming: null, editorCamera: null, rig: { reset: vi.fn() },
-    action: null, mixer: null, invalidate: vi.fn(),
-    bounds: new Sphere(controls.target.clone(), 1), initialDistance: 3, cameraOptions: {},
+    camera,
+    controls,
+    posing: false,
+    model: { scene: new Group() },
+    poseFraming: null,
+    editorCamera: null,
+    rig: { reset: vi.fn() },
+    action: null,
+    mixer: null,
+    invalidate: vi.fn(),
+    bounds: new Sphere(controls.target.clone(), 1),
+    initialDistance: 3,
+    cameraOptions: {},
     // fitModel sets these for a model of radius 1.
-    baseFov: 30, idealAspect: 1, minRadius: 2.2, maxRadius: 1.05 / Math.sin(Math.PI / 12),
-    goalRadius: 3, goalLogFov: Math.log(30),
+    baseFov: 30,
+    idealAspect: 1,
+    minRadius: 2.2,
+    maxRadius: 1.05 / Math.sin(Math.PI / 12),
+    goalRadius: 3,
+    goalLogFov: Math.log(30),
   });
 }
 
@@ -34,17 +51,25 @@ function settle(viewer) {
 }
 
 function saved(viewer) {
-  return { position: viewer.camera.position.clone(), rotation: viewer.camera.quaternion.clone(),
-    fov: viewer.camera.fov, target: viewer.controls.target.clone() };
+  return {
+    position: viewer.camera.position.clone(),
+    rotation: viewer.camera.quaternion.clone(),
+    fov: viewer.camera.fov,
+    target: viewer.controls.target.clone(),
+  };
 }
 function expectSaved(viewer, before) {
-  expect(viewer.camera.position.distanceTo(before.position)).toBeLessThan(1e-12);
+  expect(viewer.camera.position.distanceTo(before.position)).toBeLessThan(
+    1e-12,
+  );
   expect(viewer.camera.quaternion.angleTo(before.rotation)).toBeLessThan(1e-7);
   expect(viewer.camera.fov).toBe(before.fov);
   expect(viewer.controls.target.equals(before.target)).toBe(true);
   // Nothing eases the view anywhere else afterwards.
   expect(viewer.stepZoom(1 / 60)).toBe(false);
-  expect(viewer.camera.position.distanceTo(before.position)).toBeLessThan(1e-12);
+  expect(viewer.camera.position.distanceTo(before.position)).toBeLessThan(
+    1e-12,
+  );
   expect(viewer.camera.fov).toBe(before.fov);
 }
 function expectFront(viewer) {
@@ -52,7 +77,11 @@ function expectFront(viewer) {
   expect(Math.abs(offset.x)).toBeLessThan(1e-12);
   expect(Math.abs(offset.y)).toBeLessThan(1e-12);
   expect(offset.z).toBeGreaterThan(0);
-  expect(viewer.camera.getWorldDirection(new Vector3()).distanceTo(new Vector3(0, 0, -1))).toBeLessThan(1e-12);
+  expect(
+    viewer.camera
+      .getWorldDirection(new Vector3())
+      .distanceTo(new Vector3(0, 0, -1)),
+  ).toBeLessThan(1e-12);
 }
 
 test("mocap starts front-on and restores the editor orbit after live rotation/zoom and repeated sessions", () => {
@@ -63,7 +92,9 @@ test("mocap starts front-on and restores the editor orbit after live rotation/zo
   for (let repeat = 0; repeat < 3; repeat++) {
     viewer.setPoseMode(true);
     expectFront(viewer);
-    expect(viewer.camera.position.distanceTo(viewer.controls.target)).toBeCloseTo(before.position.distanceTo(before.target), 12);
+    expect(
+      viewer.camera.position.distanceTo(viewer.controls.target),
+    ).toBeCloseTo(before.position.distanceTo(before.target), 12);
     // The pose camera keeps the editor's lens.
     expect(viewer.camera.fov).toBe(before.fov);
     // Inspection remains possible, but cannot replace the editor's saved view.
@@ -88,7 +119,11 @@ test("an elevated camera creates apparent roll from yaw that the mocap view remo
     viewer.camera.updateWorldMatrix(true, false);
     const left = center.clone().add(span).project(viewer.camera);
     const right = center.clone().sub(span).project(viewer.camera);
-    return Math.atan2(left.y - right.y, (left.x - right.x) * viewer.camera.aspect) * 180 / Math.PI;
+    return (
+      (Math.atan2(left.y - right.y, (left.x - right.x) * viewer.camera.aspect) *
+        180) /
+      Math.PI
+    );
   };
   expect(Math.abs(roll())).toBeGreaterThan(14);
   viewer.setPoseMode(true);
@@ -115,7 +150,9 @@ test("reset and a newly fitted model retain a level mocap view and restore the n
   viewer.adjustZoom(-0.5);
   settle(viewer);
   viewer.setPoseMode(false);
-  const expected = new Vector3().setFromSpherical(new Spherical(1.5, 65 * Math.PI / 180, Math.PI / 6)).add(viewer.bounds.center);
+  const expected = new Vector3()
+    .setFromSpherical(new Spherical(1.5, (65 * Math.PI) / 180, Math.PI / 6))
+    .add(viewer.bounds.center);
   expect(viewer.camera.position.distanceTo(expected)).toBeLessThan(1e-12);
   expect(viewer.controls.target.equals(viewer.bounds.center)).toBe(true);
   // Unzoomed.
@@ -131,7 +168,10 @@ test("mocap started in the middle of a zoom keeps the view as drawn, and nothing
   expect(before.fov).toBeLessThan(30);
   expect(before.fov).toBeGreaterThan(30 * Math.exp(-0.5));
   viewer.setPoseMode(true);
-  expect(viewer.camera.position.distanceTo(viewer.controls.target)).toBeCloseTo(before.position.distanceTo(before.target), 12);
+  expect(viewer.camera.position.distanceTo(viewer.controls.target)).toBeCloseTo(
+    before.position.distanceTo(before.target),
+    12,
+  );
   expect(viewer.camera.fov).toBe(before.fov);
   expect(viewer.stepZoom(1 / 60)).toBe(false);
   viewer.setPoseMode(false);
@@ -147,6 +187,8 @@ test("starting before model loading does not save the empty camera as the editor
   viewer.resetCamera();
   expectFront(viewer);
   viewer.setPoseMode(false);
-  const expected = new Vector3().setFromSpherical(new Spherical(3, Math.PI * 75 / 180, 0)).add(viewer.bounds.center);
+  const expected = new Vector3()
+    .setFromSpherical(new Spherical(3, (Math.PI * 75) / 180, 0))
+    .add(viewer.bounds.center);
   expect(viewer.camera.position.distanceTo(expected)).toBeLessThan(1e-12);
 });

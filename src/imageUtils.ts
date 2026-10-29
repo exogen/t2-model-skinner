@@ -61,7 +61,7 @@ export async function rgbaToArrayBuffer(
   }: {
     width: number;
     height: number;
-  }
+  },
 ): Promise<ArrayBuffer> {
   const png = new PNG({
     width,
@@ -121,7 +121,7 @@ export async function arrayBufferToRgba(arrayBuffer: ArrayBuffer) {
       } else {
         resolve(data);
       }
-    })
+    }),
   );
   return { rgba: png.data, width: png.width, height: png.height };
 }
@@ -139,7 +139,7 @@ export async function setGrayscaleFromAlpha(rgba: Uint8Array) {
 
 export async function setAlphaFromGrayscale(
   rgba: Uint8Array,
-  grayscaleRgba: Uint8Array
+  grayscaleRgba: Uint8Array,
 ) {
   const length = rgba.length;
   // Copy metallic grayscale values into alpha, clamping zero to 1.
@@ -181,7 +181,7 @@ type ImageSize = {
 
 export async function rgbaToImageUrl(
   rgba: Uint8Array,
-  { width, height }: ImageSize
+  { width, height }: ImageSize,
 ) {
   const arrayBuffer = await rgbaToArrayBuffer(rgba, {
     width,
@@ -215,7 +215,7 @@ export async function removeAlphaFromArrayBuffer(arrayBuffer: ArrayBuffer) {
 }
 
 export async function convertArrayBufferAlphaToGrayscale(
-  arrayBuffer: ArrayBuffer
+  arrayBuffer: ArrayBuffer,
 ) {
   const { rgba, width, height } = await arrayBufferToRgba(arrayBuffer);
   setGrayscaleFromAlpha(rgba);
@@ -224,7 +224,7 @@ export async function convertArrayBufferAlphaToGrayscale(
 }
 
 export async function convertGrayscaleImageUrlToMetallicRoughness(
-  imageUrl: string
+  imageUrl: string,
 ) {
   const { rgba, width, height } = await imageUrlToRgba(imageUrl);
   setMetallicFromGrayscale(rgba);

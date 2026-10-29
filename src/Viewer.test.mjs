@@ -2,8 +2,20 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { expect, test, vi } from "vitest";
 import {
-  AnimationClip, AnimationMixer, EquirectangularReflectionMapping, Group, Mesh, MeshStandardMaterial, Object3D,
-  PerspectiveCamera, PlaneGeometry, Scene, Texture, Vector3, VectorKeyframeTrack, WebGLRenderTarget,
+  AnimationClip,
+  AnimationMixer,
+  EquirectangularReflectionMapping,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+  PerspectiveCamera,
+  PlaneGeometry,
+  Scene,
+  Texture,
+  Vector3,
+  VectorKeyframeTrack,
+  WebGLRenderTarget,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
@@ -11,45 +23,63 @@ import Viewer, { collectMaterials, disposeObject } from "./Viewer";
 import { configureMaterial } from "./materialBinding";
 import { partMaterials } from "./models";
 
-const config = JSON.parse(readFileSync(new URL("../models.json", import.meta.url), "utf8"));
+const config = JSON.parse(
+  readFileSync(new URL("../models.json", import.meta.url), "utf8"),
+);
 
 async function loadModel(name) {
-  const buffer = readFileSync(new URL(`../public/${name}.glb`, import.meta.url));
+  const buffer = readFileSync(
+    new URL(`../public/${name}.glb`, import.meta.url),
+  );
   const loader = new GLTFLoader();
   // Keep the real glTF parser and material associations; image decoding needs
   // browser APIs and is independent of this binding/disposal coverage.
-  loader.register(() => ({ name: "test-image-decoder", loadTexture: async () => new Texture() }));
-  return loader.parseAsync(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength), "");
+  loader.register(() => ({
+    name: "test-image-decoder",
+    loadTexture: async () => new Texture(),
+  }));
+  return loader.parseAsync(
+    buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength,
+    ),
+    "",
+  );
 }
 
-test.each(Object.keys(config.materials))("%s binds every real GLB material to its original configured index", async (name) => {
-  const gltf = await loadModel(name);
-  const grouped = collectMaterials(gltf);
-  const sourceMaterials = gltf.parser.json.materials;
-  expect(grouped).toHaveLength(sourceMaterials.length);
-  const encountered = new Set();
-  gltf.scene.traverse((object) => {
-    if (!object.isMesh) return;
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-      encountered.add(material);
-      const index = gltf.parser.associations.get(material)?.materials;
-      expect(index, material.name).not.toBeUndefined();
-      expect(grouped[index]).toContain(material);
-    }
-  });
-  expect(new Set(grouped.flat())).toEqual(encountered);
-  grouped.forEach((materials, index) => {
-    expect(new Set(materials).size).toBe(materials.length);
-    for (const material of materials) {
-      expect(material.name).toBe(sourceMaterials[index].name);
-      // A mounted model's definitions, like the tank's turret's, are its own.
-      const definition = partMaterials(name)[index];
-      configureMaterial(material, definition);
-      expect(material.visible).toBe(definition != null && !definition.hidden);
-    }
-  });
-  disposeObject(gltf.scene);
-});
+test.each(Object.keys(config.materials))(
+  "%s binds every real GLB material to its original configured index",
+  async (name) => {
+    const gltf = await loadModel(name);
+    const grouped = collectMaterials(gltf);
+    const sourceMaterials = gltf.parser.json.materials;
+    expect(grouped).toHaveLength(sourceMaterials.length);
+    const encountered = new Set();
+    gltf.scene.traverse((object) => {
+      if (!object.isMesh) return;
+      for (const material of Array.isArray(object.material)
+        ? object.material
+        : [object.material]) {
+        encountered.add(material);
+        const index = gltf.parser.associations.get(material)?.materials;
+        expect(index, material.name).not.toBeUndefined();
+        expect(grouped[index]).toContain(material);
+      }
+    });
+    expect(new Set(grouped.flat())).toEqual(encountered);
+    grouped.forEach((materials, index) => {
+      expect(new Set(materials).size).toBe(materials.length);
+      for (const material of materials) {
+        expect(material.name).toBe(sourceMaterials[index].name);
+        // A mounted model's definitions, like the tank's turret's, are its own.
+        const definition = partMaterials(name)[index];
+        configureMaterial(material, definition);
+        expect(material.visible).toBe(definition != null && !definition.hidden);
+      }
+    });
+    disposeObject(gltf.scene);
+  },
+);
 
 test("material grouping retains runtime clones and does not confuse source names with configuration aliases", async () => {
   const gltf = await loadModel("elf");
@@ -74,7 +104,11 @@ test("disposing a scene releases shared geometry, materials and texture slots on
   const root = new Group();
   const geometry = new PlaneGeometry();
   const texture = new Texture();
-  const material = new MeshStandardMaterial({ map: texture, roughnessMap: texture, metalnessMap: texture });
+  const material = new MeshStandardMaterial({
+    map: texture,
+    roughnessMap: texture,
+    metalnessMap: texture,
+  });
   const other = new MeshStandardMaterial({ map: texture });
   const geometryDispose = vi.spyOn(geometry, "dispose");
   const textureDispose = vi.spyOn(texture, "dispose");
@@ -106,7 +140,10 @@ test("disposing a real skinned player releases every skeleton bone texture", asy
 test("disposing a model also releases embedded textures replaced by editor textures", () => {
   const embedded = new Texture();
   const replacement = new Texture();
-  const mesh = new Mesh(new PlaneGeometry(), new MeshStandardMaterial({ map: replacement }));
+  const mesh = new Mesh(
+    new PlaneGeometry(),
+    new MeshStandardMaterial({ map: replacement }),
+  );
   const embeddedDispose = vi.spyOn(embedded, "dispose");
   const replacementDispose = vi.spyOn(replacement, "dispose");
   disposeObject(mesh, new Set([embedded]));
@@ -116,9 +153,13 @@ test("disposing a model also releases embedded textures replaced by editor textu
 
 function environmentHarness() {
   return Object.assign(Object.create(Viewer.prototype), {
-    environmentGeneration: 0, disposed: false,
-    scene: new Scene(), controls: {}, invalidate: vi.fn(),
-    environment: null, background: null,
+    environmentGeneration: 0,
+    disposed: false,
+    scene: new Scene(),
+    controls: {},
+    invalidate: vi.fn(),
+    environment: null,
+    background: null,
     defaultEnvironment: new WebGLRenderTarget(1, 1),
     pmrem: {
       fromEquirectangular: vi.fn(() => new WebGLRenderTarget(1, 1)),
@@ -131,7 +172,9 @@ test("HDR backgrounds use spherical mapping and switching to default releases th
   const viewer = environmentHarness();
   const texture = new Texture();
   const textureDispose = vi.spyOn(texture, "dispose");
-  const load = vi.spyOn(RGBELoader.prototype, "loadAsync").mockResolvedValueOnce(texture);
+  const load = vi
+    .spyOn(RGBELoader.prototype, "loadAsync")
+    .mockResolvedValueOnce(texture);
   try {
     viewer.setBackgroundVisible(true);
     await viewer.setEnvironment("/environment.hdr");
@@ -143,7 +186,7 @@ test("HDR backgrounds use spherical mapping and switching to default releases th
     await viewer.setEnvironment(null);
     expect(viewer.scene.background).toBeNull();
     expect(viewer.scene.environment).toBe(viewer.defaultEnvironment.texture);
-    expect(viewer.controls.maxPolarAngle).toBe(Math.PI * 7 / 8);
+    expect(viewer.controls.maxPolarAngle).toBe((Math.PI * 7) / 8);
     expect(textureDispose).toHaveBeenCalledTimes(1);
     expect(environmentDispose).toHaveBeenCalledTimes(1);
   } finally {
@@ -154,7 +197,9 @@ test("HDR backgrounds use spherical mapping and switching to default releases th
 test("toggling the background reuses the loaded HDR", async () => {
   const viewer = environmentHarness();
   const texture = new Texture();
-  const load = vi.spyOn(RGBELoader.prototype, "loadAsync").mockResolvedValueOnce(texture);
+  const load = vi
+    .spyOn(RGBELoader.prototype, "loadAsync")
+    .mockResolvedValueOnce(texture);
   try {
     await viewer.setEnvironment("/environment.hdr");
     expect(viewer.scene.background).toBeNull();
@@ -163,7 +208,7 @@ test("toggling the background reuses the loaded HDR", async () => {
     expect(viewer.controls.maxPolarAngle).toBe(Math.PI / 2);
     viewer.setBackgroundVisible(false);
     expect(viewer.scene.background).toBeNull();
-    expect(viewer.controls.maxPolarAngle).toBe(Math.PI * 7 / 8);
+    expect(viewer.controls.maxPolarAngle).toBe((Math.PI * 7) / 8);
     expect(load).toHaveBeenCalledTimes(1);
     expect(viewer.pmrem.fromEquirectangular).toHaveBeenCalledTimes(1);
   } finally {
@@ -177,8 +222,11 @@ test("an obsolete HDR request cannot replace the selected environment", async ()
   const texture = new Texture();
   const textureDispose = vi.spyOn(texture, "dispose");
   let resolve;
-  const load = vi.spyOn(RGBELoader.prototype, "loadAsync")
-    .mockReturnValueOnce(new Promise((ready) => { resolve = ready; }));
+  const load = vi.spyOn(RGBELoader.prototype, "loadAsync").mockReturnValueOnce(
+    new Promise((ready) => {
+      resolve = ready;
+    }),
+  );
   try {
     viewer.setBackgroundVisible(true);
     const pending = viewer.setEnvironment("/old.hdr");
@@ -194,35 +242,38 @@ test("an obsolete HDR request cannot replace the selected environment", async ()
   }
 });
 
-test.each([false, true])("restoring a GL context rebuilds lost environment pixels (HDR: %s)", (withHdr) => {
-  const viewer = environmentHarness();
-  const oldDefault = viewer.defaultEnvironment;
-  const defaultDispose = vi.spyOn(oldDefault, "dispose");
-  const hdr = withHdr ? new Texture() : null;
-  viewer.background = hdr;
-  viewer.scene.background = hdr;
-  viewer.environment = withHdr ? new WebGLRenderTarget(1, 1) : null;
-  const oldHdr = viewer.environment;
-  const hdrDispose = oldHdr && vi.spyOn(oldHdr, "dispose");
-  viewer.rebuildEnvironment();
-  expect(defaultDispose).toHaveBeenCalledTimes(1);
-  expect(viewer.defaultEnvironment).not.toBe(oldDefault);
-  expect(viewer.pmrem.fromScene).toHaveBeenCalledTimes(1);
-  expect(viewer.scene.background).toBe(hdr);
-  if (withHdr) {
-    expect(hdrDispose).toHaveBeenCalledTimes(1);
-    expect(viewer.environment).not.toBe(oldHdr);
-    expect(viewer.pmrem.fromEquirectangular).toHaveBeenCalledWith(hdr);
-    expect(viewer.scene.environment).toBe(viewer.environment.texture);
-  } else {
-    expect(viewer.pmrem.fromEquirectangular).not.toHaveBeenCalled();
-    expect(viewer.scene.environment).toBe(viewer.defaultEnvironment.texture);
-  }
-  expect(viewer.invalidate).toHaveBeenCalledTimes(1);
-  viewer.environment?.dispose();
-  viewer.defaultEnvironment.dispose();
-  hdr?.dispose();
-});
+test.each([false, true])(
+  "restoring a GL context rebuilds lost environment pixels (HDR: %s)",
+  (withHdr) => {
+    const viewer = environmentHarness();
+    const oldDefault = viewer.defaultEnvironment;
+    const defaultDispose = vi.spyOn(oldDefault, "dispose");
+    const hdr = withHdr ? new Texture() : null;
+    viewer.background = hdr;
+    viewer.scene.background = hdr;
+    viewer.environment = withHdr ? new WebGLRenderTarget(1, 1) : null;
+    const oldHdr = viewer.environment;
+    const hdrDispose = oldHdr && vi.spyOn(oldHdr, "dispose");
+    viewer.rebuildEnvironment();
+    expect(defaultDispose).toHaveBeenCalledTimes(1);
+    expect(viewer.defaultEnvironment).not.toBe(oldDefault);
+    expect(viewer.pmrem.fromScene).toHaveBeenCalledTimes(1);
+    expect(viewer.scene.background).toBe(hdr);
+    if (withHdr) {
+      expect(hdrDispose).toHaveBeenCalledTimes(1);
+      expect(viewer.environment).not.toBe(oldHdr);
+      expect(viewer.pmrem.fromEquirectangular).toHaveBeenCalledWith(hdr);
+      expect(viewer.scene.environment).toBe(viewer.environment.texture);
+    } else {
+      expect(viewer.pmrem.fromEquirectangular).not.toHaveBeenCalled();
+      expect(viewer.scene.environment).toBe(viewer.defaultEnvironment.texture);
+    }
+    expect(viewer.invalidate).toHaveBeenCalledTimes(1);
+    viewer.environment?.dispose();
+    viewer.defaultEnvironment.dispose();
+    hdr?.dispose();
+  },
+);
 
 /** A viewer with a real mixer. "Hold" keeps a node at x = 1, and "Slide"
  * moves it from x = 3 to x = 5 over a second. `first` is the clip listed
@@ -233,14 +284,26 @@ function animationHarness(first = "Hold") {
   node.name = "node";
   scene.add(node);
   const animations = [
-    new AnimationClip("Hold", 1, [new VectorKeyframeTrack("node.position", [0, 1], [1, 0, 0, 1, 0, 0])]),
-    new AnimationClip("Slide", 1, [new VectorKeyframeTrack("node.position", [0, 1], [3, 0, 0, 5, 0, 0])]),
+    new AnimationClip("Hold", 1, [
+      new VectorKeyframeTrack("node.position", [0, 1], [1, 0, 0, 1, 0, 0]),
+    ]),
+    new AnimationClip("Slide", 1, [
+      new VectorKeyframeTrack("node.position", [0, 1], [3, 0, 0, 5, 0, 0]),
+    ]),
   ];
   if (first === "Slide") animations.reverse();
   const viewer = Object.assign(Object.create(Viewer.prototype), {
-    model: { scene, animations }, mixer: new AnimationMixer(scene), action: null, rig: null,
-    posing: false, paused: false, playbackSpeed: 1, poseAnimationTime: 0,
-    camera: new PerspectiveCamera(), controls: { target: new Vector3(), update() {} }, invalidate: vi.fn(),
+    model: { scene, animations },
+    mixer: new AnimationMixer(scene),
+    action: null,
+    rig: null,
+    posing: false,
+    paused: false,
+    playbackSpeed: 1,
+    poseAnimationTime: 0,
+    camera: new PerspectiveCamera(),
+    controls: { target: new Vector3(), update() {} },
+    invalidate: vi.fn(),
   });
   return { viewer, node, animations };
 }

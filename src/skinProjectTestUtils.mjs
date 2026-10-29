@@ -25,14 +25,14 @@ const { saved, downloads, workers } = vi.hoisted(() => ({
   workers: {
     removeAlphaFromArrayBuffer: vi.fn(
       async (buffer) =>
-        `data:image/png;base64,${Buffer.from(buffer).toString("base64")}`
+        `data:image/png;base64,${Buffer.from(buffer).toString("base64")}`,
     ),
     convertArrayBufferAlphaToGrayscale: vi.fn(
       async (buffer) =>
-        `data:image/png;base64,${Buffer.from(buffer).toString("base64")}`
+        `data:image/png;base64,${Buffer.from(buffer).toString("base64")}`,
     ),
     combineColorAndAlphaImageUrls: vi.fn(
-      async ({ colorImageUrl }) => colorImageUrl
+      async ({ colorImageUrl }) => colorImageUrl,
     ),
     convertGrayscaleImageUrlToMetallicRoughness: vi.fn(async (url) => url),
   },
@@ -119,7 +119,7 @@ export function input(
   name,
   colorCanvas,
   metallicCanvas = null,
-  textureSize = [512, 512]
+  textureSize = [512, 512],
 ) {
   return { name, colorCanvas, metallicCanvas, textureSize };
 }
@@ -140,12 +140,11 @@ export async function editor(
     defaultImageUrls = {},
     imageLoad = null,
     waitForInitialCanvases = true,
-  } = {}
+  } = {},
 ) {
   const imageLoader = {
     loadImage:
-      imageLoad ??
-      (async (url) => (await globalThis.fetch(url)).arrayBuffer()),
+      imageLoad ?? (async (url) => (await globalThis.fetch(url)).arrayBuffer()),
   };
   const definitions = modelConfig.materials;
   let tools, canvases, warrior, skin;
@@ -193,23 +192,16 @@ export async function editor(
               multiplier: currentTools.sizeMultiplier,
               backgroundUrl,
             });
-          })
-        ).flat()
-      )
+          }),
+        ).flat(),
+      ),
     );
   }
-  function TestCanvas({
-    id,
-    type,
-    size,
-    snapshot,
-    multiplier,
-    backgroundUrl,
-  }) {
+  function TestCanvas({ id, type, size, snapshot, multiplier, backgroundUrl }) {
     const [width, height] = size;
     const textureSize = React.useMemo(
       () => [width * multiplier, height * multiplier],
-      [width, height, multiplier]
+      [width, height, multiplier],
     );
     const source = React.useMemo(
       () =>
@@ -220,7 +212,7 @@ export async function editor(
               url: backgroundUrl,
               convert: async () => backgroundUrl,
             },
-      [snapshot, backgroundUrl]
+      [snapshot, backgroundUrl],
     );
     return React.createElement(Canvas, {
       canvasId: id,
@@ -230,9 +222,9 @@ export async function editor(
     });
   }
   function Warrior() {
-    const [interactionsDisabled, updateInteractionsDisabled] = React.useState(false);
-    const [skinImageUrls, setSkinImageUrls] =
-      React.useState(initialImageUrls);
+    const [interactionsDisabled, updateInteractionsDisabled] =
+      React.useState(false);
+    const [skinImageUrls, setSkinImageUrls] = React.useState(initialImageUrls);
     const [selectedModel, setSelectedModel] = React.useState(initialModel);
     const [selectedSkin, setSelectedSkin] = React.useState("Blood Eagle");
     const [selectedSkinType, setSelectedSkinType] = React.useState("default");
@@ -245,9 +237,10 @@ export async function editor(
       skinImageUrls:
         selectedSkinType === "import"
           ? Object.fromEntries(
-              importedSkins.get(actualModel)?.get(
-                selectedSkin === "__untitled__" ? null : selectedSkin
-              )?.materials ?? []
+              importedSkins
+                .get(actualModel)
+                ?.get(selectedSkin === "__untitled__" ? null : selectedSkin)
+                ?.materials ?? [],
             )
           : skinImageUrls,
       importedSkins,
@@ -285,10 +278,10 @@ export async function editor(
           React.createElement(
             CanvasInteractions,
             { disabled: interactionsDisabled },
-            React.createElement(Surface)
-          )
-        )
-      )
+            React.createElement(Surface),
+          ),
+        ),
+      ),
     );
   }
   const host = document.createElement("div");
@@ -302,10 +295,10 @@ export async function editor(
         React.createElement(
           ImageLoaderContext.Provider,
           { value: imageLoader },
-          React.createElement(Warrior)
-        )
-      )
-    )
+          React.createElement(Warrior),
+        ),
+      ),
+    ),
   );
   async function waitForCanvases() {
     await until(
@@ -316,7 +309,7 @@ export async function editor(
         )
           throw new Error("Canvases are still initializing");
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
   }
   if (waitForInitialCanvases) await waitForCanvases();
@@ -340,8 +333,8 @@ export async function editor(
         host
           .querySelector(".CanvasInteractions")
           .dispatchEvent(
-            new window.KeyboardEvent("keydown", { key, bubbles: true })
-          )
+            new window.KeyboardEvent("keydown", { key, bubbles: true }),
+          ),
       );
     },
     async load(bytes) {

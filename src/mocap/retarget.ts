@@ -1,4 +1,10 @@
-import { Matrix4, Quaternion, Vector3, type Object3D, type PerspectiveCamera } from "three";
+import {
+  Matrix4,
+  Quaternion,
+  Vector3,
+  type Object3D,
+  type PerspectiveCamera,
+} from "three";
 import type { PoseLandmark, TrackedHand } from "./poseTracking";
 import { isConfident, isInImage, MIN_CONFIDENCE } from "./landmarks";
 
@@ -16,7 +22,7 @@ const handArticulation = {
   dipCurlWeight: 0.25,
 };
 const MAX_FINGER_CURL = Math.PI * (handArticulation.maxFingerCurlDegrees / 180);
-const MAX_THUMB_SWING = Math.PI * handArticulation.maxThumbSwingDegrees / 180;
+const MAX_THUMB_SWING = (Math.PI * handArticulation.maxThumbSwingDegrees) / 180;
 
 // MediaPipe landmark indices. Left/right refer to the tracked person's anatomy.
 
@@ -56,13 +62,22 @@ const handIndices = {
   ringMCP: 13,
   pinkyMCP: 17,
 } as const;
-const fingerMCPs = [handIndices.indexMCP, handIndices.middleMCP, handIndices.ringMCP, handIndices.pinkyMCP];
+const fingerMCPs = [
+  handIndices.indexMCP,
+  handIndices.middleMCP,
+  handIndices.ringMCP,
+  handIndices.pinkyMCP,
+];
 
 const EPSILON = 1e-10;
 
-const finite = (point: { x: number; y: number; z: number }) => [point.x, point.y, point.z].every(Number.isFinite);
+const finite = (point: { x: number; y: number; z: number }) =>
+  [point.x, point.y, point.z].every(Number.isFinite);
 /** Finite, and long enough to normalize. */
-const usable = (vector: Vector3) => finite(vector) && Number.isFinite(vector.lengthSq()) && vector.lengthSq() >= EPSILON;
+const usable = (vector: Vector3) =>
+  finite(vector) &&
+  Number.isFinite(vector.lengthSq()) &&
+  vector.lengthSq() >= EPSILON;
 
 export function midpoint(a: Vector3, b: Vector3) {
   return a.clone().add(b).multiplyScalar(0.5);
@@ -83,7 +98,9 @@ export function readPosePoint(
 }
 
 function frame(x: Vector3, y: Vector3, z: Vector3): Quaternion {
-  return new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(x, y, z));
+  return new Quaternion().setFromRotationMatrix(
+    new Matrix4().makeBasis(x, y, z),
+  );
 }
 
 /** A body frame: X points to the person's left, Y up, Z forward. */
@@ -102,7 +119,8 @@ export function segmentFrame(
   direction: Vector3,
   normal: Vector3,
 ): Quaternion | null {
-  if (direction.lengthSq() < EPSILON || normal.lengthSq() < EPSILON) return null;
+  if (direction.lengthSq() < EPSILON || normal.lengthSq() < EPSILON)
+    return null;
   const x = direction.clone().normalize();
   const y = normal.clone().cross(x);
   if (y.lengthSq() < EPSILON) return null;
@@ -143,13 +161,19 @@ function palmFrame(
   if (![direction, span].every(finite)) return null;
   const lengthSq = direction.lengthSq();
   const spanSq = span.lengthSq();
-  if (!Number.isFinite(lengthSq) || !Number.isFinite(spanSq) || lengthSq < EPSILON) return null;
+  if (
+    !Number.isFinite(lengthSq) ||
+    !Number.isFinite(spanSq) ||
+    lengthSq < EPSILON
+  )
+    return null;
   const measured = direction.clone().cross(span);
   const measuredSq = measured.lengthSq();
   if (!Number.isFinite(measuredSq)) return null;
   // These dimensionless checks work at any body scale. Require a finger span
   // at least 10% of hand length and a triangle sine of at least 0.15.
-  const reliable = spanSq >= lengthSq * 0.1 ** 2 &&
+  const reliable =
+    spanSq >= lengthSq * 0.1 ** 2 &&
     measuredSq >= lengthSq * spanSq * 0.15 ** 2;
   let normal: Vector3;
   if (reliable) {
@@ -171,10 +195,7 @@ function palmFrame(
 }
 
 /** A head/foot frame with an explicit forward and up direction. */
-export function facingFrame(
-  forward: Vector3,
-  up: Vector3,
-): Quaternion | null {
+export function facingFrame(forward: Vector3, up: Vector3): Quaternion | null {
   if (forward.lengthSq() < EPSILON || up.lengthSq() < EPSILON) return null;
   const z = forward.clone().normalize();
   const x = up.clone().cross(z);
@@ -199,10 +220,14 @@ export function headFrame(
   const forwardSq = forward.lengthSq();
   const up = forward.clone().cross(left);
   const upSq = up.lengthSq();
-  if (![leftSq, forwardSq, upSq].every(Number.isFinite) ||
-      leftSq < EPSILON || forwardSq < EPSILON ||
-      forwardSq < leftSq * 0.05 ** 2 ||
-      upSq < leftSq * forwardSq * 0.15 ** 2) return null;
+  if (
+    ![leftSq, forwardSq, upSq].every(Number.isFinite) ||
+    leftSq < EPSILON ||
+    forwardSq < EPSILON ||
+    forwardSq < leftSq * 0.05 ** 2 ||
+    upSq < leftSq * forwardSq * 0.15 ** 2
+  )
+    return null;
   return bodyFrame(left.normalize(), up.normalize());
 }
 
@@ -233,8 +258,8 @@ export function footFrame(
   const heightSq = measuredUp.lengthSq();
   // Relative height also rejects a tiny but perpendicular ankle offset.
   // Triangle angle rejects an ankle lying nearly along the heel/toe axis.
-  const reliable = heightSq >= lengthSq * 0.1 ** 2 &&
-    heightSq >= upLengthSq * 0.15 ** 2;
+  const reliable =
+    heightSq >= lengthSq * 0.1 ** 2 && heightSq >= upLengthSq * 0.15 ** 2;
   let up: Vector3;
   if (reliable) {
     // Sole facing has a real sign; a clearly measured upside-down foot must
@@ -292,9 +317,8 @@ export function limbFrames(
   let lowerFrame = segmentFrame(lower, normal);
   if (!upperFrame || !lowerFrame) {
     // The normal can line up with the limb as it turns toward the camera.
-    const alternate = Math.abs(upper.y) < 0.9
-      ? new Vector3(0, 1, 0)
-      : new Vector3(0, 0, 1);
+    const alternate =
+      Math.abs(upper.y) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(0, 0, 1);
     normal = upper.clone().cross(alternate).normalize();
     if (normal.dot(fallbackNormal) < 0) normal.negate();
     upperFrame = segmentFrame(upper, normal);
@@ -307,7 +331,10 @@ export function limbFrames(
 
 // Detailed hand orientation and finger articulation
 
-const HAND_AXES = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), Math.PI);
+const HAND_AXES = new Quaternion().setFromAxisAngle(
+  new Vector3(0, 0, 1),
+  Math.PI,
+);
 
 export interface DetailedHandPose {
   palm: HandFrame;
@@ -320,7 +347,9 @@ export interface DetailedHandPose {
 function median(values: number[]) {
   values.sort((a, b) => a - b);
   const middle = Math.floor(values.length / 2);
-  return values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+  return values.length % 2
+    ? values[middle]
+    : (values[middle - 1] + values[middle]) / 2;
 }
 
 function angleDifference(a: number, b: number) {
@@ -334,12 +363,15 @@ export function detailedHandPose(
   hand: TrackedHand,
   fallbackNormal?: Vector3,
 ): DetailedHandPose | null {
-  if (!Number.isFinite(hand.confidence) || hand.confidence < MIN_CONFIDENCE) return null;
+  if (!Number.isFinite(hand.confidence) || hand.confidence < MIN_CONFIDENCE)
+    return null;
   const point = (index: number) => {
     const point = hand.worldLandmarks[index];
     // Hand Landmarker emits visibility=0 as an unset/default field, not a
     // measured joint confidence. Its whole-hand association is gated above.
-    return point && finite(point) ? new Vector3(point.x, -point.y, -point.z) : null;
+    return point && finite(point)
+      ? new Vector3(point.x, -point.y, -point.z)
+      : null;
   };
   const wrist = point(handIndices.wrist);
   const index = point(handIndices.indexMCP);
@@ -347,7 +379,12 @@ export function detailedHandPose(
   const pinky = point(handIndices.pinkyMCP);
   if (!wrist || !index || !middle || !pinky) return null;
   const forward = middle.clone().sub(wrist);
-  const palm = palmFrame(forward, index.clone().sub(pinky), hand.side === "left", fallbackNormal);
+  const palm = palmFrame(
+    forward,
+    index.clone().sub(pinky),
+    hand.side === "left",
+    fallbackNormal,
+  );
   if (!palm) return null;
   forward.normalize();
 
@@ -372,7 +409,14 @@ export function detailedHandPose(
     const dip = Math.max(0, angleDifference(angles[2], angles[1]));
     // The low-poly mitt has one bend, not three independently skinned
     // knuckles. Distal flexion contributes less to that shared hinge.
-    curls.push(Math.min(MAX_FINGER_CURL, proximal + handArticulation.pipCurlWeight * pip + handArticulation.dipCurlWeight * dip));
+    curls.push(
+      Math.min(
+        MAX_FINGER_CURL,
+        proximal +
+          handArticulation.pipCurlWeight * pip +
+          handArticulation.dipCurlWeight * dip,
+      ),
+    );
   }
 
   const thumbBase = point(handIndices.thumbBase);
@@ -387,16 +431,27 @@ export function detailedHandPose(
       thumbDirection = direction.normalize().applyQuaternion(inverseHand);
     }
   }
-  return { palm, fingersCurl: curls.length >= 2 ? median(curls) : null, thumbDirection };
+  return {
+    palm,
+    fingersCurl: curls.length >= 2 ? median(curls) : null,
+    thumbDirection,
+  };
 }
 
 /** Swing the authored thumb's measured rest direction toward the camera's
  * thumb direction, without inventing an unobservable twist around that axis. */
-export function thumbRotation(restDirection: Vector3, direction: Vector3): Quaternion | null {
+export function thumbRotation(
+  restDirection: Vector3,
+  direction: Vector3,
+): Quaternion | null {
   if (![restDirection, direction].every(usable)) return null;
-  const rotation = new Quaternion().setFromUnitVectors(restDirection.clone().normalize(), direction.clone().normalize());
+  const rotation = new Quaternion().setFromUnitVectors(
+    restDirection.clone().normalize(),
+    direction.clone().normalize(),
+  );
   const angle = 2 * Math.acos(Math.min(1, Math.abs(rotation.w)));
-  if (angle > MAX_THUMB_SWING) rotation.slerp(new Quaternion(), 1 - MAX_THUMB_SWING / angle);
+  if (angle > MAX_THUMB_SWING)
+    rotation.slerp(new Quaternion(), 1 - MAX_THUMB_SWING / angle);
   return rotation;
 }
 
@@ -431,8 +486,10 @@ function projected(point: Vector3, axis: Vector3) {
 /** Choose a perpendicular direction without a left/right-specific world axis,
  * so reflected inputs also produce reflected elbows at degenerate targets. */
 function perpendicular(axis: Vector3) {
-  const fallback = Math.abs(axis.y) <= Math.abs(axis.z)
-    ? new Vector3(0, -1, 0) : new Vector3(0, 0, 1);
+  const fallback =
+    Math.abs(axis.y) <= Math.abs(axis.z)
+      ? new Vector3(0, -1, 0)
+      : new Vector3(0, 0, 1);
   const result = projected(fallback, axis);
   return result.divideScalar(magnitude(result));
 }
@@ -441,15 +498,18 @@ function chooseBend(options: ArmIKOptions, axis: Vector3) {
   const preferred = projected(options.bendDirection, axis);
   const preferredLength = magnitude(preferred);
   const originalLength = magnitude(options.bendDirection);
-  const hasPreference = originalLength > 0 && preferredLength > originalLength * 1e-6;
+  const hasPreference =
+    originalLength > 0 && preferredLength > originalLength * 1e-6;
   if (hasPreference) preferred.divideScalar(preferredLength);
 
   const history = options.previousElbow
-    ? projected(options.previousElbow.clone().sub(options.shoulder), axis) : null;
+    ? projected(options.previousElbow.clone().sub(options.shoulder), axis)
+    : null;
   const historyLength = history ? magnitude(history) : 0;
   if (!hasPreference) {
     return history && historyLength > options.upperLength * 0.02
-      ? history.divideScalar(historyLength) : perpendicular(axis);
+      ? history.divideScalar(historyLength)
+      : perpendicular(axis);
   }
   if (!history || historyLength <= options.upperLength * 0.02) return preferred;
   history.divideScalar(historyLength);
@@ -467,9 +527,26 @@ function chooseBend(options: ArmIKOptions, axis: Vector3) {
  * tracked elbow should bypass this fallback; it can seed bendDirection when
  * tracking is lost. The hand task's centered world points are not a target. */
 export function solveArmIK(options: ArmIKOptions): ArmIKResult | null {
-  const { shoulder, target, upperLength, lowerLength, bendDirection, previousElbow } = options;
-  if (![shoulder, target, bendDirection, ...(previousElbow ? [previousElbow] : [])].every(finite) ||
-    ![upperLength, lowerLength].every((length) => Number.isFinite(length) && length > 0)) return null;
+  const {
+    shoulder,
+    target,
+    upperLength,
+    lowerLength,
+    bendDirection,
+    previousElbow,
+  } = options;
+  if (
+    ![
+      shoulder,
+      target,
+      bendDirection,
+      ...(previousElbow ? [previousElbow] : []),
+    ].every(finite) ||
+    ![upperLength, lowerLength].every(
+      (length) => Number.isFinite(length) && length > 0,
+    )
+  )
+    return null;
   const maximum = upperLength + lowerLength;
   if (!Number.isFinite(maximum)) return null;
   const minimum = Math.abs(upperLength - lowerLength);
@@ -488,7 +565,9 @@ export function solveArmIK(options: ArmIKOptions): ArmIKResult | null {
     else hint.set(0, -1, 0);
     if (minimum === 0) {
       const elbow = shoulder.clone().addScaledVector(hint, upperLength);
-      return finite(elbow) ? { elbow, wrist: shoulder.clone(), bendDirection: hint } : null;
+      return finite(elbow)
+        ? { elbow, wrist: shoulder.clone(), bendDirection: hint }
+        : null;
     }
     axis.copy(hint).multiplyScalar(upperLength > lowerLength ? 1 : -1);
   }
@@ -500,13 +579,23 @@ export function solveArmIK(options: ArmIKOptions): ArmIKResult | null {
   const a = upperLength / scale;
   const b = lowerLength / scale;
   const d = reach / scale;
-  const along = reach === maximum ? a
-    : reach === minimum ? (upperLength > lowerLength ? a : -a)
-      : Math.max(-a, Math.min(a, ((a - b) * (a + b) / d + d) / 2));
+  const along =
+    reach === maximum
+      ? a
+      : reach === minimum
+        ? upperLength > lowerLength
+          ? a
+          : -a
+        : Math.max(-a, Math.min(a, (((a - b) * (a + b)) / d + d) / 2));
   const height = Math.sqrt(Math.max(0, (a - along) * (a + along)));
-  const elbow = shoulder.clone().addScaledVector(axis, along * scale).addScaledVector(bend, height * scale);
+  const elbow = shoulder
+    .clone()
+    .addScaledVector(axis, along * scale)
+    .addScaledVector(bend, height * scale);
   const wrist = shoulder.clone().addScaledVector(axis, reach);
-  return [elbow, wrist, bend].every(finite) ? { elbow, wrist, bendDirection: bend } : null;
+  return [elbow, wrist, bend].every(finite)
+    ? { elbow, wrist, bendDirection: bend }
+    : null;
 }
 
 // Image-space wrist target at the model's retained depth
@@ -522,23 +611,39 @@ export function handImageTarget(
   wrist: PoseLandmark,
   depthReference: Vector3,
 ): Vector3 | null {
-  if (![wrist, depthReference].every(finite) || !isInImage(wrist) ||
-    ![imageAspect, camera.aspect, camera.near, camera.far].every(Number.isFinite) ||
-    imageAspect <= 0 || camera.aspect <= 0 || camera.near <= 0 || camera.far <= camera.near) return null;
+  if (
+    ![wrist, depthReference].every(finite) ||
+    !isInImage(wrist) ||
+    ![imageAspect, camera.aspect, camera.near, camera.far].every(
+      Number.isFinite,
+    ) ||
+    imageAspect <= 0 ||
+    camera.aspect <= 0 ||
+    camera.near <= 0 ||
+    camera.far <= camera.near
+  )
+    return null;
 
   root.updateWorldMatrix(true, false);
   camera.updateWorldMatrix(true, false);
-  const reference = root.localToWorld(depthReference.clone()).applyMatrix4(camera.matrixWorldInverse);
+  const reference = root
+    .localToWorld(depthReference.clone())
+    .applyMatrix4(camera.matrixWorldInverse);
   const depth = -reference.z;
-  if (!Number.isFinite(depth) || depth <= camera.near || depth >= camera.far) return null;
+  if (!Number.isFinite(depth) || depth <= camera.near || depth >= camera.far)
+    return null;
   // Preserve the actual render projection, including automatic clip-space
   // zoom/shift. Calling updateProjectionMatrix here would erase that framing.
   const projected = reference.applyMatrix4(camera.projectionMatrix);
-  if (!Number.isFinite(projected.z) || projected.z < -1 || projected.z > 1) return null;
+  if (!Number.isFinite(projected.z) || projected.z < -1 || projected.z > 1)
+    return null;
   const width = Math.min(1, imageAspect / camera.aspect);
   const height = Math.min(1, camera.aspect / imageAspect);
-  const target = new Vector3((wrist.x * 2 - 1) * width, (1 - wrist.y * 2) * height, projected.z)
-    .unproject(camera);
+  const target = new Vector3(
+    (wrist.x * 2 - 1) * width,
+    (1 - wrist.y * 2) * height,
+    projected.z,
+  ).unproject(camera);
   root.worldToLocal(target);
   return target.toArray().every(Number.isFinite) ? target : null;
 }

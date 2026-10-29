@@ -34,7 +34,11 @@ export default function SceneSettings() {
       {isOpen ? (
         // The skin lists open outside the popup and focus their search box,
         // so moving focus out doesn't close it. Clicking outside still does.
-        <FloatingFocusManager context={context} modal={false} closeOnFocusOut={false}>
+        <FloatingFocusManager
+          context={context}
+          modal={false}
+          closeOnFocusOut={false}
+        >
           <div
             className="SceneSettingsPopup"
             aria-label="Scene settings"

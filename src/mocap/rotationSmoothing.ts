@@ -25,9 +25,14 @@ export function poseSmoothingAlpha(deltaSeconds: number): number {
 }
 
 function valid(rotation: Quaternion) {
-  return Number.isFinite(rotation.x) && Number.isFinite(rotation.y) &&
-    Number.isFinite(rotation.z) && Number.isFinite(rotation.w) &&
-    Number.isFinite(rotation.lengthSq()) && rotation.lengthSq() > EPSILON;
+  return (
+    Number.isFinite(rotation.x) &&
+    Number.isFinite(rotation.y) &&
+    Number.isFinite(rotation.z) &&
+    Number.isFinite(rotation.w) &&
+    Number.isFinite(rotation.lengthSq()) &&
+    rotation.lengthSq() > EPSILON
+  );
 }
 
 /** 1€-style adaptive damping on rotations, rather than independently filtered
@@ -35,7 +40,9 @@ function valid(rotation: Quaternion) {
  * 1 Hz derivative filter. The final exponential response is time-based so
  * rendering between camera frames does not change the damping time constant.
  * See https://gery.casiez.net/1euro/ and VRPN's quaternion 1€ filter. */
-export function createRotationSmoother(mode: RotationSmoothingMode = "classic"): RotationSmoother {
+export function createRotationSmoother(
+  mode: RotationSmoothingMode = "classic",
+): RotationSmoother {
   const rotation = new Quaternion();
   const desired = new Quaternion();
   const previousTarget = new Quaternion();
@@ -61,23 +68,32 @@ export function createRotationSmoother(mode: RotationSmoothingMode = "classic"):
       }
       const delta = Math.min(deltaSeconds, 0.25);
       if (mode === "none") return rotation.copy(desired);
-      if (mode === "classic") return rotation.slerp(desired, poseSmoothingAlpha(delta)).normalize();
+      if (mode === "classic")
+        return rotation.slerp(desired, poseSmoothingAlpha(delta)).normalize();
 
       difference.copy(previousTarget).invert().premultiply(desired).normalize();
       previousTarget.copy(desired);
       // q and -q describe the same orientation. Use the shortest logarithm
       // so representation changes cannot become a spurious velocity burst.
       if (difference.w < 0) {
-        difference.set(-difference.x, -difference.y, -difference.z, -difference.w);
+        difference.set(
+          -difference.x,
+          -difference.y,
+          -difference.z,
+          -difference.w,
+        );
       }
       const sine = Math.hypot(difference.x, difference.y, difference.z);
       const angle = 2 * Math.atan2(sine, Math.max(0, difference.w));
-      measuredVelocity.set(difference.x, difference.y, difference.z)
+      measuredVelocity
+        .set(difference.x, difference.y, difference.z)
         .multiplyScalar(sine > EPSILON ? angle / (sine * delta) : 0);
       velocity.lerp(measuredVelocity, -Math.expm1(-2 * Math.PI * delta));
       const preset = presets[mode];
       const cutoff = preset.minCutoff + preset.beta * velocity.length();
-      return rotation.slerp(desired, -Math.expm1(-2 * Math.PI * cutoff * delta)).normalize();
+      return rotation
+        .slerp(desired, -Math.expm1(-2 * Math.PI * cutoff * delta))
+        .normalize();
     },
     reset(initial) {
       initialized = initial !== undefined && valid(initial);

@@ -21,7 +21,7 @@ interface EnvironmentContextValue {
 }
 
 const EnvironmentContext = React.createContext<EnvironmentContextValue | null>(
-  null
+  null,
 );
 EnvironmentContext.displayName = "EnvironmentContext";
 

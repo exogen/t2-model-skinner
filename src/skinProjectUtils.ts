@@ -33,7 +33,7 @@ export interface PreparedMaterial {
 
 export function materialArchiveKey(
   material: MaterialDefinition,
-  frame: number
+  frame: number,
 ) {
   return (material.frameCount ?? 1) > 1
     ? `${material.name}-frame${frame}`
@@ -54,7 +54,7 @@ function imageEntries(value: unknown): Record<string, unknown>[] {
 export function captureSkinProject(
   materials: SkinProjectMaterialInput[],
   model?: string,
-  name?: string
+  name?: string,
 ): SkinProject {
   return {
     version: SKIN_PROJECT_VERSION,
@@ -70,14 +70,14 @@ export function captureSkinProject(
             ? serializeCanvas(material.metallicCanvas)
             : { objects: [] },
         },
-      ])
+      ]),
     ),
   };
 }
 
 // Encoding owns plain snapshots and never reads live canvases after an await.
 export async function createSkinProjectZip(
-  project: SkinProject
+  project: SkinProject,
 ): Promise<JSZip> {
   const zip = new JSZip();
   zip.file(
@@ -86,15 +86,13 @@ export async function createSkinProjectZip(
       version: SKIN_PROJECT_VERSION,
       model: project.model,
       name: project.name,
-    })
+    }),
   );
   for (const [name, snapshot] of Object.entries(project.materials)) {
     const material = structuredClone(snapshot);
     const folder = zip.folder(name)!;
     const images: Record<string, string> = {};
-    for (const [index, image] of Array.from(
-      imageEntries(material).entries()
-    )) {
+    for (const [index, image] of Array.from(imageEntries(material).entries())) {
       // Fabric's image JSON uses the original source, before filters or cropping.
       const response = await fetch(image.src as string);
       if (!response.ok) throw new Error("Unable to save a project image");
@@ -105,7 +103,7 @@ export async function createSkinProjectZip(
     }
     folder.file(
       "material.json",
-      JSON.stringify({ ...material, images }, null, 2)
+      JSON.stringify({ ...material, images }, null, 2),
     );
   }
   return zip;
@@ -151,7 +149,7 @@ async function readLegacyMaterial(folder: JSZip, material: LegacyMaterial) {
   const restoreImage = async (
     image: LegacyImage,
     metallic: boolean,
-    base = false
+    base = false,
   ) => {
     const { filename, zIndex, locked, filterSettings, ...transform } = image;
     const filters: Record<string, unknown>[] = metallic
@@ -222,7 +220,7 @@ async function readLegacyMaterial(folder: JSZip, material: LegacyMaterial) {
 }
 
 export async function readSkinProjectZip(
-  file: File | Blob
+  file: File | Blob,
 ): Promise<SkinProject> {
   const zip = await JSZip.loadAsync(file);
   // Version 1 stored metadata per material and had no root project manifest.
@@ -235,9 +233,7 @@ export async function readSkinProjectZip(
       })
     : { version: 1 };
   if (metadata.version !== 1 && metadata.version !== SKIN_PROJECT_VERSION) {
-    throw new Error(
-      "This project was saved by an unsupported editor version"
-    );
+    throw new Error("This project was saved by an unsupported editor version");
   }
   const materials: SkinProject["materials"] = {};
   for (const filename of Object.keys(zip.files)) {
@@ -245,7 +241,7 @@ export async function readSkinProjectZip(
     if (!match) continue;
     const folder = zip.folder(match[1])!;
     const json = JSON.parse(
-      await folder.file("material.json")!.async("string")
+      await folder.file("material.json")!.async("string"),
     );
     if (metadata.version === 1) {
       materials[match[1]] = await readLegacyMaterial(folder, json);
@@ -255,11 +251,7 @@ export async function readSkinProjectZip(
       };
       for (const image of imageEntries(material)) {
         const filename = image.src as string;
-        image.src = await imageUrl(
-          folder,
-          filename,
-          material.images[filename]
-        );
+        image.src = await imageUrl(folder, filename, material.images[filename]);
       }
       materials[match[1]] = {
         textureSize: material.textureSize,
@@ -283,9 +275,9 @@ export function getProjectTarget(project: SkinProject, currentModel: string) {
       Object.keys(project.materials).every((key) =>
         definitions.some((material) =>
           Array.from({ length: material.frameCount ?? 1 }, (_, frame) =>
-            materialArchiveKey(material, frame)
-          ).includes(key)
-        )
+            materialArchiveKey(material, frame),
+          ).includes(key),
+        ),
       )
     );
   };
@@ -301,7 +293,7 @@ export function getProjectTarget(project: SkinProject, currentModel: string) {
         : undefined);
   if (!model || !matches(model))
     throw new Error(
-      "Select the model this project was made for before opening it"
+      "Select the model this project was made for before opening it",
     );
   const definitions = modelMaterials(model);
   let sizeMultiplier: number | undefined;
@@ -326,7 +318,7 @@ export function getProjectTarget(project: SkinProject, currentModel: string) {
 
 export async function prepareSkinProject(
   project: SkinProject,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) {
   const prepared: Record<string, PreparedMaterial> = {};
   try {
@@ -334,18 +326,18 @@ export async function prepareSkinProject(
     for (const [name, material] of Object.entries(project.materials)) {
       const color = await util.enlivenObjects<FabricObject>(
         material.color.objects,
-        { signal }
+        { signal },
       );
       prepared[name] = { color, metallic: [] };
       prepared[name].metallic = await util.enlivenObjects<FabricObject>(
         material.metallic.objects,
-        { signal }
+        { signal },
       );
     }
     return prepared;
   } catch (error) {
     Object.values(prepared).forEach(({ color, metallic }) =>
-      [...color, ...metallic].forEach((object) => object.dispose())
+      [...color, ...metallic].forEach((object) => object.dispose()),
     );
     throw error;
   }

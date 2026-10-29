@@ -10,7 +10,7 @@ export default function EnvironmentProvider({
   children: ReactNode;
 }) {
   const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(
-    null
+    null,
   );
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [exposure, setExposure] = useState(1);
@@ -43,7 +43,16 @@ export default function EnvironmentProvider({
       heldWeaponSkin,
       setHeldWeaponSkin,
     };
-  }, [basePath, selectedEnvironment, showEnvironment, exposure, renderMode, heldWeapon, setHeldWeapon, heldWeaponSkin]);
+  }, [
+    basePath,
+    selectedEnvironment,
+    showEnvironment,
+    exposure,
+    renderMode,
+    heldWeapon,
+    setHeldWeapon,
+    heldWeaponSkin,
+  ]);
 
   return (
     <EnvironmentContext.Provider value={context}>

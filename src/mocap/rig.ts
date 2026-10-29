@@ -1,7 +1,16 @@
 import { Object3D, PerspectiveCamera, Quaternion, Vector3 } from "three";
-import { MAX_POSE_AGE_MS, type PoseLandmark, type TrackedHand } from "./poseTracking";
+import {
+  MAX_POSE_AGE_MS,
+  type PoseLandmark,
+  type TrackedHand,
+} from "./poseTracking";
 import { isInImage } from "./landmarks";
-import { createRotationSmoother, poseSmoothingAlpha, type RotationSmoother, type RotationSmoothingMode } from "./rotationSmoothing";
+import {
+  createRotationSmoother,
+  poseSmoothingAlpha,
+  type RotationSmoother,
+  type RotationSmoothingMode,
+} from "./rotationSmoothing";
 import {
   bodyFrame,
   detailedHandPose,
@@ -42,26 +51,48 @@ const skeleton = {
 // before the pose reaches this rig, never by changing bone names or mesh scale.
 const limbDefinitions = {
   leftArm: {
-    side: "left", kind: "arm",
+    side: "left",
+    kind: "arm",
     bones: ["L_UpperArm", "L_Forearm", "L_Hand"],
-    landmarks: [poseIndices.leftShoulder, poseIndices.leftElbow, poseIndices.leftWrist],
-    fingers: ["L_Fingers", "L_FingersTip"], thumb: ["L_Thumb", "L_ThumbTip"],
+    landmarks: [
+      poseIndices.leftShoulder,
+      poseIndices.leftElbow,
+      poseIndices.leftWrist,
+    ],
+    fingers: ["L_Fingers", "L_FingersTip"],
+    thumb: ["L_Thumb", "L_ThumbTip"],
   },
   leftLeg: {
-    side: "left", kind: "leg",
+    side: "left",
+    kind: "leg",
     bones: ["L_Thigh", "L_Calf", "L_Foot"],
-    landmarks: [poseIndices.leftHip, poseIndices.leftKnee, poseIndices.leftAnkle],
+    landmarks: [
+      poseIndices.leftHip,
+      poseIndices.leftKnee,
+      poseIndices.leftAnkle,
+    ],
   },
   rightArm: {
-    side: "right", kind: "arm",
+    side: "right",
+    kind: "arm",
     bones: ["R_UpperArm", "R_Forearm", "R_Hand"],
-    landmarks: [poseIndices.rightShoulder, poseIndices.rightElbow, poseIndices.rightWrist],
-    fingers: ["R_Fingers", "R_FingersTip"], thumb: ["R_Thumb", "R_ThumbTip"],
+    landmarks: [
+      poseIndices.rightShoulder,
+      poseIndices.rightElbow,
+      poseIndices.rightWrist,
+    ],
+    fingers: ["R_Fingers", "R_FingersTip"],
+    thumb: ["R_Thumb", "R_ThumbTip"],
   },
   rightLeg: {
-    side: "right", kind: "leg",
+    side: "right",
+    kind: "leg",
     bones: ["R_Thigh", "R_Calf", "R_Foot"],
-    landmarks: [poseIndices.rightHip, poseIndices.rightKnee, poseIndices.rightAnkle],
+    landmarks: [
+      poseIndices.rightHip,
+      poseIndices.rightKnee,
+      poseIndices.rightAnkle,
+    ],
   },
 } as const;
 
@@ -88,9 +119,18 @@ const elbowRestDirections = {
 const SPINE_BEND_SHARE = 0.5; // Lower spine's share when Spine2 is present.
 
 export interface PlayerRig {
-  applyPose(landmarks: readonly PoseLandmark[], deltaSeconds: number, timestamp?: number, hands?: readonly TrackedHand[]): void;
+  applyPose(
+    landmarks: readonly PoseLandmark[],
+    deltaSeconds: number,
+    timestamp?: number,
+    hands?: readonly TrackedHand[],
+  ): void;
   /** Complete hand-led arms after the final framing camera is available. */
-  applyHandFallback(camera: PerspectiveCamera, imageAspect: number, deltaSeconds: number): void;
+  applyHandFallback(
+    camera: PerspectiveCamera,
+    imageAspect: number,
+    deltaSeconds: number,
+  ): void;
   setSmoothing(mode: RotationSmoothingMode): void;
   /** Every Bip01 node the rig binds, parents first. Live posing changes only
    * their rotations. */
@@ -146,13 +186,19 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
   const names = new Map<string, Object3D>();
   root.traverse((node) => names.set(node.name, node));
   const required = [
-    skeleton.pelvis, skeleton.lowerSpine, skeleton.head, ...skeleton.inherited,
+    skeleton.pelvis,
+    skeleton.lowerSpine,
+    skeleton.head,
+    ...skeleton.inherited,
     ...Object.values(limbDefinitions).flatMap((limb) => limb.bones),
   ];
-  if (required.some((name) => !names.has(`${skeleton.prefix}${name}`))) return null;
+  if (required.some((name) => !names.has(`${skeleton.prefix}${name}`)))
+    return null;
 
   root.updateWorldMatrix(true, true);
-  const inverseRootRotation = root.getWorldQuaternion(new Quaternion()).invert();
+  const inverseRootRotation = root
+    .getWorldQuaternion(new Quaternion())
+    .invert();
   const bindings = new Map<string, BoneBinding>();
   for (const [name, node] of Array.from(names)) {
     if (!name.startsWith(skeleton.prefix)) continue;
@@ -161,45 +207,62 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       restPosition: node.position.clone(),
       restRotation: node.quaternion.clone(),
       restScale: node.scale.clone(),
-      restRootRotation: node.getWorldQuaternion(new Quaternion()).premultiply(inverseRootRotation),
+      restRootRotation: node
+        .getWorldQuaternion(new Quaternion())
+        .premultiply(inverseRootRotation),
     });
   }
   const bone = (name: string) => bindings.get(name)!;
-  const rootPosition = (binding: BoneBinding) => root.worldToLocal(binding.node.getWorldPosition(new Vector3()));
+  const rootPosition = (binding: BoneBinding) =>
+    root.worldToLocal(binding.node.getWorldPosition(new Vector3()));
   const hipLeft = rootPosition(bone(limbDefinitions.leftLeg.bones[0]));
   const hipRight = rootPosition(bone(limbDefinitions.rightLeg.bones[0]));
   const shoulderLeft = rootPosition(bone(limbDefinitions.leftArm.bones[0]));
   const shoulderRight = rootPosition(bone(limbDefinitions.rightArm.bones[0]));
-  const trunkUp = midpoint(shoulderLeft, shoulderRight).sub(midpoint(hipLeft, hipRight));
+  const trunkUp = midpoint(shoulderLeft, shoulderRight).sub(
+    midpoint(hipLeft, hipRight),
+  );
   const restHips = bodyFrame(hipLeft.clone().sub(hipRight), trunkUp);
   const restChest = bodyFrame(shoulderLeft.clone().sub(shoulderRight), trunkUp);
   if (!restHips || !restChest) return null;
 
   // Calibration: map anatomical orientations onto each bone's authored axes.
   const bindFrame = (binding: BoneBinding, reference: Quaternion | null) => {
-    if (reference) binding.retargetOffset = reference.clone().invert().multiply(binding.restRootRotation);
+    if (reference)
+      binding.retargetOffset = reference
+        .clone()
+        .invert()
+        .multiply(binding.restRootRotation);
   };
   bindFrame(bone(skeleton.pelvis), restHips);
   const upperSpine = bindings.get(skeleton.upperSpine);
   // Thighs attach to Spine, so all torso bending starts above that node.
-  bindFrame(bone(skeleton.lowerSpine), restHips.clone().slerp(restChest, upperSpine ? SPINE_BEND_SHARE : 1));
+  bindFrame(
+    bone(skeleton.lowerSpine),
+    restHips.clone().slerp(restChest, upperSpine ? SPINE_BEND_SHARE : 1),
+  );
   if (upperSpine) bindFrame(upperSpine, restChest);
 
   const head = bone(skeleton.head);
   // Head +Z faces forward and -X points up in every player rig. The Eye
   // attachment is a camera position above the bone pivot, not a gaze vector;
   // using its position would pitch human helmets downward by roughly 45°.
-  bindFrame(head, facingFrame(
-    boneAxes.headForward.clone().applyQuaternion(head.restRootRotation),
-    boneAxes.headUp.clone().applyQuaternion(head.restRootRotation),
-  ));
+  bindFrame(
+    head,
+    facingFrame(
+      boneAxes.headForward.clone().applyQuaternion(head.restRootRotation),
+      boneAxes.headUp.clone().applyQuaternion(head.restRootRotation),
+    ),
+  );
 
   // Fingers/thumbs are optional so original, unarticulated GLBs still work.
   const restTip = ([name, tipName]: readonly [string, string]) => {
     const binding = bindings.get(name);
     const tip = bindings.get(tipName);
     if (!binding || tip?.node.parent !== binding.node) return null;
-    const direction = tip.restPosition.clone().applyQuaternion(binding.restRotation);
+    const direction = tip.restPosition
+      .clone()
+      .applyQuaternion(binding.restRotation);
     return direction.lengthSq() > 1e-10 ? { binding, direction } : null;
   };
 
@@ -208,37 +271,71 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
     const isArm = definition.kind === "arm";
     const isLeft = definition.side === "left";
     const [upper, lower, end] = definition.bones.map(bone);
-    const restBendNormal = boneAxes.limbBendNormal.clone().applyQuaternion(upper.restRootRotation);
-    bindFrame(upper, segmentFrame(rootPosition(lower).sub(rootPosition(upper)), restBendNormal));
-    bindFrame(lower, segmentFrame(rootPosition(end).sub(rootPosition(lower)), restBendNormal));
+    const restBendNormal = boneAxes.limbBendNormal
+      .clone()
+      .applyQuaternion(upper.restRootRotation);
+    bindFrame(
+      upper,
+      segmentFrame(
+        rootPosition(lower).sub(rootPosition(upper)),
+        restBendNormal,
+      ),
+    );
+    bindFrame(
+      lower,
+      segmentFrame(rootPosition(end).sub(rootPosition(lower)), restBendNormal),
+    );
     if (isArm) {
       // Added mitt children preserve the authored wrist axes and stock grip.
-      bindFrame(end, segmentFrame(
-        boneAxes.handDistal.clone().applyQuaternion(end.restRootRotation),
-        boneAxes.palmNormal.clone().applyQuaternion(end.restRootRotation),
-      ));
+      bindFrame(
+        end,
+        segmentFrame(
+          boneAxes.handDistal.clone().applyQuaternion(end.restRootRotation),
+          boneAxes.palmNormal.clone().applyQuaternion(end.restRootRotation),
+        ),
+      );
     } else {
-      bindFrame(end, facingFrame(
-        boneAxes.footForward.clone().applyQuaternion(end.restRootRotation),
-        boneAxes.footUp.clone().applyQuaternion(end.restRootRotation),
-      ));
+      bindFrame(
+        end,
+        facingFrame(
+          boneAxes.footForward.clone().applyQuaternion(end.restRootRotation),
+          boneAxes.footUp.clone().applyQuaternion(end.restRootRotation),
+        ),
+      );
     }
     // Retain palm/sole orientation relative to the forearm/calf, so it can
     // follow that bone when the detector cannot observe wrist/ankle roll.
-    const restRoll = (isArm ? boneAxes.palmNormal : boneAxes.footUp).clone()
-      .applyQuaternion(end.restRootRotation).applyQuaternion(lower.restRootRotation.clone().invert());
+    const restRoll = (isArm ? boneAxes.palmNormal : boneAxes.footUp)
+      .clone()
+      .applyQuaternion(end.restRootRotation)
+      .applyQuaternion(lower.restRootRotation.clone().invert());
     const limb: Limb = {
-      upper, lower, end, indices: definition.landmarks, isArm, isLeft,
-      restBendNormal, previousBendNormal: null, restRoll, previousRoll: null,
+      upper,
+      lower,
+      end,
+      indices: definition.landmarks,
+      isArm,
+      isLeft,
+      restBendNormal,
+      previousBendNormal: null,
+      restRoll,
+      previousRoll: null,
       upperLength: rootPosition(upper).distanceTo(rootPosition(lower)),
       lowerLength: rootPosition(lower).distanceTo(rootPosition(end)),
-      fallbackHand: null, fallbackDepth: null, fallbackElbow: null, fallbackBend: null, trackedArm: false,
+      fallbackHand: null,
+      fallbackDepth: null,
+      fallbackElbow: null,
+      fallbackBend: null,
+      trackedArm: false,
     };
     if (definition.kind === "arm") {
       const fingers = restTip(definition.fingers);
       if (fingers) {
         limb.fingers = fingers.binding;
-        limb.restFingerCurl = Math.atan2(fingers.direction.z, -fingers.direction.x);
+        limb.restFingerCurl = Math.atan2(
+          fingers.direction.z,
+          -fingers.direction.x,
+        );
       }
       const thumb = restTip(definition.thumb);
       if (thumb) {
@@ -252,11 +349,20 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
   // Evaluation order and temporal state. Parents must be applied first.
   const depth = (node: Object3D) => {
     let count = 0;
-    for (let parent = node.parent; parent && parent !== root; parent = parent.parent) count++;
+    for (
+      let parent = node.parent;
+      parent && parent !== root;
+      parent = parent.parent
+    )
+      count++;
     return count;
   };
-  const ordered = Array.from(bindings.values()).sort((a, b) => depth(a.node) - depth(b.node));
-  const bindingByNode = new Map(ordered.map((binding) => [binding.node as Object3D, binding]));
+  const ordered = Array.from(bindings.values()).sort(
+    (a, b) => depth(a.node) - depth(b.node),
+  );
+  const bindingByNode = new Map(
+    ordered.map((binding) => [binding.node as Object3D, binding]),
+  );
   const parentBinding = (binding: BoneBinding) =>
     binding.node.parent ? bindingByNode.get(binding.node.parent) : undefined;
   let disposed = false;
@@ -274,9 +380,13 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
     const inverseRoot = root.getWorldQuaternion(new Quaternion()).invert();
     for (const binding of ordered) {
       const filter = createRotationSmoother(smoothing);
-      filter.reset(smoothsWorld()
-        ? binding.node.getWorldQuaternion(new Quaternion()).premultiply(inverseRoot)
-        : binding.node.quaternion);
+      filter.reset(
+        smoothsWorld()
+          ? binding.node
+              .getWorldQuaternion(new Quaternion())
+              .premultiply(inverseRoot)
+          : binding.node.quaternion,
+      );
       smoothers.set(binding, filter);
     }
   };
@@ -312,60 +422,117 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
   };
 
   const handTargets = (
-    limb: Limb, hand: HandFrame, detailed: DetailedHandPose | null,
-    forearmRotation: Quaternion, output: Map<BoneBinding, Quaternion>,
+    limb: Limb,
+    hand: HandFrame,
+    detailed: DetailedHandPose | null,
+    forearmRotation: Quaternion,
+    output: Map<BoneBinding, Quaternion>,
   ) => {
-    const wristRotation = hand.rotation.clone().multiply(limb.end.retargetOffset!);
+    const wristRotation = hand.rotation
+      .clone()
+      .multiply(limb.end.retargetOffset!);
     output.set(limb.end, wristRotation);
-    limb.previousRoll = hand.normal.clone().applyQuaternion(forearmRotation.clone().invert());
+    limb.previousRoll = hand.normal
+      .clone()
+      .applyQuaternion(forearmRotation.clone().invert());
     if (limb.fingers && detailed?.fingersCurl != null) {
-      const flex = new Quaternion().setFromAxisAngle(boneAxes.fingerCurl, detailed.fingersCurl - limb.restFingerCurl!);
-      output.set(limb.fingers, wristRotation.clone().multiply(flex).multiply(limb.fingers.restRotation));
+      const flex = new Quaternion().setFromAxisAngle(
+        boneAxes.fingerCurl,
+        detailed.fingersCurl - limb.restFingerCurl!,
+      );
+      output.set(
+        limb.fingers,
+        wristRotation
+          .clone()
+          .multiply(flex)
+          .multiply(limb.fingers.restRotation),
+      );
     }
     if (limb.thumb && detailed?.thumbDirection) {
-      const flex = thumbRotation(limb.restThumbDirection!, detailed.thumbDirection);
-      if (flex) output.set(limb.thumb, wristRotation.clone().multiply(flex).multiply(limb.thumb.restRotation));
+      const flex = thumbRotation(
+        limb.restThumbDirection!,
+        detailed.thumbDirection,
+      );
+      if (flex)
+        output.set(
+          limb.thumb,
+          wristRotation
+            .clone()
+            .multiply(flex)
+            .multiply(limb.thumb.restRotation),
+        );
     }
   };
 
   const deferHandArm = (limb: Limb, tracked: TrackedHand | undefined) => {
     const wrist = tracked?.landmarks[0];
-    if (!tracked || !isInImage(wrist) ||
-        !detailedHandPose(tracked, boneAxes.palmNormal.clone()
+    if (
+      !tracked ||
+      !isInImage(wrist) ||
+      !detailedHandPose(
+        tracked,
+        boneAxes.palmNormal
+          .clone()
           .applyQuaternion(limb.end.node.getWorldQuaternion(new Quaternion()))
-          .applyQuaternion(root.getWorldQuaternion(new Quaternion()).invert()))) return false;
+          .applyQuaternion(root.getWorldQuaternion(new Quaternion()).invert()),
+      )
+    )
+      return false;
     limb.fallbackHand = tracked;
-    for (const binding of [limb.upper, limb.lower, limb.end, limb.fingers, limb.thumb]) {
+    for (const binding of [
+      limb.upper,
+      limb.lower,
+      limb.end,
+      limb.fingers,
+      limb.thumb,
+    ]) {
       if (binding) deferred.add(binding);
     }
     return true;
   };
 
   // Retargeting: derive bone orientations from the tracked landmarks.
-  const solve = (landmarks: readonly PoseLandmark[], hands: readonly TrackedHand[]) => {
+  const solve = (
+    landmarks: readonly PoseLandmark[],
+    hands: readonly TrackedHand[],
+  ) => {
     const point = (index: number) => readPosePoint(landmarks, index);
     const leftShoulder = point(poseIndices.leftShoulder);
     const rightShoulder = point(poseIndices.rightShoulder);
     const leftHip = point(poseIndices.leftHip);
     const rightHip = point(poseIndices.rightHip);
-    const shoulders = leftShoulder && rightShoulder ? midpoint(leftShoulder, rightShoulder) : null;
+    const shoulders =
+      leftShoulder && rightShoulder
+        ? midpoint(leftShoulder, rightShoulder)
+        : null;
     const hips = leftHip && rightHip ? midpoint(leftHip, rightHip) : null;
     const up = shoulders && hips ? shoulders.clone().sub(hips) : ROOT_UP;
     // The hip line observes yaw/roll, but not pelvic pitch. Using the trunk's
     // up vector here would put all forward leaning into the pelvis and leave
     // the spine rigid. Keep that unobserved pitch neutral and bend the torso
     // above the leg attachments instead.
-    const hipFrame = leftHip && rightHip ? bodyFrame(leftHip.clone().sub(rightHip), ROOT_UP) : null;
-    const chestFrame = leftShoulder && rightShoulder
-      ? bodyFrame(leftShoulder.clone().sub(rightShoulder), up) : null;
+    const hipFrame =
+      leftHip && rightHip
+        ? bodyFrame(leftHip.clone().sub(rightHip), ROOT_UP)
+        : null;
+    const chestFrame =
+      leftShoulder && rightShoulder
+        ? bodyFrame(leftShoulder.clone().sub(rightShoulder), up)
+        : null;
     targets = new Map<BoneBinding, Quaternion>();
     deferred.clear();
     const target = (binding: BoneBinding, pose: Quaternion | null) => {
-      if (pose && binding.retargetOffset) targets.set(binding, pose.clone().multiply(binding.retargetOffset));
+      if (pose && binding.retargetOffset)
+        targets.set(binding, pose.clone().multiply(binding.retargetOffset));
     };
     target(bone(skeleton.pelvis), hipFrame);
     if (chestFrame) {
-      target(bone(skeleton.lowerSpine), (hipFrame ?? restHips).clone().slerp(chestFrame, upperSpine ? SPINE_BEND_SHARE : 1));
+      target(
+        bone(skeleton.lowerSpine),
+        (hipFrame ?? restHips)
+          .clone()
+          .slerp(chestFrame, upperSpine ? SPINE_BEND_SHARE : 1),
+      );
       if (upperSpine) target(upperSpine, chestFrame);
     }
 
@@ -378,7 +545,9 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
 
     for (const limb of limbs) {
       const [start, middle, end] = limb.indices.map(point);
-      const tracked = limb.isArm ? hands.find((hand) => hand.side === (limb.isLeft ? "left" : "right")) : undefined;
+      const tracked = limb.isArm
+        ? hands.find((hand) => hand.side === (limb.isLeft ? "left" : "right"))
+        : undefined;
       limb.fallbackHand = null;
       if (!start || !middle || !end) {
         if (!deferHandArm(limb, tracked)) forgetLimb(limb);
@@ -387,12 +556,15 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       const body = limb.isArm ? chestFrame : hipFrame;
       const previousBody = limb.isArm ? previousChest : previousHips;
       const restBody = limb.isArm ? restChest : restHips;
-      const fallback = limb.previousBendNormal?.clone() ?? limb.restBendNormal.clone();
+      const fallback =
+        limb.previousBendNormal?.clone() ?? limb.restBendNormal.clone();
       // Turn the previous normal with the body's rotation since the last sample
       // (or the rest normal with the body's rotation from rest).
       const previous = limb.previousBendNormal ? previousBody : restBody;
       if (body && previous) {
-        fallback.applyQuaternion(body.clone().multiply(previous.clone().invert()));
+        fallback.applyQuaternion(
+          body.clone().multiply(previous.clone().invert()),
+        );
       }
       const solved = limbFrames(start, middle, end, fallback);
       if (!solved) {
@@ -407,31 +579,51 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       target(limb.upper, solved.upper);
       target(limb.lower, solved.lower);
       if (limb.isArm) {
-        const index = point(limb.isLeft ? poseIndices.leftIndex : poseIndices.rightIndex);
-        const pinky = point(limb.isLeft ? poseIndices.leftPinky : poseIndices.rightPinky);
-        const forearmRotation = solved.lower.clone().multiply(limb.lower.retargetOffset!);
+        const index = point(
+          limb.isLeft ? poseIndices.leftIndex : poseIndices.rightIndex,
+        );
+        const pinky = point(
+          limb.isLeft ? poseIndices.leftPinky : poseIndices.rightPinky,
+        );
+        const forearmRotation = solved.lower
+          .clone()
+          .multiply(limb.lower.retargetOffset!);
         // Transport roll in forearm space through collapsed/edge-on samples.
-        const fallback = (limb.previousRoll ?? limb.restRoll).clone().applyQuaternion(forearmRotation);
+        const fallback = (limb.previousRoll ?? limb.restRoll)
+          .clone()
+          .applyQuaternion(forearmRotation);
         const detailed = tracked ? detailedHandPose(tracked, fallback) : null;
-        const hand = detailed?.palm ?? (index && pinky
-          ? handFrame(end, index, pinky, limb.isLeft, fallback) : null);
+        const hand =
+          detailed?.palm ??
+          (index && pinky
+            ? handFrame(end, index, pinky, limb.isLeft, fallback)
+            : null);
         if (hand) {
           handTargets(limb, hand, detailed, forearmRotation, targets);
         } else {
           limb.previousRoll = null;
         }
       } else {
-        const heel = point(limb.isLeft ? poseIndices.leftHeel : poseIndices.rightHeel);
-        const toe = point(limb.isLeft ? poseIndices.leftFootIndex : poseIndices.rightFootIndex);
+        const heel = point(
+          limb.isLeft ? poseIndices.leftHeel : poseIndices.rightHeel,
+        );
+        const toe = point(
+          limb.isLeft ? poseIndices.leftFootIndex : poseIndices.rightFootIndex,
+        );
         if (heel && toe) {
-          const calfRotation = solved.lower.clone().multiply(limb.lower.retargetOffset!);
+          const calfRotation = solved.lower
+            .clone()
+            .multiply(limb.lower.retargetOffset!);
           // A nearly flat ankle/heel/toe triangle does not observe sole roll.
           // Carry the prior sole-up with the calf while following the toes.
-          const fallback = (limb.previousRoll ?? limb.restRoll).clone().applyQuaternion(calfRotation);
+          const fallback = (limb.previousRoll ?? limb.restRoll)
+            .clone()
+            .applyQuaternion(calfRotation);
           const foot = footFrame(end, heel, toe, fallback);
           target(limb.end, foot?.rotation ?? null);
           limb.previousRoll = foot
-            ? foot.up.clone().applyQuaternion(calfRotation.invert()) : null;
+            ? foot.up.clone().applyQuaternion(calfRotation.invert())
+            : null;
         } else {
           limb.previousRoll = null;
         }
@@ -443,8 +635,11 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
 
   // Pose application: root-space targets → parent-local bone rotations.
   const applyBoneBinding = (
-    binding: BoneBinding, target: Quaternion | undefined, parentTarget: Quaternion | undefined,
-    deltaSeconds: number, rootRotation: Quaternion,
+    binding: BoneBinding,
+    target: Quaternion | undefined,
+    parentTarget: Quaternion | undefined,
+    deltaSeconds: number,
+    rootRotation: Quaternion,
   ) => {
     const desired = target?.clone();
     const filter = smoothers.get(binding)!;
@@ -456,19 +651,31 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       // its parent actually is. Local smoothing filters the rotation relative
       // to the parent's target instead, so a lagging parent (like the wrist)
       // doesn't twist its children (like the fingers) off their hinge axis.
-      const parentRotation = !smoothsWorld() && parentTarget
-        ? parentTarget.clone().premultiply(rootRotation)
-        : binding.node.parent?.getWorldQuaternion(new Quaternion()) ?? new Quaternion();
+      const parentRotation =
+        !smoothsWorld() && parentTarget
+          ? parentTarget.clone().premultiply(rootRotation)
+          : (binding.node.parent?.getWorldQuaternion(new Quaternion()) ??
+            new Quaternion());
       desired.premultiply(rootRotation).premultiply(parentRotation.invert());
-      binding.node.quaternion.copy(smoothsWorld()
-        ? desired : filter.filter(desired, deltaSeconds)).normalize();
+      binding.node.quaternion
+        .copy(smoothsWorld() ? desired : filter.filter(desired, deltaSeconds))
+        .normalize();
     } else {
       // Missing landmarks return only this part to its local rest pose.
       // Clear adaptive velocity so reacquisition cannot reuse stale motion.
-      binding.node.quaternion.slerp(binding.restRotation, smoothing === "none" ? 1 : poseSmoothingAlpha(deltaSeconds)).normalize();
-      filter.reset(smoothsWorld()
-        ? binding.node.getWorldQuaternion(new Quaternion()).premultiply(rootRotation.clone().invert())
-        : binding.node.quaternion);
+      binding.node.quaternion
+        .slerp(
+          binding.restRotation,
+          smoothing === "none" ? 1 : poseSmoothingAlpha(deltaSeconds),
+        )
+        .normalize();
+      filter.reset(
+        smoothsWorld()
+          ? binding.node
+              .getWorldQuaternion(new Quaternion())
+              .premultiply(rootRotation.clone().invert())
+          : binding.node.quaternion,
+      );
     }
     binding.node.updateMatrix();
   };
@@ -481,12 +688,20 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       if (!alpha) return;
       if (!landmarks.length && !hands.length) {
         clearTargets();
-      } else if (timestamp === undefined || !Number.isFinite(timestamp) || timestamp !== lastTimestamp) {
+      } else if (
+        timestamp === undefined ||
+        !Number.isFinite(timestamp) ||
+        timestamp !== lastTimestamp
+      ) {
         // Bend-plane history belongs to camera samples, not render frames. A cached
         // target still damps smoothly between samples without accumulating
         // extra bend-plane feedback on faster displays.
-        if (timestamp !== undefined && lastTimestamp !== undefined &&
-            (timestamp < lastTimestamp || timestamp - lastTimestamp > MAX_POSE_AGE_MS)) {
+        if (
+          timestamp !== undefined &&
+          lastTimestamp !== undefined &&
+          (timestamp < lastTimestamp ||
+            timestamp - lastTimestamp > MAX_POSE_AGE_MS)
+        ) {
           // The pose expired before this sample, so the bend-plane and smoothing
           // history is stale. Keep the hand-only IK depth.
           clearTargets(timestamp > lastTimestamp);
@@ -501,7 +716,13 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       for (const binding of ordered) {
         if (deferred.has(binding)) continue;
         const parent = parentBinding(binding);
-        applyBoneBinding(binding, targets.get(binding), parent && targets.get(parent), deltaSeconds, rootRotation);
+        applyBoneBinding(
+          binding,
+          targets.get(binding),
+          parent && targets.get(parent),
+          deltaSeconds,
+          rootRotation,
+        );
       }
       root.updateWorldMatrix(true, true);
     },
@@ -512,11 +733,24 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
       root.updateWorldMatrix(true, true);
       const rootRotation = root.getWorldQuaternion(new Quaternion());
       const applyArm = (limb: Limb, output: Map<BoneBinding, Quaternion>) => {
-        for (const binding of [limb.upper, limb.lower, limb.end, limb.fingers, limb.thumb]) {
+        for (const binding of [
+          limb.upper,
+          limb.lower,
+          limb.end,
+          limb.fingers,
+          limb.thumb,
+        ]) {
           if (!binding) continue;
           const parent = parentBinding(binding);
-          const parentTarget = parent && (output.get(parent) ?? targets.get(parent));
-          applyBoneBinding(binding, output.get(binding), parentTarget, deltaSeconds, rootRotation);
+          const parentTarget =
+            parent && (output.get(parent) ?? targets.get(parent));
+          applyBoneBinding(
+            binding,
+            output.get(binding),
+            parentTarget,
+            deltaSeconds,
+            rootRotation,
+          );
         }
         root.updateWorldMatrix(true, true);
       };
@@ -529,25 +763,50 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
           // Hold the entry depth relative to the shoulder. Reusing the
           // reach-clamped wrist's depth would ratchet the arm across frames.
           limb.fallbackDepth = wrist.clone().sub(shoulder);
-          limb.fallbackElbow = limb.trackedArm ? rootPosition(limb.lower) : null;
+          limb.fallbackElbow = limb.trackedArm
+            ? rootPosition(limb.lower)
+            : null;
           const axis = wrist.sub(shoulder).normalize();
-          const bend = limb.fallbackElbow?.clone().sub(shoulder)
-            ?? elbowRestDirections[limb.isLeft ? "left" : "right"].clone();
+          const bend =
+            limb.fallbackElbow?.clone().sub(shoulder) ??
+            elbowRestDirections[limb.isLeft ? "left" : "right"].clone();
           bend.addScaledVector(axis, -bend.dot(axis));
-          limb.fallbackBend = bend.lengthSq() > 1e-10 ? bend.normalize()
-            : elbowRestDirections[limb.isLeft ? "left" : "right"].clone().normalize();
+          limb.fallbackBend =
+            bend.lengthSq() > 1e-10
+              ? bend.normalize()
+              : elbowRestDirections[limb.isLeft ? "left" : "right"]
+                  .clone()
+                  .normalize();
         }
-        const desired = handImageTarget(root, camera, imageAspect, tracked.landmarks[0],
-          shoulder.clone().add(limb.fallbackDepth));
+        const desired = handImageTarget(
+          root,
+          camera,
+          imageAspect,
+          tracked.landmarks[0],
+          shoulder.clone().add(limb.fallbackDepth),
+        );
         // If IK can't be solved, ease the arm toward rest like an untracked limb.
-        if (!desired) { applyArm(limb, new Map()); continue; }
-        const solved = solveArmIK({ shoulder, target: desired,
-          upperLength: limb.upperLength, lowerLength: limb.lowerLength,
-          bendDirection: limb.fallbackBend!, previousElbow: limb.fallbackElbow });
-        if (!solved) { applyArm(limb, new Map()); continue; }
+        if (!desired) {
+          applyArm(limb, new Map());
+          continue;
+        }
+        const solved = solveArmIK({
+          shoulder,
+          target: desired,
+          upperLength: limb.upperLength,
+          lowerLength: limb.lowerLength,
+          bendDirection: limb.fallbackBend!,
+          previousElbow: limb.fallbackElbow,
+        });
+        if (!solved) {
+          applyArm(limb, new Map());
+          continue;
+        }
         limb.fallbackElbow = solved.elbow;
         limb.fallbackBend = solved.bendDirection;
-        const normal = solved.bendDirection.clone().cross(solved.wrist.clone().sub(shoulder));
+        const normal = solved.bendDirection
+          .clone()
+          .cross(solved.wrist.clone().sub(shoulder));
         const prior = limb.previousBendNormal ?? limb.restBendNormal;
         if (normal.lengthSq() < 1e-10) normal.copy(prior);
         else {
@@ -555,16 +814,26 @@ export function createPlayerRig(root: Object3D): PlayerRig | null {
           if (normal.dot(prior) < 0) normal.negate();
         }
         const upper = segmentFrame(solved.elbow.clone().sub(shoulder), normal);
-        const lower = segmentFrame(solved.wrist.clone().sub(solved.elbow), normal);
-        if (!upper || !lower) { applyArm(limb, new Map()); continue; }
+        const lower = segmentFrame(
+          solved.wrist.clone().sub(solved.elbow),
+          normal,
+        );
+        if (!upper || !lower) {
+          applyArm(limb, new Map());
+          continue;
+        }
         limb.previousBendNormal = normal;
         const forearm = lower.multiply(limb.lower.retargetOffset!);
         const output = new Map<BoneBinding, Quaternion>([
-          [limb.upper, upper.multiply(limb.upper.retargetOffset!)], [limb.lower, forearm],
+          [limb.upper, upper.multiply(limb.upper.retargetOffset!)],
+          [limb.lower, forearm],
         ]);
-        const fallback = (limb.previousRoll ?? limb.restRoll).clone().applyQuaternion(forearm);
+        const fallback = (limb.previousRoll ?? limb.restRoll)
+          .clone()
+          .applyQuaternion(forearm);
         const detailed = detailedHandPose(tracked, fallback);
-        if (detailed) handTargets(limb, detailed.palm, detailed, forearm, output);
+        if (detailed)
+          handTargets(limb, detailed.palm, detailed, forearm, output);
         // Each deferred binding is damped exactly once, after framing settles
         // for this render.
         applyArm(limb, output);
